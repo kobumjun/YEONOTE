@@ -155,6 +155,7 @@ export function TemplateEditor({
 
   const [fav, setFav] = useState(initial.is_favorited ?? false);
   const [isPublic, setIsPublic] = useState(initial.is_public ?? false);
+  const [shareBusy, setShareBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
@@ -190,6 +191,10 @@ export function TemplateEditor({
   useEffect(() => {
     if (!readOnly && insertIndex === null) setInsertIndex(blocks.length);
   }, [blocks.length, readOnly, insertIndex]);
+
+  useEffect(() => {
+    setIsPublic(initial.is_public ?? false);
+  }, [templateId, initial.is_public]);
 
   const save = useCallback(async () => {
     const st = useEditorStore.getState();
@@ -259,18 +264,27 @@ export function TemplateEditor({
   }
 
   async function setPublic(next: boolean) {
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_public: next }),
-    });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      toast.error((j as { error?: string }).error ?? "공유 설정에 실패했습니다.");
-      return;
+    setShareBusy(true);
+    try {
+      const res = await fetch(`/api/templates/${templateId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_public: next }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error((j as { error?: string }).error ?? "공유 설정에 실패했습니다.");
+        return;
+      }
+      const j = (await res.json().catch(() => ({}))) as { template?: { is_public?: boolean } };
+      const resolved = typeof j.template?.is_public === "boolean" ? j.template.is_public : next;
+      setIsPublic(resolved);
+      toast.success(resolved ? "템플릿이 공개되었습니다" : "템플릿이 비공개로 전환되었습니다");
+    } catch {
+      toast.error("공유 설정에 실패했습니다.");
+    } finally {
+      setShareBusy(false);
     }
-    setIsPublic(next);
-    toast.success(next ? "템플릿이 공개되었습니다" : "템플릿이 비공개로 전환되었습니다");
   }
 
   async function copyShareLink() {
@@ -444,7 +458,13 @@ export function TemplateEditor({
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
               <p className="text-sm text-foreground">탐색 페이지에 공개</p>
-              <Switch checked={isPublic} onCheckedChange={(v) => void setPublic(Boolean(v))} />
+              <Switch
+                checked={isPublic}
+                disabled={shareBusy}
+                onCheckedChange={(checked) => {
+                  void setPublic(Boolean(checked));
+                }}
+              />
             </div>
             {isPublic ? (
               <div className="rounded-md border bg-muted/10 p-2">
@@ -452,7 +472,7 @@ export function TemplateEditor({
                   <div className="min-w-0 flex-1 break-all text-sm text-foreground">
                     {`https://yeonote.vercel.app/shared/${templateId}`}
                   </div>
-                  <Button size="sm" variant="outline" onClick={copyShareLink}>
+                  <Button size="sm" variant="outline" onClick={copyShareLink} disabled={shareBusy}>
                     링크 복사
                   </Button>
                 </div>
@@ -462,7 +482,7 @@ export function TemplateEditor({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShareOpen(false)}>
+            <Button variant="outline" onClick={() => setShareOpen(false)} disabled={shareBusy}>
               닫기
             </Button>
           </DialogFooter>

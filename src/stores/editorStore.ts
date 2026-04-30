@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { TemplateBlock } from "@/types/template";
-import { normalizeAiTemplate, remapBlockIds, type AITemplatePayload } from "@/types/template";
+import { normalizeAiBlock, normalizeAiTemplate, remapBlockIds, type AITemplatePayload } from "@/types/template";
 
 export type EditorState = {
   templateId: string | null;
@@ -45,15 +45,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setBlocks: (blocks) => set({ blocks, dirty: true }),
 
-  loadFromServer: ({ id, title, icon, cover, blocks }) =>
+  loadFromServer: ({ id, title, icon, cover, blocks }) => {
+    const normalizedBlocks = (Array.isArray(blocks) ? blocks : [])
+      .map((raw) => {
+        const source = raw as Record<string, unknown>;
+        const normalized = normalizeAiBlock(source, typeof source.id === "string" ? source.id : undefined);
+        return normalized;
+      })
+      .filter((b): b is TemplateBlock => b !== null);
+
+    if (process.env.NODE_ENV !== "production") {
+      const firstRaw = Array.isArray(blocks) ? (blocks[0] as Record<string, unknown> | undefined) : undefined;
+      const firstNormalized = normalizedBlocks[0];
+      // Debug compare: manual vs AI/persisted block shape.
+      console.log("[editor] loadFromServer block-shape", {
+        rawSample: firstRaw,
+        normalizedSample: firstNormalized,
+      });
+    }
+
     set({
       templateId: id,
       title,
       icon,
       cover,
-      blocks,
+      blocks: normalizedBlocks,
       dirty: false,
-    }),
+    });
+  },
 
   applyAiPayload: (payload) => {
     const n = normalizeAiTemplate(payload);

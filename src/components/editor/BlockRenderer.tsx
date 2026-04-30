@@ -33,6 +33,17 @@ export function BlockRenderer({
     onEnter?.(block.id);
   };
 
+  const debugInput = (field: string, value: string) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[editor] block input", {
+        id: block.id,
+        type: block.type,
+        field,
+        valuePreview: value.slice(0, 80),
+      });
+    }
+  };
+
   const wrap = (child: React.ReactNode) => (
     <div className="relative py-1 pl-1" style={{ marginLeft: depth * 12 }}>
       {child}
@@ -49,6 +60,7 @@ export function BlockRenderer({
             className="font-heading w-full border-0 bg-transparent text-3xl font-bold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
             value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
             onKeyDown={(e) => {
               stopGlobalHotkeys(e);
               enterCreatesNewBlock(e);
@@ -65,6 +77,7 @@ export function BlockRenderer({
             className="font-heading w-full border-0 bg-transparent text-2xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
             value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
             onKeyDown={(e) => {
               stopGlobalHotkeys(e);
               enterCreatesNewBlock(e);
@@ -81,6 +94,7 @@ export function BlockRenderer({
             className="font-heading w-full border-0 bg-transparent text-xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
             value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
             onKeyDown={(e) => {
               stopGlobalHotkeys(e);
               enterCreatesNewBlock(e);
@@ -98,6 +112,7 @@ export function BlockRenderer({
             rows={Math.max(2, String(block.content ?? "").split("\n").length)}
             value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onInput={(e) => debugInput("content", (e.target as HTMLTextAreaElement).value)}
             onKeyDown={stopGlobalHotkeys}
           />
         )
@@ -180,6 +195,7 @@ export function BlockRenderer({
               className="flex-1 border-0 bg-transparent p-0 outline-none"
               value={String(block.content ?? "")}
               onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+              onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
               onKeyDown={(e) => {
                 stopGlobalHotkeys(e);
                 enterCreatesNewBlock(e);
@@ -200,6 +216,7 @@ export function BlockRenderer({
                 value={String(block.title ?? "")}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => onChange?.(block.id, { title: e.target.value } as Partial<TemplateBlock>)}
+                onInput={(e) => debugInput("title", (e.target as HTMLInputElement).value)}
                 onKeyDown={(e) => {
                   stopGlobalHotkeys(e);
                   enterCreatesNewBlock(e);
@@ -249,6 +266,7 @@ export function BlockRenderer({
                 rows={Math.max(2, String(block.content ?? "").split("\n").length)}
                 value={String(block.content ?? "")}
                 onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+                onInput={(e) => debugInput("content", (e.target as HTMLTextAreaElement).value)}
                 onKeyDown={stopGlobalHotkeys}
               />
             )}
@@ -265,6 +283,7 @@ export function BlockRenderer({
             rows={Math.max(2, String(block.content ?? "").split("\n").length)}
             value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onInput={(e) => debugInput("content", (e.target as HTMLTextAreaElement).value)}
             onKeyDown={stopGlobalHotkeys}
           />
         )

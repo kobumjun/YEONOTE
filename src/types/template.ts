@@ -162,6 +162,27 @@ export type AITemplatePayload = {
   blocks: unknown[];
 };
 
+function coerceText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => coerceText(v))
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const candidates = [obj.text, obj.value, obj.content, obj.plain_text];
+    for (const candidate of candidates) {
+      const t = coerceText(candidate);
+      if (t) return t;
+    }
+    return "";
+  }
+  return "";
+}
+
 export function newBlockId(): BlockId {
   return crypto.randomUUID();
 }
@@ -188,9 +209,9 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
     case "heading1":
     case "heading2":
     case "heading3":
-      return { id: bid, type, content: String(raw.content ?? "") };
+      return { id: bid, type, content: coerceText(raw.content) };
     case "paragraph":
-      return { id: bid, type: "paragraph", content: String(raw.content ?? "") };
+      return { id: bid, type: "paragraph", content: coerceText(raw.content) };
     case "bulleted_list":
       return {
         id: bid,
@@ -207,7 +228,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
       return {
         id: bid,
         type: "to_do",
-        content: String(raw.content ?? ""),
+        content: coerceText(raw.content),
         checked: Boolean(raw.checked),
       };
     case "toggle": {
@@ -215,25 +236,25 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
       const children = childrenRaw
         .map((c) => normalizeAiBlock(c))
         .filter((b): b is TemplateBlock => b !== null);
-      return { id: bid, type: "toggle", title: String(raw.title ?? ""), children };
+      return { id: bid, type: "toggle", title: coerceText(raw.title), children };
     }
     case "callout":
       return {
         id: bid,
         type: "callout",
-        icon: String(raw.icon ?? "💡"),
-        content: String(raw.content ?? ""),
+        icon: coerceText(raw.icon) || "💡",
+        content: coerceText(raw.content),
       };
     case "quote":
-      return { id: bid, type: "quote", content: String(raw.content ?? "") };
+      return { id: bid, type: "quote", content: coerceText(raw.content) };
     case "divider":
       return { id: bid, type: "divider" };
     case "code":
       return {
         id: bid,
         type: "code",
-        language: String(raw.language ?? "plaintext"),
-        content: String(raw.content ?? ""),
+        language: coerceText(raw.language) || "plaintext",
+        content: coerceText(raw.content),
       };
     case "image":
       return {
