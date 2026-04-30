@@ -9,6 +9,7 @@ import { createBlock, type InsertableBlockType } from "@/lib/block-factory";
 
 export type SlashCommandHandle = {
   open: () => void;
+  close: () => void;
 };
 
 const groups: { label: string; items: { type: InsertableBlockType; label: string }[] }[] = [
@@ -51,20 +52,23 @@ const groups: { label: string; items: { type: InsertableBlockType; label: string
 
 export const SlashCommand = forwardRef<
   SlashCommandHandle,
-  { onInsert: (block: ReturnType<typeof createBlock>) => void }
->(function SlashCommand({ onInsert }, ref) {
+  { onInsert: (block: ReturnType<typeof createBlock>) => void; showTrigger?: boolean }
+>(function SlashCommand({ onInsert, showTrigger = true }, ref) {
   const [open, setOpen] = useState(false);
 
   useImperativeHandle(ref, () => ({
     open: () => setOpen(true),
+    close: () => setOpen(false),
   }));
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" className="gap-1 rounded-lg" onClick={() => setOpen(true)}>
-        <Plus className="size-4" />
-        블록 추가 <span className="hidden text-muted-foreground sm:inline">( / )</span>
-      </Button>
+      {showTrigger && (
+        <Button type="button" variant="outline" size="sm" className="gap-1 rounded-lg" onClick={() => setOpen(true)}>
+          <Plus className="size-4" />
+          블록 추가 <span className="hidden text-muted-foreground sm:inline">( / )</span>
+        </Button>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="overflow-hidden p-0 sm:max-w-lg">
           <DialogHeader className="sr-only">

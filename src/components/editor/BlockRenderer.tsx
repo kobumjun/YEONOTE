@@ -3,7 +3,7 @@
 import type { TemplateBlock } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { BlockToolbar } from "@/components/editor/BlockToolbar";
+import { Plus, Trash2 } from "lucide-react";
 
 export function BlockRenderer({
   block,
@@ -21,10 +21,7 @@ export function BlockRenderer({
   depth?: number;
 }) {
   const wrap = (child: React.ReactNode) => (
-    <div className="group relative py-1 pl-1" style={{ marginLeft: depth * 12 }}>
-      {!readOnly && onDelete && onDuplicate && onChange && (
-        <BlockToolbar onDelete={() => onDelete(block.id)} onDuplicate={() => onDuplicate(block.id)} />
-      )}
+    <div className="relative py-1 pl-1" style={{ marginLeft: depth * 12 }}>
       {child}
     </div>
   );
@@ -227,10 +224,27 @@ export function BlockRenderer({
       return wrap(<hr className="my-4 border-t border-border" />);
     case "code":
       return wrap(
-        <pre className="overflow-x-auto rounded-lg bg-slate-900 p-4 text-xs text-slate-100">
-          <span className="mb-2 block text-[10px] uppercase text-slate-400">{block.language}</span>
-          <code>{block.content}</code>
-        </pre>
+        readOnly ? (
+          <pre className="overflow-x-auto rounded-lg bg-slate-900 p-4 text-xs text-slate-100">
+            <span className="mb-2 block text-[10px] uppercase text-slate-400">{block.language}</span>
+            <code>{block.content}</code>
+          </pre>
+        ) : (
+          <div className="rounded-lg border bg-slate-950/95 p-3">
+            <input
+              className="mb-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-300 outline-none focus:border-yeo-500"
+              value={block.language}
+              onChange={(e) => onChange?.(block.id, { language: e.target.value } as Partial<TemplateBlock>)}
+              aria-label="코드 언어"
+            />
+            <textarea
+              className="min-h-24 w-full resize-y rounded border border-slate-700 bg-slate-900 p-2 font-mono text-xs text-slate-100 outline-none focus:border-yeo-500"
+              value={block.content}
+              onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+              aria-label="코드 내용"
+            />
+          </div>
+        )
       );
     case "image":
       return wrap(
@@ -259,30 +273,167 @@ export function BlockRenderer({
       );
     case "database_table":
       return wrap(
-        <div className="overflow-x-auto rounded-lg border shadow-sm">
-          <div className="border-b bg-muted/50 px-3 py-2 text-sm font-medium">{block.title}</div>
-          <table className="w-full min-w-[320px] text-left text-xs">
+        <div className="group/table relative overflow-x-auto rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">
+            {readOnly ? (
+              <p className="text-sm font-medium">{block.title}</p>
+            ) : (
+              <input
+                className="w-full border-0 bg-transparent text-sm font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                value={block.title}
+                onChange={(e) => onChange?.(block.id, { title: e.target.value } as Partial<TemplateBlock>)}
+              />
+            )}
+            {!readOnly && (
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded border text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  const nextColumns = [...block.columns, { name: `새 열 ${block.columns.length + 1}`, type: "text" as const }];
+                  const nextRows = block.rows.map((r) => ({ ...r, [nextColumns[nextColumns.length - 1].name]: "" }));
+                  onChange?.(block.id, { columns: nextColumns, rows: nextRows } as Partial<TemplateBlock>);
+                }}
+                aria-label="열 추가"
+                title="열 추가"
+              >
+                <Plus className="size-4" />
+              </button>
+            )}
+          </div>
+          <table className="w-full min-w-[420px] text-left text-xs">
             <thead>
               <tr className="border-b bg-muted/30">
-                {block.columns.map((c) => (
-                  <th key={c.name} className="px-2 py-2 font-medium">
-                    {c.name}
+                {block.columns.map((c, ci) => (
+                  <th key={`${c.name}-${ci}`} className="px-2 py-2 font-medium">
+                    {readOnly ? (
+                      c.name
+                    ) : (
+                      <input
+                        className="w-full border-0 bg-transparent text-xs font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                        value={c.name}
+                        onChange={(e) => {
+                          const prevName = c.name;
+                          const nextName = e.target.value || `열 ${ci + 1}`;
+                          const nextColumns = [...block.columns];
+                          nextColumns[ci] = { ...nextColumns[ci], name: nextName };
+                          const nextRows = block.rows.map((row) => {
+                            const copy = { ...row };
+                            if (prevName !== nextName) {
+                              copy[nextName] = copy[prevName];
+                              delete copy[prevName];
+                            }
+                            return copy;
+                          });
+                          onChange?.(block.id, { columns: nextColumns, rows: nextRows } as Partial<TemplateBlock>);
+                        }}
+                      />
+                    )}
                   </th>
                 ))}
+                {!readOnly && <th className="w-8 px-1 py-2" />}
               </tr>
             </thead>
             <tbody>
               {block.rows.map((row, ri) => (
-                <tr key={ri} className="border-b last:border-0">
-                  {block.columns.map((c) => (
-                    <td key={c.name} className="px-2 py-2">
-                      {String(row[c.name] ?? "")}
+                <tr key={ri} className="group/row border-b last:border-0">
+                  {block.columns.map((c) => {
+                    const value = row[c.name];
+                    const updateCell = (nextVal: string | number | boolean | null) => {
+                      const nextRows = [...block.rows];
+                      nextRows[ri] = { ...nextRows[ri], [c.name]: nextVal };
+                      onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
+                    };
+                    return (
+                      <td key={`${ri}-${c.name}`} className="px-2 py-1.5 align-middle">
+                        {readOnly ? (
+                          c.type === "checkbox" ? (
+                            <Checkbox checked={Boolean(value)} disabled />
+                          ) : (
+                            <span>{String(value ?? "")}</span>
+                          )
+                        ) : c.type === "checkbox" ? (
+                          <Checkbox checked={Boolean(value)} onCheckedChange={(v) => updateCell(Boolean(v))} />
+                        ) : c.type === "select" ? (
+                          <select
+                            className="h-7 w-full rounded border bg-background px-2 text-xs"
+                            value={String(value ?? "")}
+                            onChange={(e) => updateCell(e.target.value)}
+                          >
+                            <option value="">선택</option>
+                            {(c.options ?? []).map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : c.type === "date" ? (
+                          <input
+                            type="date"
+                            className="h-7 w-full rounded border bg-background px-2 text-xs"
+                            value={typeof value === "string" ? value : ""}
+                            onChange={(e) => updateCell(e.target.value)}
+                          />
+                        ) : c.type === "number" ? (
+                          <input
+                            type="number"
+                            className="h-7 w-full rounded border bg-background px-2 text-xs"
+                            value={
+                              typeof value === "number"
+                                ? String(value)
+                                : typeof value === "string"
+                                  ? value
+                                  : ""
+                            }
+                            onChange={(e) => updateCell(e.target.value === "" ? null : Number(e.target.value))}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            className="h-7 w-full rounded border bg-background px-2 text-xs"
+                            value={String(value ?? "")}
+                            onChange={(e) => updateCell(e.target.value)}
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                  {!readOnly && (
+                    <td className="px-1 py-1.5 align-middle">
+                      <button
+                        type="button"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:text-destructive"
+                        onClick={() => {
+                          const nextRows = block.rows.filter((_, idx) => idx !== ri);
+                          onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
+                        }}
+                        aria-label="행 삭제"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
                     </td>
-                  ))}
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
+          {!readOnly && (
+            <div className="border-t bg-muted/20 px-2 py-1.5">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => {
+                  const nextRow = Object.fromEntries(
+                    block.columns.map((c) => [c.name, c.type === "checkbox" ? false : c.type === "number" ? null : ""])
+                  );
+                  const nextRows = [...block.rows, nextRow];
+                  onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
+                }}
+              >
+                <Plus className="size-3.5" />
+                행 추가
+              </button>
+            </div>
+          )}
         </div>
       );
     case "database_board": {

@@ -12,12 +12,13 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Star, Share2, Sparkles } from "lucide-react";
+import { Star, Share2, Sparkles, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BlockRenderer } from "@/components/editor/BlockRenderer";
+import { BlockToolbar } from "@/components/editor/BlockToolbar";
 import { SlashCommand, type SlashCommandHandle } from "@/components/editor/SlashCommand";
 import { CoverPicker } from "@/components/editor/CoverPicker";
 import { IconPicker } from "@/components/editor/IconPicker";
@@ -66,19 +67,41 @@ function SortableBlock({
     transition,
   };
   return (
-    <div ref={setNodeRef} style={style} className={cn(isDragging && "opacity-60")}>
-      <div className="flex gap-1">
-        {!readOnly && (
-          <button
-            type="button"
-            className="mt-2 w-6 shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground"
-            {...attributes}
-            {...listeners}
-            aria-label="드래그"
-          >
-            ⋮⋮
-          </button>
-        )}
+    <div ref={setNodeRef} style={style} className={cn("group relative", isDragging && "opacity-60")}>
+      {!readOnly && (
+        <>
+          <div className="mb-1 flex items-center gap-1 md:hidden">
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground"
+              {...attributes}
+              {...listeners}
+              aria-label="드래그"
+            >
+              <span className="text-sm leading-none">⠿</span>
+            </button>
+            <BlockToolbar onDelete={() => onDelete(block.id)} onDuplicate={() => onDuplicate(block.id)} />
+          </div>
+
+          <div className="pointer-events-none absolute left-0 top-1/2 hidden -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
+            <button
+              type="button"
+              className="pointer-events-auto inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+              {...attributes}
+              {...listeners}
+              aria-label="드래그"
+            >
+              <span className="text-sm leading-none">⠿</span>
+            </button>
+            <BlockToolbar
+              className="pointer-events-auto flex items-center gap-1"
+              onDelete={() => onDelete(block.id)}
+              onDuplicate={() => onDuplicate(block.id)}
+            />
+          </div>
+        </>
+      )}
+      <div className={cn("min-w-0", !readOnly && "md:pl-20")}>
         <div className="min-w-0 flex-1">
           <BlockRenderer
             block={block}
@@ -122,6 +145,7 @@ export function TemplateEditor({
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
   const [regenBusy, setRegenBusy] = useState(false);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadFromServer({
@@ -142,11 +166,16 @@ export function TemplateEditor({
       if (!el) return;
       if (el.closest("input, textarea, select, [contenteditable='true']")) return;
       e.preventDefault();
+      setInsertIndex(blocks.length);
       slashRef.current?.open();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readOnly]);
+  }, [readOnly, blocks.length]);
+
+  useEffect(() => {
+    if (!readOnly && insertIndex === null) setInsertIndex(blocks.length);
+  }, [blocks.length, readOnly, insertIndex]);
 
   const save = useCallback(async () => {
     const st = useEditorStore.getState();
@@ -185,6 +214,11 @@ export function TemplateEditor({
     const newIndex = blocks.findIndex((b) => b.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     setBlocks(arrayMove(blocks, oldIndex, newIndex));
+  }
+
+  function openInsertAt(index: number) {
+    setInsertIndex(index);
+    slashRef.current?.open();
   }
 
   async function toggleFav() {
@@ -289,22 +323,56 @@ export function TemplateEditor({
         <div ref={editorRef} className="mx-auto max-w-3xl px-6 py-10 pb-32">
           {!readOnly && (
             <div className="mb-6">
-              <SlashCommand ref={slashRef} onInsert={(b) => insertBlock(blocks.length, b)} />
+              <SlashCommand
+                ref={slashRef}
+                onInsert={(b) => {
+                  const at = insertIndex ?? blocks.length;
+                  insertBlock(at, b);
+                  setInsertIndex(at + 1);
+                }}
+              />
             </div>
           )}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
               <div className="space-y-1">
-                {blocks.map((block) => (
-                  <SortableBlock
-                    key={block.id}
-                    block={block}
-                    readOnly={readOnly}
-                    onChange={updateBlock}
-                    onDelete={removeBlock}
-                    onDuplicate={duplicateBlock}
-                  />
+                {blocks.map((block, i) => (
+                  <div key={block.id}>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => openInsertAt(i)}
+                        className="group/insert relative my-1 hidden h-4 w-full items-center md:flex"
+                        aria-label={`블록 ${i + 1} 앞에 삽입`}
+                      >
+                        <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
+                        <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
+                          <Plus className="size-3.5" />
+                        </span>
+                      </button>
+                    )}
+                    <SortableBlock
+                      block={block}
+                      readOnly={readOnly}
+                      onChange={updateBlock}
+                      onDelete={removeBlock}
+                      onDuplicate={duplicateBlock}
+                    />
+                  </div>
                 ))}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => openInsertAt(blocks.length)}
+                    className="group/insert relative mt-1 hidden h-4 w-full items-center md:flex"
+                    aria-label="마지막에 블록 삽입"
+                  >
+                    <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
+                    <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
+                      <Plus className="size-3.5" />
+                    </span>
+                  </button>
+                )}
               </div>
             </SortableContext>
           </DndContext>

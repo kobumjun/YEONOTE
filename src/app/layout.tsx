@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     default: `${appName} — AI 템플릿 워크플로`,
     template: `%s | ${appName}`,
   },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   description:
     "말만 하세요. YEO가 만듭니다. Describe it. YEO builds it. AI-powered Notion-style templates.",
   openGraph: {
