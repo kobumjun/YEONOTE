@@ -18,7 +18,12 @@ import { Badge } from "@/components/ui/badge";
 import { useUiStore } from "@/stores/uiStore";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
 import { normalizeAiTemplate } from "@/types/template";
-import { PRO_CREDIT_PACK_USD, TEAM_CREDIT_PACK_USD } from "@/lib/credits";
+import {
+  PRO_CREDIT_PACK_CREDITS,
+  PRO_CREDIT_PACK_USD,
+  TEAM_CREDIT_PACK_CREDITS,
+  TEAM_CREDIT_PACK_USD,
+} from "@/lib/credits";
 
 const tagOptions = ["생산성", "개인", "비즈니스", "교육", "건강", "재무"];
 const styles = ["minimal", "colorful", "corporate", "playful"] as const;
@@ -255,10 +260,10 @@ export function GenerateModal() {
           </p>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button type="button" className="w-full bg-yeo-600" onClick={() => void goCheckout("pro")}>
-              Pro 크레딧 구매 (${PRO_CREDIT_PACK_USD})
+              Pro · ${PRO_CREDIT_PACK_USD} · {PRO_CREDIT_PACK_CREDITS}크레딧 — 구매하기
             </Button>
             <Button type="button" variant="outline" className="w-full" onClick={() => void goCheckout("team")}>
-              Team 크레딧 구매 (${TEAM_CREDIT_PACK_USD})
+              Team · ${TEAM_CREDIT_PACK_USD} · {TEAM_CREDIT_PACK_CREDITS}크레딧 — 구매하기
             </Button>
             <Button type="button" variant="ghost" className="w-full" onClick={closeAll}>
               닫기

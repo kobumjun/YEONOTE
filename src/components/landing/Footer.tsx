@@ -28,6 +28,15 @@ export function Footer() {
               시작하기
             </Link>
           </div>
+          <div className="space-y-2">
+            <p className="font-medium text-white">정책</p>
+            <Link href="/privacy" className="block hover:text-white">
+              개인정보처리방침
+            </Link>
+            <Link href="/terms" className="block hover:text-white">
+              서비스 약관
+            </Link>
+          </div>
         </div>
       </div>
       <p className="mx-auto mt-10 max-w-6xl text-center text-xs text-slate-500">© {new Date().getFullYear()} YEO. All rights reserved.</p>

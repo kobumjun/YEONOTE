@@ -3,48 +3,20 @@
 import { useRouter } from "next/navigation";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
+import { ProfileAccountMenu } from "@/components/layout/ProfileAccountMenu";
+import type { TopBarProfile } from "@/types/top-bar-profile";
 
-export type TopBarProfile = {
-  displayName: string;
-  email: string;
-  avatarUrl: string | null;
-  aiCredits: number;
-  aiCreditsCeiling: number;
-};
-
-function initials(name: string, email: string): string {
-  const n = name.trim();
-  if (n.length >= 2) return n.slice(0, 2).toUpperCase();
-  const e = email.trim();
-  if (e.length >= 2) return e.slice(0, 2).toUpperCase();
-  return "Y";
-}
+export type { TopBarProfile } from "@/types/top-bar-profile";
 
 export function TopBar({ profile }: { profile: TopBarProfile }) {
   const router = useRouter();
   const setGenerateOpen = useUiStore((s) => s.setGenerateOpen);
-  const { displayName, email, avatarUrl, aiCredits, aiCreditsCeiling } = profile;
-
-  async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
+  const aiCredits = typeof profile?.aiCredits === "number" && !Number.isNaN(profile.aiCredits) ? profile.aiCredits : 0;
+  const aiCreditsCeiling =
+    typeof profile?.aiCreditsCeiling === "number" && !Number.isNaN(profile.aiCreditsCeiling) ? profile.aiCreditsCeiling : 0;
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur md:px-6">
@@ -74,29 +46,7 @@ export function TopBar({ profile }: { profile: TopBarProfile }) {
         <Button type="button" variant="ghost" size="icon" className="rounded-lg" aria-label="알림">
           <Bell className="size-4" />
         </Button>
-        <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-full shrink-0")}
-          aria-label="계정 메뉴"
-        >
-          <Avatar className="size-8">
-            {avatarUrl ? <AvatarImage src={avatarUrl} alt="" className="object-cover" /> : null}
-            <AvatarFallback>{initials(displayName, email)}</AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="space-y-0.5">
-            <p className="truncate font-medium text-foreground">{displayName || "사용자"}</p>
-            <p className="truncate text-xs font-normal text-muted-foreground">{email || "—"}</p>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/settings")}>설정</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => void signOut()}>
-            로그아웃
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <ProfileAccountMenu profile={profile} />
       </div>
     </header>
   );

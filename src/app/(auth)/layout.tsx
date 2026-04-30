@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -7,6 +8,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Logo />
       </div>
       <div className="flex flex-1 items-center justify-center p-6">{children}</div>
+      <footer className="border-t bg-background px-4 py-4 text-center text-xs text-muted-foreground">
+        <div className="mx-auto flex max-w-4xl items-center justify-center gap-4">
+          <Link href="/privacy" className="hover:text-foreground">개인정보처리방침</Link>
+          <Link href="/terms" className="hover:text-foreground">서비스 약관</Link>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const links = [
   { href: "/settings/profile", title: "프로필", desc: "이름, 아바타, 소개" },
-  { href: "/settings/billing", title: "결제", desc: "일회성 AI 크레딧, Lemon Squeezy" },
+  { href: "/settings/billing", title: "결제", desc: "크레딧 충전 및 결제 내역" },
 ];
 
 export default function SettingsPage() {
