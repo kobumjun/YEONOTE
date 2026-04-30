@@ -206,22 +206,34 @@ export function BlockRenderer({
       );
     case "toggle":
       return wrap(
-        <details className="rounded-lg border bg-muted/30 px-3 py-2" open>
-          <summary className="cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
+        <details className="rounded-lg border bg-muted/30 px-3 py-2">
+          <summary className="cursor-pointer text-sm font-medium">
             {readOnly ? (
               block.title
             ) : (
-              <input
-                className="w-full border-0 bg-transparent p-0 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
-                value={String(block.title ?? "")}
+              <span
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-label="토글 제목"
+                className="inline-block min-w-[10ch] rounded px-1 py-0.5 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 onClick={(e) => e.stopPropagation()}
-                onChange={(e) => onChange?.(block.id, { title: e.target.value } as Partial<TemplateBlock>)}
-                onInput={(e) => debugInput("title", (e.target as HTMLInputElement).value)}
+                onInput={(e) => {
+                  const value = (e.currentTarget.textContent ?? "").replace(/\u00a0/g, " ");
+                  onChange?.(block.id, { title: value } as Partial<TemplateBlock>);
+                  debugInput("title", value);
+                }}
                 onKeyDown={(e) => {
                   stopGlobalHotkeys(e);
                   enterCreatesNewBlock(e);
                 }}
-              />
+              >
+                {String(block.title ?? "")}
+              </span>
             )}
           </summary>
           <div className="mt-2 space-y-1 border-l-2 border-yeo-300 pl-3 dark:border-yeo-700">
@@ -261,14 +273,21 @@ export function BlockRenderer({
             {readOnly ? (
               <div className="whitespace-pre-wrap">{block.content}</div>
             ) : (
-              <textarea
-                className="w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
-                rows={Math.max(2, String(block.content ?? "").split("\n").length)}
-                value={String(block.content ?? "")}
-                onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-                onInput={(e) => debugInput("content", (e.target as HTMLTextAreaElement).value)}
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                role="textbox"
+                aria-label="콜아웃 내용"
+                className="min-h-7 w-full whitespace-pre-wrap rounded p-0.5 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-yeo-500/30"
+                onInput={(e) => {
+                  const value = (e.currentTarget.textContent ?? "").replace(/\u00a0/g, " ");
+                  onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+                  debugInput("content", value);
+                }}
                 onKeyDown={stopGlobalHotkeys}
-              />
+              >
+                {String(block.content ?? "")}
+              </div>
             )}
           </div>
         </div>

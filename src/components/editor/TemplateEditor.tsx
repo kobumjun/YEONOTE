@@ -457,10 +457,14 @@ export function TemplateEditor({
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
-              <p className="text-sm text-foreground">탐색 페이지에 공개</p>
+              <label htmlFor="template-share-toggle" className="text-sm text-foreground">
+                탐색 페이지에 공개
+              </label>
               <Switch
+                id="template-share-toggle"
                 checked={isPublic}
                 disabled={shareBusy}
+                className="h-6 w-11"
                 onCheckedChange={(checked) => {
                   void setPublic(Boolean(checked));
                 }}

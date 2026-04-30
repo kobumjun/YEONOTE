@@ -86,14 +86,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   updateBlock: (id, patch) => {
-    const { blocks } = get();
-    const next = blocks.map((b) => {
-      if (b.id !== id) return b;
-      if (b.type === "toggle" && "children" in patch && Array.isArray((patch as { children?: unknown }).children)) {
-        return { ...b, ...patch } as TemplateBlock;
+    const updateInTree = (node: TemplateBlock): TemplateBlock => {
+      if (node.id === id) return { ...node, ...patch } as TemplateBlock;
+      if (node.type === "toggle") {
+        return {
+          ...node,
+          children: node.children.map(updateInTree),
+        };
       }
-      return { ...b, ...patch } as TemplateBlock;
-    });
+      if (node.type === "columns") {
+        return {
+          ...node,
+          children: node.children.map((col) => col.map(updateInTree)),
+        };
+      }
+      return node;
+    };
+
+    const { blocks } = get();
+    const next = blocks.map(updateInTree);
     set({ blocks: next, dirty: true });
   },
 
