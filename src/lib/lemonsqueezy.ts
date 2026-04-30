@@ -60,10 +60,10 @@ export async function createLemonCheckout(params: {
   const apiKey = process.env.LEMONSQUEEZY_API_KEY?.trim();
   const storeId = getLemonStoreId();
   if (!apiKey) {
-    return { ok: false, error: "LEMONSQUEEZY_API_KEY가 서버에 설정되지 않았습니다.", status: 500 };
+    return { ok: false, error: "LEMONSQUEEZY_API_KEY is not configured on the server.", status: 500 };
   }
   if (!storeId) {
-    return { ok: false, error: "LEMONSQUEEZY_STORE_ID가 서버에 설정되지 않았습니다.", status: 500 };
+    return { ok: false, error: "LEMONSQUEEZY_STORE_ID is not configured on the server.", status: 500 };
   }
 
   const body = {
@@ -96,7 +96,7 @@ export async function createLemonCheckout(params: {
   try {
     json = await res.json();
   } catch {
-    return { ok: false, error: "Lemon Squeezy API 응답을 파싱할 수 없습니다.", status: res.status || 502 };
+    return { ok: false, error: "Could not parse Lemon Squeezy API response.", status: res.status || 502 };
   }
 
   if (!res.ok) {
@@ -110,7 +110,7 @@ export async function createLemonCheckout(params: {
   const url = data?.attributes?.url;
   const checkoutId = data?.id;
   if (!url || !checkoutId) {
-    return { ok: false, error: "체크아웃 응답에 url 또는 id가 없습니다.", status: 502 };
+    return { ok: false, error: "Checkout response is missing url or id.", status: 502 };
   }
 
   return { ok: true, url, checkoutId };
@@ -125,7 +125,7 @@ export async function createLemonCheckoutForPack(
 > {
   const variantId = getVariantIdForPack(pack);
   if (!variantId) {
-    return { ok: false, error: `팩 "${pack}"에 대한 변형 ID가 서버에 없습니다.`, status: 500 };
+    return { ok: false, error: `Variant ID for pack "${pack}" is not configured on the server.`, status: 500 };
   }
   const result = await createLemonCheckout({ email, userId, variantId });
   if (!result.ok) return result;

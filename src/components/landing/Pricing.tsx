@@ -71,12 +71,12 @@ export function Pricing() {
             <Card
               key={t.name}
               className={cn(
-                "relative flex flex-col rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md",
+                "relative flex flex-col overflow-visible rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md",
                 t.highlight && "border-yeo-500/40 ring-1 ring-yeo-500/20"
               )}
             >
               {t.badge ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-border bg-yeo-600 px-3 py-0.5 text-xs font-medium text-primary-foreground shadow-sm">
+                <span className="absolute right-4 top-4 inline-flex rounded-full bg-yeo-600 px-2.5 py-1 text-xs font-medium text-primary-foreground shadow-sm">
                   {t.badge}
                 </span>
               ) : null}

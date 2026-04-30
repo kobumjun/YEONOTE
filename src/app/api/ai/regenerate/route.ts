@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const creditsBefore = profile.ai_credits ?? 0;
   if (!canGenerateAI(creditsBefore)) {
     return NextResponse.json(
-      { error: "AI 크레딧이 소진되었습니다. 크레딧을 충전한 뒤 다시 시도하세요.", code: "NO_CREDITS" },
+      { error: "You are out of AI credits. Top up and try again.", code: "NO_CREDITS" },
       { status: 403 }
     );
   }
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
   if (creditErr || updatedProfile == null) {
     return NextResponse.json(
-      { error: "크레딧 차감에 실패했습니다. 잠시 후 다시 시도해 주세요.", code: "CREDIT_RACE" },
+      { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
       { status: 409 }
     );
   }

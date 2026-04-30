@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   if (!variantId) {
     return NextResponse.json(
       {
-        error: "이 크레딧 팩에 대한 Lemon Squeezy 변형 ID가 서버에 설정되지 않았습니다. .env의 변형 ID를 확인하세요.",
+        error: "Lemon Squeezy variant ID is not configured for this credit pack. Check the variant IDs in .env.",
       },
       { status: 500 }
     );

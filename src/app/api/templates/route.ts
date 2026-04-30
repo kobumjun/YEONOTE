@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   const content: TemplateContent = blank
     ? { blocks: createBlankTemplateBlocks() }
     : (body.content ?? emptyContent());
-  const title = blank ? (body.title?.trim() || "무제") : (body.title ?? "Untitled");
+  const title = blank ? (body.title?.trim() || "Untitled") : (body.title ?? "Untitled");
   const icon = blank ? (body.icon?.trim() || "📄") : (body.icon ?? "📄");
 
   const { data, error } = await supabase

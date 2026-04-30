@@ -45,7 +45,7 @@ export async function POST(_req: Request, ctx: Ctx) {
     .from("templates")
     .insert({
       user_id: user.id,
-      title: `${src.title} (복사)`,
+      title: `${src.title} (Copy)`,
       icon: src.icon,
       cover: src.cover,
       content,

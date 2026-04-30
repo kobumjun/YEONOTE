@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,24 +20,15 @@ export function Hero() {
           <GoogleSignInButton
             next="/dashboard"
             size="lg"
-            label="Get Started Free"
+            label="Get Started"
             className={cn(buttonVariants({ size: "lg" }), "rounded-xl bg-yeo-600 px-8 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700")}
           />
-          <Link
-            href="/#use-cases"
-            className={cn(
-              buttonVariants({ size: "lg", variant: "outline" }),
-              "rounded-xl border-border bg-background/80 shadow-sm transition-all duration-200 hover:bg-muted/50"
-            )}
-          >
-            See Examples
-          </Link>
           <GoogleSignInButton
             next="/dashboard"
             size="lg"
-            variant="ghost"
+            variant="outline"
             label="Sign In"
-            className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-xl")}
+            className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-xl border-border bg-background/80 shadow-sm transition-all duration-200 hover:bg-muted/50")}
           />
         </div>
       </div>
