@@ -15,6 +15,7 @@ export async function GET() {
 
   const productId = getLemonProductId() ?? null;
   const storeId = process.env.LEMONSQUEEZY_STORE_ID?.trim() || null;
+  const storeSlug = process.env.LEMONSQUEEZY_STORE_SLUG?.trim() || null;
   const apiKeyConfigured = Boolean(process.env.LEMONSQUEEZY_API_KEY?.trim());
 
   const variants: Record<BillingPlan, { configured: boolean }> = {
@@ -26,7 +27,9 @@ export async function GET() {
   return NextResponse.json({
     lemon: {
       productId,
-      storeConfigured: Boolean(storeId),
+      storeIdConfigured: Boolean(storeId),
+      storeSlugConfigured: Boolean(storeSlug),
+      storeSlug: storeSlug ?? null,
       apiKeyConfigured,
       variants,
     },

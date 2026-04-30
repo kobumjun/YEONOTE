@@ -11,7 +11,9 @@ import { toast } from "sonner";
 
 type LemonConfig = {
   productId: string | null;
-  storeConfigured: boolean;
+  storeIdConfigured: boolean;
+  storeSlugConfigured: boolean;
+  storeSlug: string | null;
   apiKeyConfigured: boolean;
   variants: {
     free: { configured: boolean };
@@ -138,7 +140,17 @@ export default function BillingSettingsPage() {
                   제품 ID:{" "}
                   <span className="font-mono text-foreground">{lemon.productId ?? "— (미설정)"}</span>
                 </li>
-                <li>스토어: {lemon.storeConfigured ? "설정됨" : "미설정"}</li>
+                <li>
+                  스토어 ID(API): {lemon.storeIdConfigured ? "설정됨" : "미설정"}
+                </li>
+                <li>
+                  스토어 슬러그(체크아웃):{" "}
+                  {lemon.storeSlugConfigured ? (
+                    <span className="font-mono text-foreground">{lemon.storeSlug}</span>
+                  ) : (
+                    "미설정"
+                  )}
+                </li>
                 <li>API 키: {lemon.apiKeyConfigured ? "설정됨" : "미설정"}</li>
                 <li className="pt-1">
                   변형 — {variantLabel("free", "Free")} · {variantLabel("pro", "Pro")} ·{" "}

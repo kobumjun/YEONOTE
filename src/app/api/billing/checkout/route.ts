@@ -38,16 +38,22 @@ export async function GET(req: Request) {
     );
   }
 
-  const url = getCheckoutUrlForPlan(plan, user.email, user.id);
-  if (!url) {
+  const checkoutUrl = getCheckoutUrlForPlan(plan, user.email, user.id);
+  if (!checkoutUrl) {
     return NextResponse.json(
-      { error: "Lemon Squeezy 스토어 ID가 서버에 설정되지 않았습니다." },
+      { error: "Lemon Squeezy 스토어 슬러그가 서버에 설정되지 않았습니다. LEMONSQUEEZY_STORE_SLUG를 확인하세요." },
       { status: 500 }
     );
   }
 
+  console.log("Checkout URL:", checkoutUrl);
+  console.log("Store slug:", process.env.LEMONSQUEEZY_STORE_SLUG);
+  console.log("Store ID (API, not used in checkout host):", process.env.LEMONSQUEEZY_STORE_ID);
+  console.log("Variant ID (plan):", variantId);
+  console.log("Variant env PRO:", process.env.LEMONSQUEEZY_VARIANT_ID_PRO);
+
   return NextResponse.json({
-    url,
+    url: checkoutUrl,
     plan,
     variantId,
     productId,

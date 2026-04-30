@@ -3,6 +3,9 @@ export type BillingPlan = "free" | "pro" | "team";
 /** One Lemon Squeezy product; plans map to variants via env (see `LEMONSQUEEZY_PRODUCT_ID`). */
 export const LEMONSQUEEZY_PRODUCT_ENV_KEY = "LEMONSQUEEZY_PRODUCT_ID" as const;
 
+/** Checkout host: `https://{slug}.lemonsqueezy.com/buy/...` — not the numeric store id. */
+export const LEMONSQUEEZY_STORE_SLUG_ENV_KEY = "LEMONSQUEEZY_STORE_SLUG" as const;
+
 export const LEMONSQUEEZY_VARIANT_ENV_BY_PLAN: Record<BillingPlan, string> = {
   free: "LEMONSQUEEZY_VARIANT_ID_FREE",
   pro: "LEMONSQUEEZY_VARIANT_ID_PRO",

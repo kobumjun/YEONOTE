@@ -32,17 +32,28 @@ export function isWebhookProductAllowed(productId: string | undefined | null): b
 }
 
 /**
- * Lemon Squeezy checkout URL for a variant (one product, many variants).
+ * Store **slug** for hosted checkout (subdomain), not the numeric store id.
+ * Dashboard: Settings → Store → URL uses `https://{slug}.lemonsqueezy.com/...`
+ */
+export function getLemonStoreSlug(): string | undefined {
+  const slug = process.env.LEMONSQUEEZY_STORE_SLUG?.trim();
+  return slug || undefined;
+}
+
+/**
+ * Lemon Squeezy checkout URL for a variant.
+ * @see https://docs.lemonsqueezy.com/help/checkout/checkout-links
+ * Format: `https://[store-slug].lemonsqueezy.com/buy/[variant-id]?...`
  */
 export function getCheckoutUrl(variantId: string, email: string, userId: string) {
-  const store = process.env.LEMONSQUEEZY_STORE_ID;
-  if (!store) return null;
+  const slug = getLemonStoreSlug();
+  if (!slug) return null;
   const params = new URLSearchParams({
     checkout: "custom",
     "checkout[email]": email,
     "checkout[custom][user_id]": userId,
   });
-  return `https://${store}.lemonsqueezy.com/checkout/buy/${variantId}?${params.toString()}`;
+  return `https://${slug}.lemonsqueezy.com/buy/${variantId}?${params.toString()}`;
 }
 
 export function getCheckoutUrlForPlan(plan: BillingPlan, email: string, userId: string): string | null {
