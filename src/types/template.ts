@@ -285,7 +285,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         id: bid,
         type: "database_board",
         title: String(raw.title ?? ""),
-        groupBy: String(raw.groupBy ?? "상태"),
+        groupBy: String(raw.groupBy ?? "Status"),
         columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };
@@ -294,7 +294,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         id: bid,
         type: "database_calendar",
         title: String(raw.title ?? ""),
-        dateColumn: String(raw.dateColumn ?? "날짜"),
+        dateColumn: String(raw.dateColumn ?? "Date"),
         columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };
@@ -303,7 +303,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         id: bid,
         type: "database_gallery",
         title: String(raw.title ?? ""),
-        imageColumn: String(raw.imageColumn ?? "이미지"),
+        imageColumn: String(raw.imageColumn ?? "Image"),
         columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };

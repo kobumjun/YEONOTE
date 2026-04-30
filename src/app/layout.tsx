@@ -16,7 +16,7 @@ const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "YEO";
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: `${appName} — AI 템플릿 워크플로`,
+    default: `${appName} — AI Template Generator`,
     template: `%s | ${appName}`,
   },
   icons: {
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   description:
-    "말만 하세요. YEO가 만듭니다. Describe it. YEO builds it. AI-powered Notion-style templates.",
+    "Create structured Notion-style templates in seconds. Describe what you need, and AI builds it for you.",
   openGraph: {
-    title: appName,
-    description: "Describe it. YEO builds it.",
+    title: `${appName} — AI Template Generator`,
+    description: "Create structured Notion-style templates in seconds. Describe what you need, and AI builds it for you.",
     url: appUrl,
     siteName: appName,
-    locale: "ko_KR",
+    locale: "en_US",
     type: "website",
   },
 };
@@ -41,18 +41,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          as="style"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-        />
-      </head>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
           inter.variable,
-          "min-h-screen bg-background font-sans antialiased [--font-pretendard:'Pretendard',sans-serif]"
+          "min-h-screen bg-background font-sans antialiased"
         )}
       >
         <Providers>{children}</Providers>

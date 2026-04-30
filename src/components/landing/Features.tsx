@@ -3,38 +3,41 @@ import { Sparkles, LayoutGrid, Share2 } from "lucide-react";
 const items = [
   {
     icon: Sparkles,
-    title: "AI 생성",
-    body: "한국어·영어 모두 지원. 설명만으로 노션 스타일 페이지를 완성합니다.",
+    title: "AI generation",
+    body: "Describe what you need in natural language. YEO assembles rich, structured blocks automatically.",
   },
   {
     icon: LayoutGrid,
-    title: "블록 에디터",
-    body: "헤딩, 토글, 할 일, DB 뷰까지. 드래그 앤 드롭으로 재정렬합니다.",
+    title: "Block editor",
+    body: "Headings, toggles, to-dos, databases, and more—reorder with drag and drop.",
   },
   {
     icon: Share2,
-    title: "탐색 & 공유",
-    body: "커뮤니티 템플릿을 찾아 복제하고, 팀과 공유할 수 있습니다.",
+    title: "Explore & share",
+    body: "Publish templates to Explore, duplicate community picks, and share read-only links.",
   },
 ];
 
 export function Features() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-16">
-      <h2 className="text-center font-heading text-2xl font-semibold text-surface-dark dark:text-white sm:text-3xl">
-        핵심 기능
+      <h2 className="text-center font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
+        Product highlights
       </h2>
+      <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground">
+        Everything you need to go from a sentence to a polished workspace layout.
+      </p>
       <div className="mt-10 grid gap-6 sm:grid-cols-3">
         {items.map(({ icon: Icon, title, body }) => (
           <div
             key={title}
-            className="rounded-xl border bg-card p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yeo-100 text-yeo-700 dark:bg-yeo-900 dark:text-yeo-200">
-              <Icon className="size-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/40 text-yeo-600 dark:text-yeo-400">
+              <Icon className="size-5 stroke-[1.5]" />
             </div>
-            <h3 className="mt-4 font-semibold text-surface-dark dark:text-white">{title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+            <h3 className="mt-4 font-semibold tracking-[-0.02em] text-foreground">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
           </div>
         ))}
       </div>

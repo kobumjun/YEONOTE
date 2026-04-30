@@ -49,11 +49,11 @@ export default function BillingSettingsPage() {
       const res = await fetch(`/api/billing/checkout?plan=${target}`);
       const j = await res.json();
       if (!res.ok) {
-        toast.error(j.error ?? "결제 페이지를 열 수 없습니다.");
+        toast.error(j.error ?? "Could not open checkout");
         return;
       }
       if (j.url) window.location.href = j.url;
-      else toast.error("결제 링크를 받지 못했습니다.");
+      else toast.error("Missing checkout link.");
     } finally {
       setCheckoutBusy(null);
     }
@@ -63,63 +63,63 @@ export default function BillingSettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg p-4 md:p-8">
-      <Link href="/settings" className="text-sm text-yeo-600 hover:underline">
-        ← 설정
+      <Link href="/settings" className="text-sm text-yeo-600 transition-colors duration-200 hover:underline">
+        ← Settings
       </Link>
-      <h1 className="mt-4 font-heading text-2xl font-semibold">결제</h1>
+      <h1 className="mt-4 font-heading text-2xl font-semibold tracking-[-0.02em]">Billing</h1>
 
-      <Card className="mt-6 rounded-xl">
+      <Card className="mt-6 rounded-xl border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">현재 플랜</CardTitle>
+          <CardTitle className="text-lg">Current Plan</CardTitle>
           <CardDescription>
             {isFree
-              ? `신규 가입 시 튜토리얼 크레딧 ${TUTORIAL_SIGNUP_CREDITS}개를 드립니다. AI 기능을 체험해보세요!`
-              : `현재 ${plan === "team" ? "Team" : "Pro"} 혜택을 이용 중입니다.`}
+              ? `New accounts include ${TUTORIAL_SIGNUP_CREDITS} tutorial credits to try AI features.`
+              : `You are on the ${plan === "team" ? "Team" : "Pro"} pack.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           <p className="text-foreground">
-            남은 크레딧: <span className="font-semibold">{credits}개</span>
+            Credits remaining: <span className="font-semibold">{credits}</span>
           </p>
-          <Button type="button" variant="secondary" size="sm" className="rounded-lg" disabled>
-            {isFree ? "현재 플랜" : `${plan === "team" ? "Team" : "Pro"} 플랜 이용 중`}
+          <Button type="button" variant="secondary" size="sm" className="rounded-xl" disabled>
+            {isFree ? "Current plan" : `${plan === "team" ? "Team" : "Pro"} active`}
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="mt-6 rounded-xl">
+      <Card className="mt-6 rounded-xl border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">크레딧 충전</CardTitle>
-          <CardDescription>크레딧을 충전하고 더 많은 템플릿을 AI로 생성하세요.</CardDescription>
+          <CardTitle className="text-lg">Top Up Credits</CardTitle>
+          <CardDescription>Buy credits when you need more AI-generated templates.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col rounded-xl border bg-card p-4">
+          <div className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm">
             <p className="text-sm font-medium text-foreground">Pro</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">${PRO_CREDIT_PACK_USD}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{PRO_CREDIT_PACK_CREDITS} AI 크레딧</p>
+            <p className="mt-2 text-2xl font-bold tracking-[-0.02em] text-foreground">${PRO_CREDIT_PACK_USD}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{PRO_CREDIT_PACK_CREDITS} AI credits</p>
             <Button
               type="button"
-              className="mt-4 rounded-lg bg-yeo-600"
+              className="mt-4 rounded-xl bg-yeo-600 shadow-sm"
               size="sm"
               disabled={checkoutBusy !== null}
               onClick={() => void startCheckout("pro")}
             >
-              {checkoutBusy === "pro" ? "연결 중…" : "구매하기"}
+              {checkoutBusy === "pro" ? "Connecting…" : "Purchase"}
             </Button>
           </div>
-          <div className="flex flex-col rounded-xl border bg-card p-4">
+          <div className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm">
             <p className="text-sm font-medium text-foreground">Team</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">${TEAM_CREDIT_PACK_USD}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{TEAM_CREDIT_PACK_CREDITS} AI 크레딧</p>
+            <p className="mt-2 text-2xl font-bold tracking-[-0.02em] text-foreground">${TEAM_CREDIT_PACK_USD}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{TEAM_CREDIT_PACK_CREDITS} AI credits</p>
             <Button
               type="button"
               variant="outline"
-              className="mt-4 rounded-lg"
+              className="mt-4 rounded-xl"
               size="sm"
               disabled={checkoutBusy !== null}
               onClick={() => void startCheckout("team")}
             >
-              {checkoutBusy === "team" ? "연결 중…" : "구매하기"}
+              {checkoutBusy === "team" ? "Connecting…" : "Purchase"}
             </Button>
           </div>
         </CardContent>
@@ -131,9 +131,9 @@ export default function BillingSettingsPage() {
             href={portal}
             target="_blank"
             rel="noreferrer"
-            className={cn(buttonVariants({ variant: "outline" }), "inline-flex rounded-lg")}
+            className={cn(buttonVariants({ variant: "outline" }), "inline-flex rounded-xl border-border")}
           >
-            결제 내역 및 영수증
+            Billing history & receipts
           </a>
         </div>
       ) : null}

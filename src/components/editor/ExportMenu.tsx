@@ -35,9 +35,9 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
       a.download = `${title || "template"}.md`;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast.success("마크다운을 저장했습니다.");
+      toast.success("Markdown downloaded.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "실패");
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -62,9 +62,9 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
       a.download = j.filename ?? "export.pdf";
       a.click();
       URL.revokeObjectURL(a.href);
-      toast.success("PDF를 저장했습니다.");
+      toast.success("PDF downloaded.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "실패");
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -88,9 +88,9 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
       a.href = dataUrl;
       a.download = `${title || "template"}.png`;
       a.click();
-      toast.success("PNG를 저장했습니다.");
+      toast.success("PNG downloaded.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "실패");
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setBusy(false);
     }
@@ -103,7 +103,7 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
     a.download = `${title || "template"}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("JSON을 저장했습니다.");
+    toast.success("JSON downloaded.");
   }
 
   function mdLocal() {
@@ -114,30 +114,30 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
     a.download = `${title || "template"}.md`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("마크다운(로컬) 저장");
+    toast.success("Markdown downloaded (local).");
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-lg")}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl border-border shadow-sm")}
         disabled={busy}
       >
-        <Download className="mr-1 size-4" />
-        보내기
+        <Download className="mr-1 size-4 stroke-[1.5]" />
+        Export
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-52 rounded-xl border-border">
         <DropdownMenuItem onClick={markdown}>
-          <FileText className="mr-2 size-4" /> Markdown (서버)
+          <FileText className="mr-2 size-4 stroke-[1.5]" /> Markdown (server)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={mdLocal}>
-          <FileText className="mr-2 size-4" /> Markdown (로컬)
+          <FileText className="mr-2 size-4 stroke-[1.5]" /> Markdown (local)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={pdf}>
-          <FileText className="mr-2 size-4" /> PDF
+          <FileText className="mr-2 size-4 stroke-[1.5]" /> PDF
         </DropdownMenuItem>
         <DropdownMenuItem onClick={png}>
-          <ImageIcon className="mr-2 size-4" /> PNG
+          <ImageIcon className="mr-2 size-4 stroke-[1.5]" /> PNG
         </DropdownMenuItem>
         <DropdownMenuItem onClick={jsonExport}>JSON</DropdownMenuItem>
       </DropdownMenuContent>

@@ -37,10 +37,10 @@ export default function ExplorePage() {
     const res = await fetch(`/api/templates/${id}/duplicate`, { method: "POST" });
     const j = await res.json();
     if (!res.ok) {
-      toast.error(j.error ?? "실패");
+      toast.error(j.error ?? "Something went wrong");
       return;
     }
-    toast.success("내 템플릿에 복제했습니다.");
+    toast.success("Duplicated to your workspace.");
     window.location.href = `/template/${j.template.id}`;
   }
 
@@ -48,34 +48,34 @@ export default function ExplorePage() {
     const res = await fetch(`/api/templates/${id}/like`, { method: "POST" });
     const j = await res.json();
     if (!res.ok) {
-      toast.error(j.error ?? "좋아요 처리 실패");
+      toast.error(j.error ?? "Could not update like");
       return;
     }
     if (typeof j.likes_count === "number") {
       setItems((prev) => prev.map((t) => (t.id === id ? { ...t, likes_count: j.likes_count } : t)));
-      toast.success(j.liked ? "좋아요를 눌렀습니다." : "좋아요를 취소했습니다.");
+      toast.success(j.liked ? "Liked." : "Like removed.");
     }
   }
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="font-heading text-2xl font-semibold text-surface-dark dark:text-white">탐색</h1>
-      <p className="text-sm text-muted-foreground">공개 템플릿을 찾아 복제하세요.</p>
+      <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Explore</h1>
+      <p className="text-sm text-muted-foreground">Browse public templates and duplicate them to your dashboard.</p>
       {loading ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-36 rounded-xl" />
+            <Skeleton key={i} className="h-36 rounded-xl border border-border" />
           ))}
         </div>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((t) => (
-            <Card key={t.id} className="rounded-xl border shadow-sm">
+            <Card key={t.id} className="rounded-xl border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md">
               <CardContent className="flex flex-col gap-3 p-4">
                 <div className="flex items-start gap-2">
                   <span className="text-2xl">{t.icon}</span>
                   <div>
-                    <Link href={`/shared/${t.id}`} className="font-medium hover:underline">
+                    <Link href={`/shared/${t.id}`} className="font-medium text-foreground transition-colors duration-200 hover:text-yeo-600">
                       {t.title}
                     </Link>
                     {t.category && <p className="text-xs text-muted-foreground">{t.category}</p>}
@@ -84,24 +84,24 @@ export default function ExplorePage() {
                         {t.creator?.avatar_url ? <AvatarImage src={t.creator.avatar_url} alt="" /> : null}
                         <AvatarFallback>{(t.creator?.full_name?.[0] ?? "U").toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <span>{t.creator?.full_name ?? "익명 사용자"}</span>
+                      <span>{t.creator?.full_name ?? "Anonymous"}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Heart className="size-3" /> {t.likes_count}
+                    <Heart className="size-3 stroke-[1.5]" /> {t.likes_count}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Copy className="size-3" /> {t.duplicates_count}
+                    <Copy className="size-3 stroke-[1.5]" /> {t.duplicates_count}
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" className="rounded-lg" onClick={() => duplicate(t.id)}>
-                    사용하기
+                  <Button size="sm" variant="secondary" className="rounded-xl shadow-sm" onClick={() => duplicate(t.id)}>
+                    Use template
                   </Button>
-                  <Button size="sm" variant="outline" className="rounded-lg" onClick={() => like(t.id)}>
-                    좋아요
+                  <Button size="sm" variant="outline" className="rounded-xl border-border" onClick={() => like(t.id)}>
+                    Like
                   </Button>
                 </div>
               </CardContent>

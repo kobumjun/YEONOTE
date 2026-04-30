@@ -11,7 +11,7 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (icon
     <Popover>
       <PopoverTrigger
         className={cn(buttonVariants({ variant: "outline", size: "icon" }), "rounded-lg text-xl")}
-        aria-label="아이콘 선택"
+        aria-label="Choose icon"
       >
         {value || "📄"}
       </PopoverTrigger>

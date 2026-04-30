@@ -39,12 +39,12 @@ import { cn } from "@/lib/utils";
 
 function gradientClass(cover: string | null) {
   const map: Record<string, string> = {
-    "gradient-blue": "from-sky-400 to-blue-700",
-    "gradient-indigo": "from-indigo-400 to-violet-800",
-    "gradient-rose": "from-rose-300 to-pink-700",
-    "gradient-yeo": "from-yeo-400 to-yeo-800",
+    "gradient-blue": "from-slate-200 to-slate-600",
+    "gradient-indigo": "from-violet-200 to-violet-700",
+    "gradient-rose": "from-rose-200 to-rose-600",
+    "gradient-yeo": "from-yeo-200 to-yeo-700",
   };
-  return map[cover ?? ""] ?? "from-yeo-400 to-yeo-800";
+  return map[cover ?? ""] ?? "from-yeo-200 to-yeo-700";
 }
 
 function SortableBlock({
@@ -80,7 +80,7 @@ function SortableBlock({
               className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground"
               {...attributes}
               {...listeners}
-              aria-label="드래그"
+              aria-label="Drag"
             >
               <span className="text-sm leading-none">⠿</span>
             </button>
@@ -93,7 +93,7 @@ function SortableBlock({
               className="pointer-events-auto inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground"
               {...attributes}
               {...listeners}
-              aria-label="드래그"
+              aria-label="Drag"
             >
               <span className="text-sm leading-none">⠿</span>
             </button>
@@ -256,7 +256,7 @@ export function TemplateEditor({
     });
     if (!res.ok) return;
     setFav(next);
-    toast.success(next ? "즐겨찾기에 추가했습니다." : "즐겨찾기를 해제했습니다.");
+    toast.success(next ? "Added to favorites." : "Removed from favorites.");
   }
 
   async function sharePublic() {
@@ -273,15 +273,15 @@ export function TemplateEditor({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error((j as { error?: string }).error ?? "공유 설정에 실패했습니다.");
+        toast.error((j as { error?: string }).error ?? "Could not update sharing.");
         return;
       }
       const j = (await res.json().catch(() => ({}))) as { template?: { is_public?: boolean } };
       const resolved = typeof j.template?.is_public === "boolean" ? j.template.is_public : next;
       setIsPublic(resolved);
-      toast.success(resolved ? "템플릿이 공개되었습니다" : "템플릿이 비공개로 전환되었습니다");
+      toast.success(resolved ? "Template published." : "Template is now private.");
     } catch {
-      toast.error("공유 설정에 실패했습니다.");
+      toast.error("Could not update sharing.");
     } finally {
       setShareBusy(false);
     }
@@ -290,7 +290,7 @@ export function TemplateEditor({
   async function copyShareLink() {
     const url = `https://yeonote.vercel.app/shared/${templateId}`;
     await navigator.clipboard.writeText(url);
-    toast.success("링크를 복사했습니다.");
+    toast.success("Link copied.");
   }
 
   async function runRegenerate() {
@@ -310,7 +310,7 @@ export function TemplateEditor({
       const j = (await res.json()) as AITemplatePayload & { error?: string; code?: string; creditsRemaining?: number };
       if (!res.ok) {
         if (j.code === "NO_CREDITS") {
-          toast.error("AI 크레딧이 소진되었습니다. 결제에서 충전해 주세요.");
+          toast.error("You are out of AI credits. Top up in Billing.");
           return;
         }
         throw new Error(j.error ?? "Failed");
@@ -319,12 +319,12 @@ export function TemplateEditor({
       useEditorStore.getState().applyAiPayload(payload as AITemplatePayload);
       setRegenOpen(false);
       setRegenPrompt("");
-      toast.success("템플릿을 다시 생성했습니다.");
+      toast.success("Template regenerated.");
       if (typeof creditsRemaining === "number") {
-        toast.message(`크레딧 1개 사용됨. 남은 크레딧: ${creditsRemaining}개`);
+        toast.message(`1 credit used. Remaining: ${creditsRemaining}`);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "실패");
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setRegenBusy(false);
     }
@@ -332,9 +332,9 @@ export function TemplateEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background">
-      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b bg-background/95 px-4 py-3 backdrop-blur">
-        <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-          ← 대시보드
+      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+        <Link href="/dashboard" className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground">
+          ← Dashboard
         </Link>
         {!readOnly && <IconPicker value={icon} onChange={(i) => setMeta({ icon: i })} />}
         <Input
@@ -350,18 +350,18 @@ export function TemplateEditor({
               <Button type="button" variant="ghost" size="icon" onClick={toggleFav} aria-label="Favorite">
                 <Star className={cn("size-5", fav && "fill-amber-400 text-amber-500")} />
               </Button>
-              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={sharePublic}>
-                <Share2 className="mr-1 size-4" />
-                공유
+              <Button type="button" variant="outline" size="sm" className="rounded-xl border-border shadow-sm" onClick={sharePublic}>
+                <Share2 className="mr-1 size-4 stroke-[1.5]" />
+                Share
               </Button>
               <ExportMenu editorRef={editorRef} />
-              <Button type="button" variant="secondary" size="sm" className="rounded-lg" onClick={() => setRegenOpen(true)}>
-                <Sparkles className="mr-1 size-4" />
-                AI로 다시
+              <Button type="button" variant="secondary" size="sm" className="rounded-xl border border-border shadow-sm" onClick={() => setRegenOpen(true)}>
+                <Sparkles className="mr-1 size-4 stroke-[1.5]" />
+                Regenerate
               </Button>
             </>
           )}
-          {dirty && !readOnly && <span className="text-xs text-muted-foreground">저장 중…</span>}
+          {dirty && !readOnly && <span className="text-xs text-muted-foreground">Saving…</span>}
         </div>
       </header>
 
@@ -391,7 +391,7 @@ export function TemplateEditor({
                         type="button"
                         onClick={() => openInsertAt(i)}
                         className="group/insert relative my-1 hidden h-4 w-full items-center md:flex"
-                        aria-label={`블록 ${i + 1} 앞에 삽입`}
+                        aria-label={`Insert block before ${i + 1}`}
                       >
                         <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
                         <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
@@ -414,7 +414,7 @@ export function TemplateEditor({
                     type="button"
                     onClick={() => openInsertAt(blocks.length)}
                     className="group/insert relative mt-1 hidden h-4 w-full items-center md:flex"
-                    aria-label="마지막에 블록 삽입"
+                    aria-label="Insert block at end"
                   >
                     <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
                     <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
@@ -431,20 +431,20 @@ export function TemplateEditor({
       <Dialog open={regenOpen} onOpenChange={setRegenOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>AI로 템플릿 다시 생성</DialogTitle>
+            <DialogTitle>Regenerate with AI</DialogTitle>
           </DialogHeader>
           <Textarea
-            placeholder="바꾸고 싶은 점을 설명하세요…"
+            placeholder="Describe what you want to change…"
             value={regenPrompt}
             onChange={(e) => setRegenPrompt(e.target.value)}
             rows={4}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRegenOpen(false)}>
-              취소
+            <Button variant="outline" className="rounded-xl" onClick={() => setRegenOpen(false)}>
+              Cancel
             </Button>
-            <Button className="bg-yeo-600" onClick={runRegenerate} disabled={regenBusy}>
-              {regenBusy ? "생성 중…" : "생성"}
+            <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={runRegenerate} disabled={regenBusy}>
+              {regenBusy ? "Generating…" : "Generate"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -453,12 +453,12 @@ export function TemplateEditor({
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>템플릿 공유</DialogTitle>
+            <DialogTitle>Share template</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
               <label htmlFor="template-share-toggle" className="text-sm text-foreground">
-                탐색 페이지에 공개
+                Publish to Explore
               </label>
               <Switch
                 id="template-share-toggle"
@@ -477,17 +477,17 @@ export function TemplateEditor({
                     {`https://yeonote.vercel.app/shared/${templateId}`}
                   </div>
                   <Button size="sm" variant="outline" onClick={copyShareLink} disabled={shareBusy}>
-                    링크 복사
+                    Copy Link
                   </Button>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">공개를 켜면 탐색 페이지와 공유 링크가 활성화됩니다.</p>
+              <p className="text-xs text-muted-foreground">When published, your template appears on Explore and the share link works.</p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShareOpen(false)} disabled={shareBusy}>
-              닫기
+            <Button variant="outline" className="rounded-xl" onClick={() => setShareOpen(false)} disabled={shareBusy}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

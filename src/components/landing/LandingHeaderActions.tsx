@@ -11,14 +11,17 @@ export function LandingHeaderActions() {
         next="/dashboard"
         size="sm"
         variant="ghost"
-        label="로그인"
-        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-lg")}
+        label="Sign In"
+        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-xl text-muted-foreground hover:text-foreground")}
       />
       <GoogleSignInButton
         next="/dashboard"
         size="sm"
-        label="시작하기"
-        className={cn(buttonVariants({ size: "sm" }), "rounded-lg bg-yeo-600 text-primary-foreground hover:bg-yeo-700")}
+        label="Get Started"
+        className={cn(
+          buttonVariants({ size: "sm" }),
+          "rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
+        )}
       />
     </div>
   );

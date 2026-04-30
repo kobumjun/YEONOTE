@@ -53,7 +53,7 @@ function ProfileAvatarTrigger({
   return (
     <DropdownMenuTrigger
       className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-full shrink-0")}
-      aria-label="계정 메뉴"
+      aria-label="Account menu"
     >
       <Avatar className="size-8">
         {safeSrc ? (
@@ -97,17 +97,17 @@ function ProfileDropdownInner({ profile }: { profile: TopBarProfile }) {
       <ProfileAvatarTrigger displayName={displayName} email={email} avatarUrl={profile?.avatarUrl ?? null} />
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="space-y-0.5">
-          <p className="truncate font-medium text-foreground">{displayName || "사용자"}</p>
+          <p className="truncate font-medium text-foreground">{displayName || "User"}</p>
           <p className="truncate text-xs font-normal text-muted-foreground">{email || "—"}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/settings")}>설정</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/settings")}>Settings</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:bg-destructive/10 focus:text-destructive"
           onClick={() => void signOut()}
         >
-          로그아웃
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -132,8 +132,8 @@ export function ProfileAccountMenu({ profile }: { profile: TopBarProfile }) {
       variant="ghost"
       size="icon"
       className="rounded-full shrink-0"
-      aria-label="계정 메뉴 (간단 모드)"
-      title="메뉴를 불러오지 못했습니다. 다시 로드해 주세요."
+      aria-label="Account menu (fallback)"
+      title="Could not load menu. Refresh the page."
     >
       <Avatar className="size-8">
         <AvatarFallback>{initials(safeProfile.displayName, safeProfile.email)}</AvatarFallback>

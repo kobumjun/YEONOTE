@@ -41,23 +41,23 @@ export function DashboardClient() {
     <div className="p-4 md:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold text-surface-dark dark:text-white">템플릿</h1>
-          <p className="text-sm text-muted-foreground">생성 · 정렬 · 필터</p>
+          <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Templates</h1>
+          <p className="text-sm text-muted-foreground">Create, sort, and filter your workspace.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Tabs value={layout} onValueChange={(v) => setLayout(v as "grid" | "list")}>
-            <TabsList className="rounded-lg">
-              <TabsTrigger value="grid" className="rounded-md">
-                <LayoutGrid className="size-4" />
+            <TabsList className="rounded-xl border border-border bg-muted/40">
+              <TabsTrigger value="grid" className="rounded-lg data-[state=active]:shadow-sm">
+                <LayoutGrid className="size-4 stroke-[1.5]" />
               </TabsTrigger>
-              <TabsTrigger value="list" className="rounded-md">
-                <List className="size-4" />
+              <TabsTrigger value="list" className="rounded-lg data-[state=active]:shadow-sm">
+                <List className="size-4 stroke-[1.5]" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button className="rounded-lg bg-yeo-600" onClick={() => setGenerateOpen(true)}>
-            <Plus className="mr-1 size-4" />
-            새로 만들기
+          <Button className="rounded-xl bg-yeo-600 shadow-sm transition-all duration-200 hover:bg-yeo-700" onClick={() => setGenerateOpen(true)}>
+            <Plus className="mr-1 size-4 stroke-[1.5]" />
+            New
           </Button>
         </div>
       </div>
@@ -65,22 +65,18 @@ export function DashboardClient() {
       {loading ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <Skeleton key={i} className="h-32 rounded-xl border border-border" />
           ))}
         </div>
       ) : templates.length === 0 ? (
-        <div className="mt-16 rounded-xl border border-dashed bg-muted/30 p-12 text-center">
-          <p className="text-muted-foreground">템플릿이 없습니다. AI로 첫 템플릿을 만들어 보세요.</p>
-          <Button className="mt-4 rounded-lg bg-yeo-600" onClick={() => setGenerateOpen(true)}>
-            생성하기
+        <div className="mt-16 rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
+          <p className="text-muted-foreground">No templates yet. Create your first one with AI or start blank.</p>
+          <Button className="mt-4 rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>
+            Create
           </Button>
         </div>
       ) : (
-        <div
-          className={
-            layout === "grid" ? "mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "mt-8 flex flex-col gap-3"
-          }
-        >
+        <div className={layout === "grid" ? "mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "mt-8 flex flex-col gap-3"}>
           {templates.map((t) => (
             <TemplateCard key={t.id} template={t} />
           ))}

@@ -52,8 +52,12 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         <main className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</main>
         <footer className="border-t bg-background px-4 py-3 text-xs text-muted-foreground md:px-6">
           <div className="mx-auto flex max-w-6xl items-center gap-4">
-            <Link href="/privacy" className="hover:text-foreground">개인정보처리방침</Link>
-            <Link href="/terms" className="hover:text-foreground">서비스 약관</Link>
+            <Link href="/privacy" className="transition-colors duration-200 hover:text-foreground">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="transition-colors duration-200 hover:text-foreground">
+              Terms of Service
+            </Link>
           </div>
         </footer>
       </div>

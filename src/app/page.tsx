@@ -9,8 +9,8 @@ import { LandingHeaderActions } from "@/components/landing/LandingHeaderActions"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
-      <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md dark:bg-slate-950/80">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Logo />
           <LandingHeaderActions />

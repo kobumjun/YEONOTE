@@ -3,18 +3,13 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 
-const steps = [
-  "요청 분석 중…",
-  "블록 구조 설계…",
-  "데이터베이스 뷰 생성…",
-  "마무리 중…",
-];
+const steps = ["Analyzing request…", "Designing block structure…", "Building database views…", "Finishing layout…"];
 
 export function Demo() {
   const [i, setI] = useState(0);
   const [lines, setLines] = useState<string[]>([]);
   const sample =
-    "주간 업무 스케줄 템플릿 — 월~금 요일별 할 일, 우선순위, 상태를 관리합니다.";
+    "Weekly project management template with task tracker, meeting notes, and sprint planning.";
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -37,14 +32,16 @@ export function Demo() {
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-16">
-      <h2 className="text-center font-heading text-2xl font-semibold text-surface-dark dark:text-white sm:text-3xl">
-        실시간 생성 데모
+      <h2 className="text-center font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
+        Live-style preview
       </h2>
-      <p className="mt-2 text-center text-muted-foreground">AI가 템플릿을 조립하는 과정을 시뮬레이션합니다.</p>
-      <Card className="mt-10 overflow-hidden rounded-xl border shadow-md transition-all duration-200">
+      <p className="mt-2 text-center text-sm text-muted-foreground">
+        A lightweight simulation of how YEO turns a short brief into structured blocks.
+      </p>
+      <Card className="mt-10 overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200">
         <div className="grid gap-0 md:grid-cols-2">
-          <div className="border-b bg-muted/40 p-6 md:border-b-0 md:border-r">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">입력</p>
+          <div className="border-b border-border bg-muted/30 p-6 md:border-b-0 md:border-r md:border-border">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Input</p>
             <p className="mt-3 min-h-[4.5rem] whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {lines.join("")}
               <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-yeo-500 align-middle" />
@@ -58,15 +55,17 @@ export function Demo() {
             <p className="mt-2 text-xs text-yeo-600 dark:text-yeo-400">{steps[i]}</p>
           </div>
           <div className="p-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">미리보기</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
             <div className="mt-3 space-y-2 text-sm">
-              <div className="rounded-lg border bg-card p-3 shadow-sm">📋 주간 업무 스케줄</div>
-              <div className="rounded-lg border border-yeo-200 bg-yeo-50/80 p-3 dark:border-yeo-800 dark:bg-yeo-950/40">
-                💡 월요일에 이번 주 계획을 세우세요.
+              <div className="rounded-lg border border-border bg-card p-3 shadow-sm">📋 Weekly project hub</div>
+              <div className="rounded-lg border border-yeo-200/60 bg-yeo-50/50 p-3 dark:border-yeo-900 dark:bg-yeo-950/30">
+                💡 Plan the sprint on Monday; keep notes inline.
               </div>
-              <div className="rounded-lg border bg-card p-3 text-muted-foreground shadow-sm">▸ 월요일 (3)</div>
+              <div className="rounded-lg border border-border bg-card p-3 text-muted-foreground shadow-sm">▸ This week (3)</div>
               <div className="h-2 rounded bg-muted" />
-              <div className="rounded-lg border bg-card p-2 text-xs shadow-sm">표 · 업무 트래커</div>
+              <div className="rounded-lg border border-border bg-card p-2 text-xs text-muted-foreground shadow-sm">
+                Table · Task tracker
+              </div>
             </div>
           </div>
         </div>

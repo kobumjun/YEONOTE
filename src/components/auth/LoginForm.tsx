@@ -8,12 +8,12 @@ export function LoginForm() {
   const next = searchParams.get("next") ?? "/dashboard";
 
   return (
-    <div className="w-full max-w-md space-y-6 rounded-xl border bg-card p-8 shadow-md">
+    <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8 shadow-sm">
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-surface-dark dark:text-white">로그인</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Google 계정으로 YEO에 로그인하거나 가입할 수 있습니다.</p>
+        <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Sign In</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Use Google to sign in or create your YEO account.</p>
       </div>
-      <GoogleSignInButton next={next} className="w-full rounded-lg" size="lg" />
+      <GoogleSignInButton next={next} className="w-full rounded-xl shadow-sm" size="lg" />
     </div>
   );
 }

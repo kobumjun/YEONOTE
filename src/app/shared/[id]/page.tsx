@@ -21,8 +21,8 @@ export default async function SharedTemplatePage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">
-        공개 템플릿 · 읽기 전용
+      <div className="border-b border-border bg-muted/40 px-4 py-2 text-center text-xs text-muted-foreground">
+        Public template · Read only
       </div>
       <TemplateEditor
         templateId={tpl.id}
