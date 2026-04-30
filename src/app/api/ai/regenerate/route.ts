@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getOpenAI, TEMPLATE_SYSTEM_PROMPT } from "@/lib/openai";
 import { createClient } from "@/lib/supabase/server";
-import {
-  canGenerateAI,
-  FREE_MONTHLY_AI,
-  nextResetFrom,
-  shouldResetUsage,
-} from "@/lib/plan";
+import { canGenerateAI } from "@/lib/plan";
 import { limitAiGeneration } from "@/lib/ratelimit";
 import type { AITemplatePayload } from "@/types/template";
 
@@ -23,25 +18,16 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient();
-  let { data: profile } = await supabase
-    .from("profiles")
-    .select("plan, ai_generations_used, ai_generations_reset_at")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("ai_credits").eq("id", user.id).single();
 
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 400 });
 
-  if (shouldResetUsage(profile.ai_generations_reset_at)) {
-    await supabase
-      .from("profiles")
-      .update({ ai_generations_used: 0, ai_generations_reset_at: nextResetFrom() })
-      .eq("id", user.id);
-    profile = { ...profile, ai_generations_used: 0, ai_generations_reset_at: nextResetFrom() };
-  }
-
-  const plan = profile.plan ?? "free";
-  if (!canGenerateAI(plan, profile.ai_generations_used ?? 0, profile.ai_generations_reset_at)) {
-    return NextResponse.json({ error: `Free plan allows ${FREE_MONTHLY_AI} AI generations per month.` }, { status: 403 });
+  const creditsBefore = profile.ai_credits ?? 0;
+  if (!canGenerateAI(creditsBefore)) {
+    return NextResponse.json(
+      { error: "AI 크레딧이 소진되었습니다. 크레딧을 충전한 뒤 다시 시도하세요.", code: "NO_CREDITS" },
+      { status: 403 }
+    );
   }
 
   const body = await req.json().catch(() => null) as {
@@ -77,6 +63,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid AI JSON" }, { status: 502 });
   }
 
+  const { data: updatedProfile, error: creditErr } = await supabase
+    .from("profiles")
+    .update({ ai_credits: creditsBefore - 1 })
+    .eq("id", user.id)
+    .eq("ai_credits", creditsBefore)
+    .select("ai_credits")
+    .single();
+
+  if (creditErr || updatedProfile == null) {
+    return NextResponse.json(
+      { error: "크레딧 차감에 실패했습니다. 잠시 후 다시 시도해 주세요.", code: "CREDIT_RACE" },
+      { status: 409 }
+    );
+  }
+
+  const creditsRemaining = updatedProfile.ai_credits ?? 0;
+
   await supabase.from("ai_logs").insert({
     user_id: user.id,
     prompt: body.prompt,
@@ -84,12 +87,5 @@ export async function POST(req: Request) {
     tokens_used: completion.usage?.total_tokens ?? null,
   });
 
-  if (plan === "free") {
-    await supabase
-      .from("profiles")
-      .update({ ai_generations_used: (profile.ai_generations_used ?? 0) + 1 })
-      .eq("id", user.id);
-  }
-
-  return NextResponse.json(parsed);
+  return NextResponse.json({ ...parsed, creditsRemaining });
 }

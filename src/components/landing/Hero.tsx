@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,24 +16,22 @@ export function Hero() {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">말만 하세요. YEO가 만듭니다.</p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/signup"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "rounded-xl bg-yeo-600 px-8 text-primary-foreground transition-all duration-200 hover:bg-yeo-700"
-            )}
-          >
-            무료로 시작하기
-          </Link>
-          <Link
-            href="/login"
+          <GoogleSignInButton
+            next="/dashboard"
+            size="lg"
+            label="시작하기"
+            className={cn(buttonVariants({ size: "lg" }), "rounded-xl bg-yeo-600 px-8 text-primary-foreground hover:bg-yeo-700")}
+          />
+          <GoogleSignInButton
+            next="/dashboard"
+            size="lg"
+            variant="outline"
+            label="로그인"
             className={cn(
               buttonVariants({ size: "lg", variant: "outline" }),
-              "rounded-xl border-yeo-200 bg-white/80 transition-all duration-200 dark:bg-slate-900/80"
+              "rounded-xl border-yeo-200 bg-white/80 dark:bg-slate-900/80"
             )}
-          >
-            로그인
-          </Link>
+          />
         </div>
       </div>
     </section>

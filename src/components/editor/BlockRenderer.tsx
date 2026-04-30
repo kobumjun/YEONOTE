@@ -81,19 +81,57 @@ export function BlockRenderer({
       );
     case "bulleted_list":
       return wrap(
-        <ul className="list-disc space-y-1 pl-5 text-sm">
-          {block.items.map((item, i) => (
-            <li key={i}>{item}</li>
-          ))}
-        </ul>
+        readOnly ? (
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {block.items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <ul className="list-none space-y-1 text-sm">
+            {block.items.map((item, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-1.5 text-muted-foreground">•</span>
+                <input
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0.5 outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                  value={item}
+                  onChange={(e) => {
+                    const next = [...block.items];
+                    next[i] = e.target.value;
+                    onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+        )
       );
     case "numbered_list":
       return wrap(
-        <ol className="list-decimal space-y-1 pl-5 text-sm">
-          {block.items.map((item, i) => (
-            <li key={i}>{item}</li>
-          ))}
-        </ol>
+        readOnly ? (
+          <ol className="list-decimal space-y-1 pl-5 text-sm">
+            {block.items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ol>
+        ) : (
+          <ol className="list-none space-y-1 text-sm">
+            {block.items.map((item, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="mt-0.5 w-5 shrink-0 text-right text-muted-foreground">{i + 1}.</span>
+                <input
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0.5 outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                  value={item}
+                  onChange={(e) => {
+                    const next = [...block.items];
+                    next[i] = e.target.value;
+                    onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                  }}
+                />
+              </li>
+            ))}
+          </ol>
+        )
       );
     case "to_do":
       return wrap(
@@ -118,7 +156,18 @@ export function BlockRenderer({
     case "toggle":
       return wrap(
         <details className="rounded-lg border bg-muted/30 px-3 py-2">
-          <summary className="cursor-pointer text-sm font-medium">{block.title}</summary>
+          <summary className="cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
+            {readOnly ? (
+              block.title
+            ) : (
+              <input
+                className="w-full border-0 bg-transparent p-0 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                value={block.title}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onChange?.(block.id, { title: e.target.value } as Partial<TemplateBlock>)}
+              />
+            )}
+          </summary>
           <div className="mt-2 space-y-1 border-l-2 border-yeo-300 pl-3 dark:border-yeo-700">
             {block.children.map((c) => (
               <BlockRenderer
@@ -137,13 +186,42 @@ export function BlockRenderer({
     case "callout":
       return wrap(
         <div className="flex gap-3 rounded-lg border border-yeo-200 bg-yeo-50/90 p-4 text-sm dark:border-yeo-800 dark:bg-yeo-950/50">
-          <span className="text-lg">{block.icon}</span>
-          <div className="flex-1 whitespace-pre-wrap">{block.content}</div>
+          {readOnly ? (
+            <span className="text-lg">{block.icon}</span>
+          ) : (
+            <input
+              className="w-10 shrink-0 border-0 bg-transparent text-center text-lg outline-none"
+              value={block.icon}
+              onChange={(e) => onChange?.(block.id, { icon: e.target.value } as Partial<TemplateBlock>)}
+              aria-label="콜아웃 아이콘"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            {readOnly ? (
+              <div className="whitespace-pre-wrap">{block.content}</div>
+            ) : (
+              <textarea
+                className="w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                rows={Math.max(2, block.content.split("\n").length)}
+                value={block.content}
+                onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+              />
+            )}
+          </div>
         </div>
       );
     case "quote":
       return wrap(
-        <blockquote className="border-l-4 border-yeo-400 pl-4 text-sm italic text-muted-foreground">{block.content}</blockquote>
+        readOnly ? (
+          <blockquote className="border-l-4 border-yeo-400 pl-4 text-sm italic text-muted-foreground">{block.content}</blockquote>
+        ) : (
+          <textarea
+            className="w-full resize-none border-l-4 border-yeo-400 bg-transparent pl-4 text-sm italic text-muted-foreground outline-none focus:ring-2 focus:ring-yeo-500/30 rounded-r"
+            rows={Math.max(2, block.content.split("\n").length)}
+            value={block.content}
+            onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+          />
+        )
       );
     case "divider":
       return wrap(<hr className="my-4 border-t border-border" />);

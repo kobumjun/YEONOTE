@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { getLemonProductId, getVariantIdForPlan } from "@/lib/lemonsqueezy";
-import type { BillingPlan } from "@/types/billing";
+import { getLemonProductId, getVariantIdForPack } from "@/lib/lemonsqueezy";
+import type { CreditPack } from "@/types/billing";
 
 /**
  * Lemon Squeezy setup snapshot for the billing UI.
@@ -18,10 +18,9 @@ export async function GET() {
   const storeSlug = process.env.LEMONSQUEEZY_STORE_SLUG?.trim() || null;
   const apiKeyConfigured = Boolean(process.env.LEMONSQUEEZY_API_KEY?.trim());
 
-  const variants: Record<BillingPlan, { configured: boolean }> = {
-    free: { configured: Boolean(getVariantIdForPlan("free")) },
-    pro: { configured: Boolean(getVariantIdForPlan("pro")) },
-    team: { configured: Boolean(getVariantIdForPlan("team")) },
+  const packs: Record<CreditPack, { configured: boolean }> = {
+    pro: { configured: Boolean(getVariantIdForPack("pro")) },
+    team: { configured: Boolean(getVariantIdForPack("team")) },
   };
 
   return NextResponse.json({
@@ -31,7 +30,7 @@ export async function GET() {
       storeSlugConfigured: Boolean(storeSlug),
       storeSlug: storeSlug ?? null,
       apiKeyConfigured,
-      variants,
+      packs,
     },
   });
 }

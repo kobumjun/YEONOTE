@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { createBlock, type InsertableBlockType } from "@/lib/block-factory";
+
+export type SlashCommandHandle = {
+  open: () => void;
+};
 
 const groups: { label: string; items: { type: InsertableBlockType; label: string }[] }[] = [
   {
@@ -45,14 +49,21 @@ const groups: { label: string; items: { type: InsertableBlockType; label: string
   },
 ];
 
-export function SlashCommand({ onInsert }: { onInsert: (block: ReturnType<typeof createBlock>) => void }) {
+export const SlashCommand = forwardRef<
+  SlashCommandHandle,
+  { onInsert: (block: ReturnType<typeof createBlock>) => void }
+>(function SlashCommand({ onInsert }, ref) {
   const [open, setOpen] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    open: () => setOpen(true),
+  }));
 
   return (
     <>
       <Button type="button" variant="outline" size="sm" className="gap-1 rounded-lg" onClick={() => setOpen(true)}>
         <Plus className="size-4" />
-        블록 추가
+        블록 추가 <span className="hidden text-muted-foreground sm:inline">( / )</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="overflow-hidden p-0 sm:max-w-lg">
@@ -85,4 +96,4 @@ export function SlashCommand({ onInsert }: { onInsert: (block: ReturnType<typeof
       </Dialog>
     </>
   );
-}
+});

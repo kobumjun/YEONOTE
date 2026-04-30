@@ -11,6 +11,8 @@ export type Profile = {
   plan: "free" | "pro" | "team";
   ai_generations_used: number;
   ai_generations_reset_at: string | null;
+  ai_credits: number;
+  ai_credits_ceiling: number;
   created_at: string;
   updated_at: string;
 };

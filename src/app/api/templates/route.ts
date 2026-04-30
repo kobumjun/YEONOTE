@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_MAX_TEMPLATES, effectivePlan } from "@/lib/plan";
+import { createBlankTemplateBlocks } from "@/lib/blank-template";
 import type { TemplateContent } from "@/types/template";
 
 function emptyContent(): TemplateContent {
@@ -71,16 +72,22 @@ export async function POST(req: Request) {
     tags?: string[];
     category?: string | null;
     ai_prompt?: string | null;
+    blank?: boolean;
   };
 
-  const content = body.content ?? emptyContent();
+  const blank = Boolean(body.blank);
+  const content: TemplateContent = blank
+    ? { blocks: createBlankTemplateBlocks() }
+    : (body.content ?? emptyContent());
+  const title = blank ? (body.title?.trim() || "무제") : (body.title ?? "Untitled");
+  const icon = blank ? (body.icon?.trim() || "📄") : (body.icon ?? "📄");
 
   const { data, error } = await supabase
     .from("templates")
     .insert({
       user_id: user.id,
-      title: body.title ?? "Untitled",
-      icon: body.icon ?? "📄",
+      title,
+      icon,
       cover: body.cover ?? null,
       content,
       tags: body.tags ?? [],

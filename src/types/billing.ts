@@ -1,13 +1,15 @@
 export type BillingPlan = "free" | "pro" | "team";
 
-/** One Lemon Squeezy product; plans map to variants via env (see `LEMONSQUEEZY_PRODUCT_ID`). */
+/** One Lemon Squeezy product; paid packs map to variants via env (see `LEMONSQUEEZY_PRODUCT_ID`). */
 export const LEMONSQUEEZY_PRODUCT_ENV_KEY = "LEMONSQUEEZY_PRODUCT_ID" as const;
 
 /** Checkout host: `https://{slug}.lemonsqueezy.com/buy/...` — not the numeric store id. */
 export const LEMONSQUEEZY_STORE_SLUG_ENV_KEY = "LEMONSQUEEZY_STORE_SLUG" as const;
 
-export const LEMONSQUEEZY_VARIANT_ENV_BY_PLAN: Record<BillingPlan, string> = {
-  free: "LEMONSQUEEZY_VARIANT_ID_FREE",
+/** One-time credit packs only (no Free checkout variant). */
+export type CreditPack = "pro" | "team";
+
+export const LEMONSQUEEZY_VARIANT_ENV_BY_PACK: Record<CreditPack, string> = {
   pro: "LEMONSQUEEZY_VARIANT_ID_PRO",
   team: "LEMONSQUEEZY_VARIANT_ID_TEAM",
 };

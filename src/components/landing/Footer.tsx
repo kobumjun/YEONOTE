@@ -24,8 +24,8 @@ export function Footer() {
             <Link href="/login" className="block hover:text-white">
               로그인
             </Link>
-            <Link href="/signup" className="block hover:text-white">
-              회원가입
+            <Link href="/login" className="block hover:text-white">
+              시작하기
             </Link>
           </div>
         </div>

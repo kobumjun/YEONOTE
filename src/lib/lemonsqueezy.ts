@@ -1,8 +1,8 @@
-import { LEMONSQUEEZY_VARIANT_ENV_BY_PLAN, type BillingPlan } from "@/types/billing";
+import { LEMONSQUEEZY_VARIANT_ENV_BY_PACK, type CreditPack } from "@/types/billing";
 
 const LEMON_API_BASE = "https://api.lemonsqueezy.com/v1";
 
-/** Single Lemon Squeezy product (variants distinguish Free / Pro / Team). */
+/** Single Lemon Squeezy product (variants distinguish Pro / Team credit packs). */
 export function getLemonProductId(): string | undefined {
   const id = process.env.LEMONSQUEEZY_PRODUCT_ID?.trim();
   return id || undefined;
@@ -13,19 +13,19 @@ export function getLemonStoreId(): string | undefined {
   return id || undefined;
 }
 
-export function getVariantIdForPlan(plan: BillingPlan): string | null {
-  const key = LEMONSQUEEZY_VARIANT_ENV_BY_PLAN[plan];
+export function getVariantIdForPack(pack: CreditPack): string | null {
+  const key = LEMONSQUEEZY_VARIANT_ENV_BY_PACK[pack];
   const id = process.env[key]?.trim();
   return id || null;
 }
 
-/** Resolve billing plan from Lemon variant id (same product, different variants). */
-export function planFromVariantId(variantId: string | undefined | null): BillingPlan | null {
+/** Resolve Pro / Team pack from Lemon variant id. */
+export function planFromVariantId(variantId: string | undefined | null): CreditPack | null {
   if (variantId == null || variantId === "") return null;
   const v = String(variantId);
-  for (const plan of ["free", "pro", "team"] as const) {
-    const configured = getVariantIdForPlan(plan);
-    if (configured && configured === v) return plan;
+  for (const pack of ["pro", "team"] as const) {
+    const configured = getVariantIdForPack(pack);
+    if (configured && configured === v) return pack;
   }
   return null;
 }
@@ -51,7 +51,6 @@ type LemonError = { errors?: { detail?: string; title?: string; meta?: unknown }
 /**
  * Creates a hosted checkout via Lemon Squeezy API.
  * @see https://docs.lemonsqueezy.com/api/checkouts/create-checkout
- * Returns `data.attributes.url` (e.g. …/checkout/custom/{uuid}?…).
  */
 export async function createLemonCheckout(params: {
   email: string;
@@ -117,16 +116,16 @@ export async function createLemonCheckout(params: {
   return { ok: true, url, checkoutId };
 }
 
-export async function createLemonCheckoutForPlan(
-  plan: BillingPlan,
+export async function createLemonCheckoutForPack(
+  pack: CreditPack,
   email: string,
   userId: string
 ): Promise<
   { ok: true; url: string; checkoutId: string; variantId: string } | { ok: false; error: string; status: number }
 > {
-  const variantId = getVariantIdForPlan(plan);
+  const variantId = getVariantIdForPack(pack);
   if (!variantId) {
-    return { ok: false, error: `플랜 "${plan}"에 대한 변형 ID가 서버에 없습니다.`, status: 500 };
+    return { ok: false, error: `팩 "${pack}"에 대한 변형 ID가 서버에 없습니다.`, status: 500 };
   }
   const result = await createLemonCheckout({ email, userId, variantId });
   if (!result.ok) return result;

@@ -5,6 +5,8 @@ import type { AITemplatePayload } from "@/types/template";
 
 type ProgressCb = (message: string) => void;
 
+export type AIGenerateResult = { payload: AITemplatePayload; creditsRemaining: number | null };
+
 export function useAIGenerate() {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,11 +15,11 @@ export function useAIGenerate() {
     async (
       prompt: string,
       opts: { tags?: string[]; style?: string; onProgress?: ProgressCb; onBlock?: (raw: unknown) => void }
-    ): Promise<AITemplatePayload | null> => {
+    ): Promise<AIGenerateResult | null> => {
       setStreaming(true);
       setError(null);
       const rawBlocks: unknown[] = [];
-      let meta: { title?: string; icon?: string; cover?: string } = {};
+      let meta: { title?: string; icon?: string; cover?: string; creditsRemaining?: number } = {};
 
       try {
         const res = await fetch("/api/ai/generate", {
@@ -27,8 +29,10 @@ export function useAIGenerate() {
         });
 
         if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error((j as { error?: string }).error ?? res.statusText);
+          const j = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+          const err = new Error(j.error ?? res.statusText) as Error & { code?: string };
+          err.code = j.code;
+          throw err;
         }
 
         const reader = res.body?.getReader();
@@ -55,6 +59,7 @@ export function useAIGenerate() {
                 title?: string;
                 icon?: string;
                 cover?: string;
+                creditsRemaining?: number;
               };
               if (data.type === "progress" && data.message) opts.onProgress?.(data.message);
               if (data.type === "block" && data.block !== undefined) {
@@ -62,7 +67,13 @@ export function useAIGenerate() {
                 opts.onBlock?.(data.block);
               }
               if (data.type === "done") {
-                meta = { title: data.title, icon: data.icon, cover: data.cover };
+                meta = {
+                  title: data.title,
+                  icon: data.icon,
+                  cover: data.cover,
+                  creditsRemaining:
+                    typeof data.creditsRemaining === "number" ? data.creditsRemaining : undefined,
+                };
               }
             } catch {
               /* ignore partial */
@@ -71,9 +82,12 @@ export function useAIGenerate() {
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Generation failed";
+        const code = e instanceof Error && "code" in e ? (e as Error & { code?: string }).code : undefined;
         setError(msg);
         setStreaming(false);
-        return null;
+        const err = new Error(msg) as Error & { code?: string };
+        err.code = code;
+        throw err;
       }
 
       setStreaming(false);
@@ -83,7 +97,10 @@ export function useAIGenerate() {
         cover: meta.cover,
         blocks: rawBlocks,
       };
-      return payload;
+      return {
+        payload,
+        creditsRemaining: meta.creditsRemaining ?? null,
+      };
     },
     []
   );

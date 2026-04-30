@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useUiStore } from "@/stores/uiStore";
+import { creditsDisplay } from "@/lib/credits";
 
 const links = [
   { href: "/dashboard", label: "모든 템플릿", icon: LayoutDashboard },
@@ -28,7 +29,13 @@ const links = [
   { href: "/settings", label: "설정", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  aiCredits,
+  aiCreditsCeiling,
+}: {
+  aiCredits: number;
+  aiCreditsCeiling: number;
+}) {
   const pathname = usePathname();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
@@ -43,7 +50,10 @@ export function Sidebar() {
       <div className="flex h-14 items-center justify-between border-b px-3">
         {!collapsed && <Logo href="/dashboard" />}
         {collapsed && (
-          <Link href="/dashboard" className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-yeo-600 text-sm font-bold text-white">
+          <Link
+            href="/dashboard"
+            className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-yeo-600 text-sm font-bold text-white"
+          >
             Y
           </Link>
         )}
@@ -67,6 +77,19 @@ export function Sidebar() {
           );
         })}
       </nav>
+      {!collapsed && (
+        <div className="border-t border-sidebar-border p-3">
+          <p className="text-xs font-medium text-sidebar-foreground">
+            🔥 AI 크레딧: {creditsDisplay(aiCredits, aiCreditsCeiling)} 남음
+          </p>
+          <Link
+            href="/settings/billing"
+            className={cn(buttonVariants({ size: "sm" }), "mt-2 flex w-full justify-center rounded-lg bg-yeo-600 text-primary-foreground hover:bg-yeo-700")}
+          >
+            충전하기
+          </Link>
+        </div>
+      )}
       <div className="border-t p-2">
         <Button type="button" variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={toggleSidebar}>
           {collapsed ? <PanelLeft className="size-4" /> : <PanelLeftClose className="size-4" />}

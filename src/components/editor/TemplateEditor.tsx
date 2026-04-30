@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BlockRenderer } from "@/components/editor/BlockRenderer";
-import { SlashCommand } from "@/components/editor/SlashCommand";
+import { SlashCommand, type SlashCommandHandle } from "@/components/editor/SlashCommand";
 import { CoverPicker } from "@/components/editor/CoverPicker";
 import { IconPicker } from "@/components/editor/IconPicker";
 import { ExportMenu } from "@/components/editor/ExportMenu";
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditorStore } from "@/stores/editorStore";
-import type { TemplateBlock } from "@/types/template";
+import type { AITemplatePayload, TemplateBlock } from "@/types/template";
 import { cn } from "@/lib/utils";
 
 function gradientClass(cover: string | null) {
@@ -103,6 +103,7 @@ export function TemplateEditor({
   readOnly?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const slashRef = useRef<SlashCommandHandle>(null);
   const loadFromServer = useEditorStore((s) => s.loadFromServer);
   const title = useEditorStore((s) => s.title);
   const icon = useEditorStore((s) => s.icon);
@@ -132,6 +133,20 @@ export function TemplateEditor({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per template id
   }, [templateId]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      if (el.closest("input, textarea, select, [contenteditable='true']")) return;
+      e.preventDefault();
+      slashRef.current?.open();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [readOnly]);
 
   const save = useCallback(async () => {
     const st = useEditorStore.getState();
@@ -210,12 +225,22 @@ export function TemplateEditor({
           currentBlocksSummary: summary,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Failed");
-      useEditorStore.getState().applyAiPayload(j);
+      const j = (await res.json()) as AITemplatePayload & { error?: string; code?: string; creditsRemaining?: number };
+      if (!res.ok) {
+        if (j.code === "NO_CREDITS") {
+          toast.error("AI 크레딧이 소진되었습니다. 결제에서 충전해 주세요.");
+          return;
+        }
+        throw new Error(j.error ?? "Failed");
+      }
+      const { creditsRemaining, ...payload } = j;
+      useEditorStore.getState().applyAiPayload(payload as AITemplatePayload);
       setRegenOpen(false);
       setRegenPrompt("");
       toast.success("템플릿을 다시 생성했습니다.");
+      if (typeof creditsRemaining === "number") {
+        toast.message(`크레딧 1개 사용됨. 남은 크레딧: ${creditsRemaining}개`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "실패");
     } finally {
@@ -264,7 +289,7 @@ export function TemplateEditor({
         <div ref={editorRef} className="mx-auto max-w-3xl px-6 py-10 pb-32">
           {!readOnly && (
             <div className="mb-6">
-              <SlashCommand onInsert={(b) => insertBlock(blocks.length, b)} />
+              <SlashCommand ref={slashRef} onInsert={(b) => insertBlock(blocks.length, b)} />
             </div>
           )}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

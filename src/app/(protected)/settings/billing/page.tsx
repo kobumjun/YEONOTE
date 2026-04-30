@@ -6,8 +6,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { FREE_MONTHLY_AI } from "@/lib/plan";
 import { toast } from "sonner";
+import {
+  PRO_CREDIT_PACK_CREDITS,
+  PRO_CREDIT_PACK_USD,
+  TEAM_CREDIT_PACK_CREDITS,
+  TEAM_CREDIT_PACK_USD,
+  creditsDisplay,
+} from "@/lib/credits";
 
 type LemonConfig = {
   productId: string | null;
@@ -15,8 +21,7 @@ type LemonConfig = {
   storeSlugConfigured: boolean;
   storeSlug: string | null;
   apiKeyConfigured: boolean;
-  variants: {
-    free: { configured: boolean };
+  packs: {
     pro: { configured: boolean };
     team: { configured: boolean };
   };
@@ -24,7 +29,8 @@ type LemonConfig = {
 
 export default function BillingSettingsPage() {
   const [plan, setPlan] = useState("free");
-  const [used, setUsed] = useState(0);
+  const [credits, setCredits] = useState(0);
+  const [ceiling, setCeiling] = useState(0);
   const [portal, setPortal] = useState<string | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
   const [lemon, setLemon] = useState<LemonConfig | null>(null);
@@ -35,13 +41,14 @@ export default function BillingSettingsPage() {
       if (!user) return;
       supabase
         .from("profiles")
-        .select("plan,ai_generations_used")
+        .select("plan, ai_credits, ai_credits_ceiling")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
           if (data) {
             setPlan(data.plan ?? "free");
-            setUsed(data.ai_generations_used ?? 0);
+            setCredits(data.ai_credits ?? 0);
+            setCeiling(data.ai_credits_ceiling ?? 0);
           }
         });
     });
@@ -56,7 +63,7 @@ export default function BillingSettingsPage() {
       .catch(() => setLemon(null));
   }, []);
 
-  async function startCheckout(target: "free" | "pro" | "team") {
+  async function startCheckout(target: "pro" | "team") {
     setCheckoutBusy(target);
     try {
       const res = await fetch(`/api/billing/checkout?plan=${target}`);
@@ -72,8 +79,8 @@ export default function BillingSettingsPage() {
     }
   }
 
-  function variantLabel(key: keyof LemonConfig["variants"], label: string) {
-    const ok = lemon?.variants[key]?.configured;
+  function packLabel(key: keyof LemonConfig["packs"], label: string) {
+    const ok = lemon?.packs[key]?.configured;
     return (
       <span className="inline-flex items-center gap-1">
         {label}
@@ -90,35 +97,46 @@ export default function BillingSettingsPage() {
         ← 설정
       </Link>
       <h1 className="mt-4 font-heading text-2xl font-semibold">결제</h1>
+
       <Card className="mt-6 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-lg capitalize">현재 플랜: {plan}</CardTitle>
+          <CardTitle className="text-lg">Free</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>신규 사용자 기본 플랜입니다. AI 크레딧은 포함되지 않으며, Lemon Squeezy 결제 없이 바로 사용할 수 있습니다.</p>
+          {plan === "free" ? (
+            <p className="rounded-lg border border-yeo-200 bg-yeo-50/80 px-3 py-2 text-foreground dark:border-yeo-800 dark:bg-yeo-950/40">
+              현재 플랜
+            </p>
+          ) : null}
+          <p>
+            남은 AI 크레딧: <span className="font-medium text-foreground">{creditsDisplay(credits, ceiling)}</span>
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-lg">크레딧 충전 (일회성)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
-          {plan === "free" && (
-            <p>
-              이번 달 AI 사용: {used} / {FREE_MONTHLY_AI}
-            </p>
-          )}
+          <p>
+            Pro: <span className="font-medium text-foreground">${PRO_CREDIT_PACK_USD}</span> 일회성 ·{" "}
+            <span className="font-medium text-foreground">{PRO_CREDIT_PACK_CREDITS} AI 크레딧</span>
+          </p>
+          <p>
+            Team: <span className="font-medium text-foreground">${TEAM_CREDIT_PACK_USD}</span> 일회성 ·{" "}
+            <span className="font-medium text-foreground">{TEAM_CREDIT_PACK_CREDITS} AI 크레딧</span>
+          </p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="rounded-lg"
-              disabled={checkoutBusy !== null}
-              onClick={() => startCheckout("free")}
-            >
-              {checkoutBusy === "free" ? "연결 중…" : "Free 변형 체크아웃"}
-            </Button>
             <Button
               type="button"
               className="rounded-lg bg-yeo-600"
               size="sm"
               disabled={checkoutBusy !== null}
-              onClick={() => startCheckout("pro")}
+              onClick={() => void startCheckout("pro")}
             >
-              {checkoutBusy === "pro" ? "연결 중…" : "Pro 업그레이드"}
+              {checkoutBusy === "pro" ? "연결 중…" : `Pro 크레딧 구매 ($${PRO_CREDIT_PACK_USD})`}
             </Button>
             <Button
               type="button"
@@ -126,45 +144,43 @@ export default function BillingSettingsPage() {
               size="sm"
               className="rounded-lg"
               disabled={checkoutBusy !== null}
-              onClick={() => startCheckout("team")}
+              onClick={() => void startCheckout("team")}
             >
-              {checkoutBusy === "team" ? "연결 중…" : "Team 업그레이드"}
+              {checkoutBusy === "team" ? "연결 중…" : `Team 크레딧 구매 ($${TEAM_CREDIT_PACK_USD})`}
             </Button>
           </div>
+          {plan !== "free" ? (
+            <p className="text-xs text-foreground">구매한 플랜: {plan} — PDF/PNG보내기 등 Pro·Team 혜택이 적용됩니다.</p>
+          ) : null}
+        </CardContent>
+      </Card>
 
-          <div className="rounded-lg border bg-muted/30 p-3 text-xs text-foreground">
-            <p className="font-medium text-surface-dark dark:text-white">Lemon Squeezy (서버 설정)</p>
-            {lemon ? (
-              <ul className="mt-2 space-y-1">
-                <li>
-                  제품 ID:{" "}
-                  <span className="font-mono text-foreground">{lemon.productId ?? "— (미설정)"}</span>
-                </li>
-                <li>
-                  스토어 ID(API): {lemon.storeIdConfigured ? "설정됨" : "미설정"}
-                </li>
-                <li>
-                  스토어 슬러그(체크아웃):{" "}
-                  {lemon.storeSlugConfigured ? (
-                    <span className="font-mono text-foreground">{lemon.storeSlug}</span>
-                  ) : (
-                    "미설정"
-                  )}
-                </li>
-                <li>API 키: {lemon.apiKeyConfigured ? "설정됨" : "미설정"}</li>
-                <li className="pt-1">
-                  변형 — {variantLabel("free", "Free")} · {variantLabel("pro", "Pro")} ·{" "}
-                  {variantLabel("team", "Team")}
-                </li>
-              </ul>
-            ) : (
-              <p className="mt-2 text-muted-foreground">설정 정보를 불러오는 중이거나 로드에 실패했습니다.</p>
-            )}
-            <p className="mt-2 text-muted-foreground">
-              값은 서버의 <span className="font-medium">환경 변수</span>에서만 읽으며, 브라우저에 비밀 키를 넣지 않습니다.
-            </p>
-          </div>
-
+      <Card className="mt-6 rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-lg text-muted-foreground">Lemon Squeezy (서버 설정)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-xs text-foreground">
+          {lemon ? (
+            <ul className="space-y-1">
+              <li>
+                제품 ID: <span className="font-mono">{lemon.productId ?? "— (미설정)"}</span>
+              </li>
+              <li>스토어 ID(API): {lemon.storeIdConfigured ? "설정됨" : "미설정"}</li>
+              <li>
+                스토어 슬러그:{" "}
+                {lemon.storeSlugConfigured ? <span className="font-mono">{lemon.storeSlug}</span> : "미설정"}
+              </li>
+              <li>API 키: {lemon.apiKeyConfigured ? "설정됨" : "미설정"}</li>
+              <li className="pt-1">
+                변형 — {packLabel("pro", "Pro")} · {packLabel("team", "Team")}
+              </li>
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">설정 정보를 불러오는 중이거나 로드에 실패했습니다.</p>
+          )}
+          <p className="text-muted-foreground">
+            값은 서버의 <span className="font-medium">환경 변수</span>에서만 읽으며, 브라우저에 비밀 키를 넣지 않습니다.
+          </p>
           {portal ? (
             <a
               href={portal}
@@ -175,7 +191,7 @@ export default function BillingSettingsPage() {
               결제 포털 열기
             </a>
           ) : (
-            <p className="text-xs">Lemon Squeezy 포털 URL을 환경 변수에 설정하세요.</p>
+            <p className="text-muted-foreground">Lemon Squeezy 포털 URL을 환경 변수에 설정하세요.</p>
           )}
         </CardContent>
       </Card>

@@ -7,6 +7,15 @@ export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
 
+  if (pathname === "/signup" || pathname.startsWith("/signup/")) {
+    const u = new URL("/login", request.url);
+    u.search = request.nextUrl.search;
+    return NextResponse.redirect(u);
+  }
+  if (pathname === "/forgot-password" || pathname.startsWith("/forgot-password/")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   if (pathname.startsWith("/share/")) {
     return NextResponse.next({ request });
   }

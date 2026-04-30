@@ -1,11 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  isWebhookProductAllowed,
-  planFromVariantId,
-} from "@/lib/lemonsqueezy";
-import type { BillingPlan } from "@/types/billing";
+import { grantAmountForPack } from "@/lib/credits";
+import { isWebhookProductAllowed, planFromVariantId } from "@/lib/lemonsqueezy";
+import type { BillingPlan, CreditPack } from "@/types/billing";
 
 function verifySignature(rawBody: string, signature: string | null, secret: string) {
   if (!signature) return false;
@@ -74,6 +72,12 @@ function subscriptionStatus(attrs: Record<string, unknown>): "active" | "cancell
   return "cancelled";
 }
 
+function variantIdFromOrderAttributes(attrs: Record<string, unknown>): string | undefined {
+  const foi = attrs.first_order_item as { variant_id?: string | number } | undefined;
+  if (foi?.variant_id == null) return undefined;
+  return String(foi.variant_id);
+}
+
 export async function POST(req: Request) {
   const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
   if (!secret) {
@@ -94,6 +98,7 @@ export async function POST(req: Request) {
     meta?: { event_name?: string; custom_data?: Record<string, unknown> };
     data?: {
       id?: string | number;
+      type?: string;
       attributes?: Record<string, unknown>;
       relationships?: Record<string, JsonApiRel>;
     };
@@ -106,6 +111,75 @@ export async function POST(req: Request) {
 
   const event = payload.meta?.event_name ?? "";
   const admin = createAdminClient();
+
+  if (event === "order_created") {
+    const attrs = payload.data?.attributes ?? {};
+    const status = String(attrs.status ?? "").toLowerCase();
+    if (status !== "paid") {
+      return NextResponse.json({ received: true, skipped: "order_not_paid" });
+    }
+
+    const productId = extractProductId(payload);
+    if (!isWebhookProductAllowed(productId)) {
+      return NextResponse.json({ received: true, ignored: "unknown_product" });
+    }
+
+    const variantId = variantIdFromOrderAttributes(attrs);
+    let pack: CreditPack | null = planFromVariantId(variantId);
+    if (!pack) {
+      const foi = attrs.first_order_item as { variant_name?: string } | undefined;
+      const name = String(foi?.variant_name ?? "").toLowerCase();
+      if (name.includes("team")) pack = "team";
+      else if (name.includes("pro")) pack = "pro";
+    }
+    if (!pack) {
+      return NextResponse.json({ received: true, ignored: "unknown_variant" });
+    }
+
+    const userId = extractUserId(payload);
+    if (!userId) {
+      return NextResponse.json({ received: true, warning: "missing_user_id" });
+    }
+
+    const orderKey = String(payload.data?.id ?? attrs.identifier ?? "");
+    if (!orderKey) {
+      return NextResponse.json({ received: true, warning: "missing_order_id" });
+    }
+
+    const { error: insErr } = await admin.from("processed_lemon_orders").insert({
+      lemon_order_id: orderKey,
+      user_id: userId,
+    });
+    if (insErr?.code === "23505") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    if (insErr) {
+      console.error("processed_lemon_orders insert", insErr);
+      return NextResponse.json({ error: insErr.message }, { status: 500 });
+    }
+
+    const grant = grantAmountForPack(pack);
+    const { data: row } = await admin.from("profiles").select("ai_credits, ai_credits_ceiling").eq("id", userId).single();
+    const nextCredits = (row?.ai_credits ?? 0) + grant;
+    const nextCeiling = (row?.ai_credits_ceiling ?? 0) + grant;
+
+    const { error: upErr } = await admin
+      .from("profiles")
+      .update({
+        plan: pack,
+        ai_credits: nextCredits,
+        ai_credits_ceiling: nextCeiling,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (upErr) {
+      console.error("profiles credit grant", upErr);
+      return NextResponse.json({ error: upErr.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ received: true, order: orderKey, credits_added: grant });
+  }
 
   if (!event.includes("subscription")) {
     return NextResponse.json({ received: true });
@@ -124,7 +198,6 @@ export async function POST(req: Request) {
     const name = String(attrs.variant_name ?? attrs.product_name ?? "").toLowerCase();
     if (name.includes("team")) plan = "team";
     else if (name.includes("pro")) plan = "pro";
-    else if (name.includes("free")) plan = "free";
   }
 
   if (!plan) {
