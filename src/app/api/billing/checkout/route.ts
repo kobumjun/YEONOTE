@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getCheckoutUrlForPlan, getLemonProductId, getVariantIdForPlan } from "@/lib/lemonsqueezy";
-import { LEMONSQUEEZY_VARIANT_ENV_BY_PLAN, type BillingPlan } from "@/types/billing";
+import type { BillingPlan } from "@/types/billing";
 
 const PLANS: BillingPlan[] = ["free", "pro", "team"];
 
@@ -22,23 +22,34 @@ export async function GET(req: Request) {
   if (!variantId) {
     return NextResponse.json(
       {
-        error: `Missing variant ID for plan "${plan}". Set ${LEMONSQUEEZY_VARIANT_ENV_BY_PLAN[plan]}.`,
+        error: "이 플랜에 대한 Lemon Squeezy 변형 ID가 서버에 설정되지 않았습니다. .env의 변형 ID를 확인하세요.",
       },
       { status: 500 }
     );
   }
 
   const productId = getLemonProductId();
+  if (!productId) {
+    return NextResponse.json(
+      {
+        error: "Lemon Squeezy 제품 ID가 서버에 설정되지 않았습니다. 서버 환경 변수를 확인하세요.",
+      },
+      { status: 500 }
+    );
+  }
+
   const url = getCheckoutUrlForPlan(plan, user.email, user.id);
   if (!url) {
-    return NextResponse.json({ error: "LEMONSQUEEZY_STORE_ID is not set." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Lemon Squeezy 스토어 ID가 서버에 설정되지 않았습니다." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
     url,
     plan,
     variantId,
-    /** Single catalog product id (optional in client; used for support/debug). */
-    productId: productId ?? null,
+    productId,
   });
 }

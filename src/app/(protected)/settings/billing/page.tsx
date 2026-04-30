@@ -9,11 +9,23 @@ import Link from "next/link";
 import { FREE_MONTHLY_AI } from "@/lib/plan";
 import { toast } from "sonner";
 
+type LemonConfig = {
+  productId: string | null;
+  storeConfigured: boolean;
+  apiKeyConfigured: boolean;
+  variants: {
+    free: { configured: boolean };
+    pro: { configured: boolean };
+    team: { configured: boolean };
+  };
+};
+
 export default function BillingSettingsPage() {
   const [plan, setPlan] = useState("free");
   const [used, setUsed] = useState(0);
   const [portal, setPortal] = useState<string | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
+  const [lemon, setLemon] = useState<LemonConfig | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -34,6 +46,12 @@ export default function BillingSettingsPage() {
     fetch("/api/billing/portal")
       .then((r) => r.json())
       .then((j) => setPortal(j.url));
+    fetch("/api/billing/config")
+      .then(async (r) => {
+        const j = await r.json();
+        if (r.ok && j.lemon) setLemon(j.lemon);
+      })
+      .catch(() => setLemon(null));
   }, []);
 
   async function startCheckout(target: "free" | "pro" | "team") {
@@ -50,6 +68,18 @@ export default function BillingSettingsPage() {
     } finally {
       setCheckoutBusy(null);
     }
+  }
+
+  function variantLabel(key: keyof LemonConfig["variants"], label: string) {
+    const ok = lemon?.variants[key]?.configured;
+    return (
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className={ok ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+          {ok ? "설정됨" : "미설정"}
+        </span>
+      </span>
+    );
   }
 
   return (
@@ -99,15 +129,36 @@ export default function BillingSettingsPage() {
               {checkoutBusy === "team" ? "연결 중…" : "Team 업그레이드"}
             </Button>
           </div>
-          <p className="text-xs">
-            한 개의 Lemon 제품(<code className="rounded bg-muted px-1">LEMONSQUEEZY_PRODUCT_ID</code>)에 여러 변형으로 연결됩니다.
-          </p>
+
+          <div className="rounded-lg border bg-muted/30 p-3 text-xs text-foreground">
+            <p className="font-medium text-surface-dark dark:text-white">Lemon Squeezy (서버 설정)</p>
+            {lemon ? (
+              <ul className="mt-2 space-y-1">
+                <li>
+                  제품 ID:{" "}
+                  <span className="font-mono text-foreground">{lemon.productId ?? "— (미설정)"}</span>
+                </li>
+                <li>스토어: {lemon.storeConfigured ? "설정됨" : "미설정"}</li>
+                <li>API 키: {lemon.apiKeyConfigured ? "설정됨" : "미설정"}</li>
+                <li className="pt-1">
+                  변형 — {variantLabel("free", "Free")} · {variantLabel("pro", "Pro")} ·{" "}
+                  {variantLabel("team", "Team")}
+                </li>
+              </ul>
+            ) : (
+              <p className="mt-2 text-muted-foreground">설정 정보를 불러오는 중이거나 로드에 실패했습니다.</p>
+            )}
+            <p className="mt-2 text-muted-foreground">
+              값은 서버의 <span className="font-medium">환경 변수</span>에서만 읽으며, 브라우저에 비밀 키를 넣지 않습니다.
+            </p>
+          </div>
+
           {portal ? (
             <a
               href={portal}
               target="_blank"
               rel="noreferrer"
-              className={cn(buttonVariants({ variant: "outline" }), "mt-4 inline-flex rounded-lg")}
+              className={cn(buttonVariants({ variant: "outline" }), "inline-flex rounded-lg")}
             >
               결제 포털 열기
             </a>
