@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heart, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type PublicTpl = {
   id: string;
@@ -15,6 +16,10 @@ type PublicTpl = {
   category: string | null;
   likes_count: number;
   duplicates_count: number;
+  creator?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
 };
 
 export default function ExplorePage() {
@@ -42,8 +47,13 @@ export default function ExplorePage() {
   async function like(id: string) {
     const res = await fetch(`/api/templates/${id}/like`, { method: "POST" });
     const j = await res.json();
-    if (res.ok && typeof j.likes_count === "number") {
+    if (!res.ok) {
+      toast.error(j.error ?? "좋아요 처리 실패");
+      return;
+    }
+    if (typeof j.likes_count === "number") {
       setItems((prev) => prev.map((t) => (t.id === id ? { ...t, likes_count: j.likes_count } : t)));
+      toast.success(j.liked ? "좋아요를 눌렀습니다." : "좋아요를 취소했습니다.");
     }
   }
 
@@ -65,10 +75,17 @@ export default function ExplorePage() {
                 <div className="flex items-start gap-2">
                   <span className="text-2xl">{t.icon}</span>
                   <div>
-                    <Link href={`/share/${t.id}`} className="font-medium hover:underline">
+                    <Link href={`/shared/${t.id}`} className="font-medium hover:underline">
                       {t.title}
                     </Link>
                     {t.category && <p className="text-xs text-muted-foreground">{t.category}</p>}
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Avatar size="sm">
+                        {t.creator?.avatar_url ? <AvatarImage src={t.creator.avatar_url} alt="" /> : null}
+                        <AvatarFallback>{(t.creator?.full_name?.[0] ?? "U").toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span>{t.creator?.full_name ?? "익명 사용자"}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">

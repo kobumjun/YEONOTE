@@ -21,5 +21,25 @@ export async function GET(req: Request) {
 
   const { data, error } = await query.limit(60);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ templates: data ?? [] });
+
+  const templates = data ?? [];
+  const userIds = Array.from(new Set(templates.map((t) => t.user_id).filter(Boolean)));
+  let profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id,full_name,avatar_url")
+      .in("id", userIds);
+    profileMap = new Map(
+      (profiles ?? []).map((p) => [p.id as string, { full_name: p.full_name ?? null, avatar_url: p.avatar_url ?? null }])
+    );
+  }
+
+  const enriched = templates.map((t) => ({
+    ...t,
+    creator: profileMap.get(t.user_id) ?? { full_name: null, avatar_url: null },
+  }));
+
+  return NextResponse.json({ templates: enriched });
 }

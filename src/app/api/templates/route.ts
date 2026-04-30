@@ -93,6 +93,7 @@ export async function POST(req: Request) {
       tags: body.tags ?? [],
       category: body.category ?? null,
       ai_prompt: body.ai_prompt ?? null,
+      is_public: false,
     })
     .select()
     .single();

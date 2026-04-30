@@ -11,6 +11,7 @@ export function BlockRenderer({
   onChange,
   onDelete,
   onDuplicate,
+  onEnter,
   depth = 0,
 }: {
   block: TemplateBlock;
@@ -18,8 +19,20 @@ export function BlockRenderer({
   onChange?: (id: string, patch: Partial<TemplateBlock>) => void;
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
+  onEnter?: (id: string) => void;
   depth?: number;
 }) {
+  const stopGlobalHotkeys = (e: React.KeyboardEvent<HTMLElement>) => {
+    e.stopPropagation();
+  };
+
+  const enterCreatesNewBlock = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || e.shiftKey || readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onEnter?.(block.id);
+  };
+
   const wrap = (child: React.ReactNode) => (
     <div className="relative py-1 pl-1" style={{ marginLeft: depth * 12 }}>
       {child}
@@ -34,8 +47,12 @@ export function BlockRenderer({
         ) : (
           <input
             className="font-heading w-full border-0 bg-transparent text-3xl font-bold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
-            value={block.content}
+            value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onKeyDown={(e) => {
+              stopGlobalHotkeys(e);
+              enterCreatesNewBlock(e);
+            }}
           />
         )
       );
@@ -46,8 +63,12 @@ export function BlockRenderer({
         ) : (
           <input
             className="font-heading w-full border-0 bg-transparent text-2xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
-            value={block.content}
+            value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onKeyDown={(e) => {
+              stopGlobalHotkeys(e);
+              enterCreatesNewBlock(e);
+            }}
           />
         )
       );
@@ -58,8 +79,12 @@ export function BlockRenderer({
         ) : (
           <input
             className="font-heading w-full border-0 bg-transparent text-xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
-            value={block.content}
+            value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onKeyDown={(e) => {
+              stopGlobalHotkeys(e);
+              enterCreatesNewBlock(e);
+            }}
           />
         )
       );
@@ -70,9 +95,10 @@ export function BlockRenderer({
         ) : (
           <textarea
             className="w-full resize-none border-0 bg-transparent p-1 text-sm leading-relaxed outline-none ring-0 focus:ring-2 focus:ring-yeo-500/30 rounded-md"
-            rows={Math.max(2, block.content.split("\n").length)}
-            value={block.content}
+            rows={Math.max(2, String(block.content ?? "").split("\n").length)}
+            value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onKeyDown={stopGlobalHotkeys}
           />
         )
       );
@@ -91,11 +117,15 @@ export function BlockRenderer({
                 <span className="mt-1.5 text-muted-foreground">•</span>
                 <input
                   className="min-w-0 flex-1 border-0 bg-transparent p-0.5 outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
-                  value={item}
+                  value={String(item ?? "")}
                   onChange={(e) => {
                     const next = [...block.items];
                     next[i] = e.target.value;
                     onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                  }}
+                  onKeyDown={(e) => {
+                    stopGlobalHotkeys(e);
+                    enterCreatesNewBlock(e);
                   }}
                 />
               </li>
@@ -118,11 +148,15 @@ export function BlockRenderer({
                 <span className="mt-0.5 w-5 shrink-0 text-right text-muted-foreground">{i + 1}.</span>
                 <input
                   className="min-w-0 flex-1 border-0 bg-transparent p-0.5 outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
-                  value={item}
+                  value={String(item ?? "")}
                   onChange={(e) => {
                     const next = [...block.items];
                     next[i] = e.target.value;
                     onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                  }}
+                  onKeyDown={(e) => {
+                    stopGlobalHotkeys(e);
+                    enterCreatesNewBlock(e);
                   }}
                 />
               </li>
@@ -144,8 +178,12 @@ export function BlockRenderer({
           ) : (
             <input
               className="flex-1 border-0 bg-transparent p-0 outline-none"
-              value={block.content}
+              value={String(block.content ?? "")}
               onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+              onKeyDown={(e) => {
+                stopGlobalHotkeys(e);
+                enterCreatesNewBlock(e);
+              }}
             />
           )}
         </label>
@@ -159,9 +197,13 @@ export function BlockRenderer({
             ) : (
               <input
                 className="w-full border-0 bg-transparent p-0 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
-                value={block.title}
+                value={String(block.title ?? "")}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => onChange?.(block.id, { title: e.target.value } as Partial<TemplateBlock>)}
+                onKeyDown={(e) => {
+                  stopGlobalHotkeys(e);
+                  enterCreatesNewBlock(e);
+                }}
               />
             )}
           </summary>
@@ -174,6 +216,7 @@ export function BlockRenderer({
                 onChange={onChange}
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
+                onEnter={onEnter}
                 depth={depth + 1}
               />
             ))}
@@ -191,9 +234,10 @@ export function BlockRenderer({
           ) : (
             <input
               className="w-10 shrink-0 border-0 bg-transparent text-center text-lg outline-none"
-              value={block.icon}
+              value={String(block.icon ?? "")}
               onChange={(e) => onChange?.(block.id, { icon: e.target.value } as Partial<TemplateBlock>)}
               aria-label="콜아웃 아이콘"
+              onKeyDown={stopGlobalHotkeys}
             />
           )}
           <div className="min-w-0 flex-1">
@@ -202,9 +246,10 @@ export function BlockRenderer({
             ) : (
               <textarea
                 className="w-full resize-none border-0 bg-transparent p-0 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
-                rows={Math.max(2, block.content.split("\n").length)}
-                value={block.content}
+                rows={Math.max(2, String(block.content ?? "").split("\n").length)}
+                value={String(block.content ?? "")}
                 onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+                onKeyDown={stopGlobalHotkeys}
               />
             )}
           </div>
@@ -217,9 +262,10 @@ export function BlockRenderer({
         ) : (
           <textarea
             className="w-full resize-none border-l-4 border-yeo-400 bg-transparent pl-4 text-sm italic text-muted-foreground outline-none focus:ring-2 focus:ring-yeo-500/30 rounded-r"
-            rows={Math.max(2, block.content.split("\n").length)}
-            value={block.content}
+            rows={Math.max(2, String(block.content ?? "").split("\n").length)}
+            value={String(block.content ?? "")}
             onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+            onKeyDown={stopGlobalHotkeys}
           />
         )
       );
@@ -236,15 +282,17 @@ export function BlockRenderer({
           <div className="rounded-lg border bg-slate-950/95 p-3">
             <input
               className="mb-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-300 outline-none focus:border-yeo-500"
-              value={block.language}
+              value={String(block.language ?? "")}
               onChange={(e) => onChange?.(block.id, { language: e.target.value } as Partial<TemplateBlock>)}
               aria-label="코드 언어"
+              onKeyDown={stopGlobalHotkeys}
             />
             <textarea
               className="min-h-24 w-full resize-y rounded border border-slate-700 bg-slate-900 p-2 font-mono text-xs text-slate-100 outline-none focus:border-yeo-500"
-              value={block.content}
+              value={String(block.content ?? "")}
               onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
               aria-label="코드 내용"
+              onKeyDown={stopGlobalHotkeys}
             />
           </div>
         )

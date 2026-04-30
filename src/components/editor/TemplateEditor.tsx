@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BlockRenderer } from "@/components/editor/BlockRenderer";
 import { BlockToolbar } from "@/components/editor/BlockToolbar";
 import { SlashCommand, type SlashCommandHandle } from "@/components/editor/SlashCommand";
+import { createBlock } from "@/lib/block-factory";
 import { CoverPicker } from "@/components/editor/CoverPicker";
 import { IconPicker } from "@/components/editor/IconPicker";
 import { ExportMenu } from "@/components/editor/ExportMenu";
@@ -31,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useEditorStore } from "@/stores/editorStore";
 import type { AITemplatePayload, TemplateBlock } from "@/types/template";
 import { cn } from "@/lib/utils";
@@ -51,12 +53,14 @@ function SortableBlock({
   onChange,
   onDelete,
   onDuplicate,
+  onEnter,
 }: {
   block: TemplateBlock;
   readOnly?: boolean;
   onChange: (id: string, patch: Partial<TemplateBlock>) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onEnter: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -109,6 +113,7 @@ function SortableBlock({
             onChange={onChange}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
+            onEnter={onEnter}
           />
         </div>
       </div>
@@ -230,6 +235,13 @@ export function TemplateEditor({
     slashRef.current?.open();
   }
 
+  function insertParagraphAfter(blockId: string) {
+    const idx = blocks.findIndex((b) => b.id === blockId);
+    if (idx < 0) return;
+    insertBlock(idx + 1, createBlock("paragraph"));
+    setInsertIndex(idx + 2);
+  }
+
   async function toggleFav() {
     const next = !fav;
     const res = await fetch(`/api/templates/${templateId}`, {
@@ -243,40 +255,26 @@ export function TemplateEditor({
   }
 
   async function sharePublic() {
-    if (!isPublic) {
-      const res = await fetch(`/api/templates/${templateId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_public: true }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        toast.error((j as { error?: string }).error ?? "공유 설정에 실패했습니다.");
-        return;
-      }
-      setIsPublic(true);
-    }
     setShareOpen(true);
   }
 
-  async function unsharePublic() {
+  async function setPublic(next: boolean) {
     const res = await fetch(`/api/templates/${templateId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_public: false }),
+      body: JSON.stringify({ is_public: next }),
     });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      toast.error((j as { error?: string }).error ?? "공유 해제에 실패했습니다.");
+      toast.error((j as { error?: string }).error ?? "공유 설정에 실패했습니다.");
       return;
     }
-    setIsPublic(false);
-    setShareOpen(false);
-    toast.success("공유를 해제했습니다.");
+    setIsPublic(next);
+    toast.success(next ? "템플릿이 공개되었습니다" : "템플릿이 비공개로 전환되었습니다");
   }
 
   async function copyShareLink() {
-    const url = `${window.location.origin}/shared/${templateId}`;
+    const url = `https://yeonote.vercel.app/shared/${templateId}`;
     await navigator.clipboard.writeText(url);
     toast.success("링크를 복사했습니다.");
   }
@@ -393,6 +391,7 @@ export function TemplateEditor({
                       onChange={updateBlock}
                       onDelete={removeBlock}
                       onDuplicate={duplicateBlock}
+                      onEnter={insertParagraphAfter}
                     />
                   </div>
                 ))}
@@ -443,20 +442,29 @@ export function TemplateEditor({
             <DialogTitle>템플릿 공유</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">아래 링크로 읽기 전용 공개 페이지를 공유할 수 있습니다.</p>
-            <div className="rounded-md border bg-muted/30 p-2 text-sm text-foreground break-all">
-              {`${typeof window !== "undefined" ? window.location.origin : "https://yeonote.vercel.app"}/shared/${templateId}`}
+            <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+              <p className="text-sm text-foreground">탐색 페이지에 공개</p>
+              <Switch checked={isPublic} onCheckedChange={(v) => void setPublic(Boolean(v))} />
             </div>
-          </div>
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="outline" onClick={copyShareLink}>
-              링크 복사
-            </Button>
             {isPublic ? (
-              <Button variant="destructive" onClick={unsharePublic}>
-                공유 해제
-              </Button>
-            ) : null}
+              <div className="rounded-md border bg-muted/10 p-2">
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1 break-all text-sm text-foreground">
+                    {`https://yeonote.vercel.app/shared/${templateId}`}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={copyShareLink}>
+                    링크 복사
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">공개를 켜면 탐색 페이지와 공유 링크가 활성화됩니다.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareOpen(false)}>
+              닫기
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
