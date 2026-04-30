@@ -1,7 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { grantAmountForPack } from "@/lib/credits";
 import { isWebhookProductAllowed, planFromVariantId } from "@/lib/lemonsqueezy";
 import type { BillingPlan, CreditPack } from "@/types/billing";
 
@@ -78,10 +77,19 @@ function variantIdFromOrderAttributes(attrs: Record<string, unknown>): string | 
   return String(foi.variant_id);
 }
 
+function creditsFromVariantId(variantId: string | undefined): number {
+  const proVariantId = process.env.LEMONSQUEEZY_VARIANT_ID_PRO;
+  const teamVariantId = process.env.LEMONSQUEEZY_VARIANT_ID_TEAM;
+  if (!variantId) return 0;
+  if (proVariantId && variantId === proVariantId) return 100;
+  if (teamVariantId && variantId === teamVariantId) return 300;
+  return 0;
+}
+
 export async function POST(req: Request) {
   const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+    return NextResponse.json({ received: true, warning: "Webhook not configured" });
   }
 
   const raw = await req.text();
@@ -91,7 +99,7 @@ export async function POST(req: Request) {
     req.headers.get("x-lemonsqueezy-signature");
 
   if (!verifySignature(raw, sig, secret)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    return NextResponse.json({ received: true, warning: "Invalid signature" });
   }
 
   let payload: {
@@ -106,37 +114,34 @@ export async function POST(req: Request) {
   try {
     payload = JSON.parse(raw);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ received: true, warning: "Invalid JSON" });
   }
 
   const event = payload.meta?.event_name ?? "";
   const admin = createAdminClient();
+  console.log("[lemonsqueezy webhook] event:", event);
 
   if (event === "order_created") {
     const attrs = payload.data?.attributes ?? {};
-    const status = String(attrs.status ?? "").toLowerCase();
-    if (status !== "paid") {
-      return NextResponse.json({ received: true, skipped: "order_not_paid" });
-    }
-
     const productId = extractProductId(payload);
     if (!isWebhookProductAllowed(productId)) {
       return NextResponse.json({ received: true, ignored: "unknown_product" });
     }
 
     const variantId = variantIdFromOrderAttributes(attrs);
-    let pack: CreditPack | null = planFromVariantId(variantId);
-    if (!pack) {
-      const foi = attrs.first_order_item as { variant_name?: string } | undefined;
-      const name = String(foi?.variant_name ?? "").toLowerCase();
-      if (name.includes("team")) pack = "team";
-      else if (name.includes("pro")) pack = "pro";
-    }
-    if (!pack) {
+    const userId = extractUserId(payload);
+    const creditsToAdd = creditsFromVariantId(variantId);
+    console.log("[lemonsqueezy webhook] order_created", {
+      variant_id: variantId ?? null,
+      user_id: userId || null,
+      credits_added: creditsToAdd,
+    });
+
+    if (!creditsToAdd) {
+      console.warn("[lemonsqueezy webhook] unknown variant id", { variant_id: variantId ?? null });
       return NextResponse.json({ received: true, ignored: "unknown_variant" });
     }
 
-    const userId = extractUserId(payload);
     if (!userId) {
       return NextResponse.json({ received: true, warning: "missing_user_id" });
     }
@@ -155,13 +160,17 @@ export async function POST(req: Request) {
     }
     if (insErr) {
       console.error("processed_lemon_orders insert", insErr);
-      return NextResponse.json({ error: insErr.message }, { status: 500 });
+      return NextResponse.json({ received: true, warning: "processed_order_insert_failed" });
     }
 
-    const grant = grantAmountForPack(pack);
     const { data: row } = await admin.from("profiles").select("ai_credits, ai_credits_ceiling").eq("id", userId).single();
-    const nextCredits = (row?.ai_credits ?? 0) + grant;
-    const nextCeiling = (row?.ai_credits_ceiling ?? 0) + grant;
+    const nextCredits = (row?.ai_credits ?? 0) + creditsToAdd;
+    const nextCeiling = (row?.ai_credits_ceiling ?? 0) + creditsToAdd;
+
+    let pack: CreditPack | null = planFromVariantId(variantId);
+    if (!pack) {
+      pack = creditsToAdd === 300 ? "team" : "pro";
+    }
 
     const { error: upErr } = await admin
       .from("profiles")
@@ -175,10 +184,10 @@ export async function POST(req: Request) {
 
     if (upErr) {
       console.error("profiles credit grant", upErr);
-      return NextResponse.json({ error: upErr.message }, { status: 500 });
+      return NextResponse.json({ received: true, warning: "profile_credit_update_failed" });
     }
 
-    return NextResponse.json({ received: true, order: orderKey, credits_added: grant });
+    return NextResponse.json({ received: true, order: orderKey, credits_added: creditsToAdd });
   }
 
   if (!event.includes("subscription")) {
@@ -212,7 +221,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true, warning: "missing_user_id" });
   }
 
-  await admin.from("subscriptions").upsert(
+  const { error: subErr } = await admin.from("subscriptions").upsert(
     {
       user_id: userId,
       lemon_squeezy_id: String(payload.data?.id ?? ""),
@@ -225,8 +234,14 @@ export async function POST(req: Request) {
     },
     { onConflict: "lemon_squeezy_id" }
   );
+  if (subErr) {
+    console.error("subscription upsert failed", subErr);
+  }
 
-  await admin.from("profiles").update({ plan }).eq("id", userId);
+  const { error: planErr } = await admin.from("profiles").update({ plan }).eq("id", userId);
+  if (planErr) {
+    console.error("profile plan update failed", planErr);
+  }
 
   return NextResponse.json({ received: true });
 }

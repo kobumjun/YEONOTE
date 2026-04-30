@@ -243,7 +243,7 @@ export function BlockRenderer({
       );
     case "to_do":
       return wrap(
-        <label className="flex items-start gap-2 text-sm">
+        <div className="flex items-start gap-2 text-sm">
           <Checkbox
             checked={block.checked}
             disabled={readOnly}
@@ -263,9 +263,10 @@ export function BlockRenderer({
               }}
               onEnter={() => onEnter?.(block.id)}
               onKeyDown={stopGlobalHotkeys}
+              onClick={(e) => e.stopPropagation()}
             />
           )}
-        </label>
+        </div>
       );
     case "toggle":
       return wrap(
