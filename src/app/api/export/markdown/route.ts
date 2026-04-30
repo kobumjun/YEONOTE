@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { templateToMarkdown } from "@/lib/export";
-import { canUseExport, effectivePlan } from "@/lib/plan";
 import type { TemplateBlock } from "@/types/template";
 import type { TemplateContent } from "@/types/template";
 
@@ -17,11 +16,6 @@ export async function POST(req: Request) {
   } | null;
 
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).single();
-  const plan = effectivePlan(profile ?? { plan: "free" });
-  if (!canUseExport(plan)) {
-    return NextResponse.json({ error: "Export is available on Pro and Team plans." }, { status: 403 });
-  }
 
   let title = body?.title ?? "Untitled";
   let blocks: TemplateBlock[] = body?.blocks ?? [];

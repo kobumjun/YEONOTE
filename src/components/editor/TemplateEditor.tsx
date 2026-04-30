@@ -122,7 +122,14 @@ export function TemplateEditor({
   readOnly,
 }: {
   templateId: string;
-  initial: { title: string; icon: string; cover: string | null; blocks: TemplateBlock[]; is_favorited?: boolean };
+  initial: {
+    title: string;
+    icon: string;
+    cover: string | null;
+    blocks: TemplateBlock[];
+    is_favorited?: boolean;
+    is_public?: boolean;
+  };
   readOnly?: boolean;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -142,6 +149,8 @@ export function TemplateEditor({
   const markClean = useEditorStore((s) => s.markClean);
 
   const [fav, setFav] = useState(initial.is_favorited ?? false);
+  const [isPublic, setIsPublic] = useState(initial.is_public ?? false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
   const [regenBusy, setRegenBusy] = useState(false);
@@ -234,15 +243,42 @@ export function TemplateEditor({
   }
 
   async function sharePublic() {
+    if (!isPublic) {
+      const res = await fetch(`/api/templates/${templateId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_public: true }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error((j as { error?: string }).error ?? "공유 설정에 실패했습니다.");
+        return;
+      }
+      setIsPublic(true);
+    }
+    setShareOpen(true);
+  }
+
+  async function unsharePublic() {
     const res = await fetch(`/api/templates/${templateId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_public: true }),
+      body: JSON.stringify({ is_public: false }),
     });
-    if (!res.ok) return;
-    const url = `${window.location.origin}/share/${templateId}`;
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      toast.error((j as { error?: string }).error ?? "공유 해제에 실패했습니다.");
+      return;
+    }
+    setIsPublic(false);
+    setShareOpen(false);
+    toast.success("공유를 해제했습니다.");
+  }
+
+  async function copyShareLink() {
+    const url = `${window.location.origin}/shared/${templateId}`;
     await navigator.clipboard.writeText(url);
-    toast.success("공개 링크를 클립보드에 복사했습니다.");
+    toast.success("링크를 복사했습니다.");
   }
 
   async function runRegenerate() {
@@ -397,6 +433,30 @@ export function TemplateEditor({
             <Button className="bg-yeo-600" onClick={runRegenerate} disabled={regenBusy}>
               {regenBusy ? "생성 중…" : "생성"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>템플릿 공유</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">아래 링크로 읽기 전용 공개 페이지를 공유할 수 있습니다.</p>
+            <div className="rounded-md border bg-muted/30 p-2 text-sm text-foreground break-all">
+              {`${typeof window !== "undefined" ? window.location.origin : "https://yeonote.vercel.app"}/shared/${templateId}`}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" onClick={copyShareLink}>
+              링크 복사
+            </Button>
+            {isPublic ? (
+              <Button variant="destructive" onClick={unsharePublic}>
+                공유 해제
+              </Button>
+            ) : null}
           </DialogFooter>
         </DialogContent>
       </Dialog>

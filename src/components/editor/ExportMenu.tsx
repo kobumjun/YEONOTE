@@ -81,7 +81,7 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
       });
       if (!res.ok) {
         const j = await res.json();
-        throw new Error(j.error ?? "Plan check failed");
+        throw new Error(j.error ?? "Export failed");
       }
       const dataUrl = await toPng(editorRef.current, { pixelRatio: 2 });
       const a = document.createElement("a");
