@@ -1,9 +1,65 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { TemplateBlock } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
+
+function EditableContent({
+  value,
+  onValueChange,
+  className,
+  multiline = false,
+  onEnter,
+  onKeyDown,
+  onClick,
+  ariaLabel,
+}: {
+  value: string;
+  onValueChange: (next: string) => void;
+  className: string;
+  multiline?: boolean;
+  onEnter?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  ariaLabel?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isLocalEdit = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    if (!isLocalEdit.current) {
+      if (ref.current.textContent !== value) ref.current.textContent = value;
+    }
+    isLocalEdit.current = false;
+  }, [value]);
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      role="textbox"
+      aria-label={ariaLabel}
+      className={className}
+      onClick={onClick}
+      onInput={(e) => {
+        isLocalEdit.current = true;
+        const text = (e.currentTarget.textContent ?? "").replace(/\u00a0/g, " ");
+        onValueChange(text);
+      }}
+      onKeyDown={(e) => {
+        onKeyDown?.(e);
+        if (!multiline && e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          onEnter?.();
+        }
+      }}
+    />
+  );
+}
 
 export function BlockRenderer({
   block,
@@ -56,15 +112,16 @@ export function BlockRenderer({
         readOnly ? (
           <h2 className="font-heading text-3xl font-bold text-surface-dark dark:text-white">{block.content}</h2>
         ) : (
-          <input
-            className="font-heading w-full border-0 bg-transparent text-3xl font-bold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
+          <EditableContent
+            ariaLabel="제목 1"
+            className="font-heading w-full rounded-md bg-transparent px-0.5 text-3xl font-bold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white"
             value={String(block.content ?? "")}
-            onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-            onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => {
-              stopGlobalHotkeys(e);
-              enterCreatesNewBlock(e);
+            onValueChange={(value) => {
+              onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+              debugInput("content", value);
             }}
+            onEnter={() => onEnter?.(block.id)}
+            onKeyDown={stopGlobalHotkeys}
           />
         )
       );
@@ -73,15 +130,16 @@ export function BlockRenderer({
         readOnly ? (
           <h3 className="font-heading text-2xl font-semibold text-surface-dark dark:text-white">{block.content}</h3>
         ) : (
-          <input
-            className="font-heading w-full border-0 bg-transparent text-2xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
+          <EditableContent
+            ariaLabel="제목 2"
+            className="font-heading w-full rounded-md bg-transparent px-0.5 text-2xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white"
             value={String(block.content ?? "")}
-            onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-            onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => {
-              stopGlobalHotkeys(e);
-              enterCreatesNewBlock(e);
+            onValueChange={(value) => {
+              onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+              debugInput("content", value);
             }}
+            onEnter={() => onEnter?.(block.id)}
+            onKeyDown={stopGlobalHotkeys}
           />
         )
       );
@@ -90,15 +148,16 @@ export function BlockRenderer({
         readOnly ? (
           <h4 className="font-heading text-xl font-semibold text-surface-dark dark:text-white">{block.content}</h4>
         ) : (
-          <input
-            className="font-heading w-full border-0 bg-transparent text-xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white rounded-md"
+          <EditableContent
+            ariaLabel="제목 3"
+            className="font-heading w-full rounded-md bg-transparent px-0.5 text-xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white"
             value={String(block.content ?? "")}
-            onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-            onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => {
-              stopGlobalHotkeys(e);
-              enterCreatesNewBlock(e);
+            onValueChange={(value) => {
+              onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+              debugInput("content", value);
             }}
+            onEnter={() => onEnter?.(block.id)}
+            onKeyDown={stopGlobalHotkeys}
           />
         )
       );
@@ -107,12 +166,15 @@ export function BlockRenderer({
         readOnly ? (
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{block.content}</p>
         ) : (
-          <textarea
-            className="w-full resize-none border-0 bg-transparent p-1 text-sm leading-relaxed outline-none ring-0 focus:ring-2 focus:ring-yeo-500/30 rounded-md"
-            rows={Math.max(2, String(block.content ?? "").split("\n").length)}
+          <EditableContent
+            ariaLabel="문단"
+            multiline
+            className="w-full min-h-8 whitespace-pre-wrap rounded-md bg-transparent p-1 text-sm leading-relaxed outline-none ring-0 focus:ring-2 focus:ring-yeo-500/30"
             value={String(block.content ?? "")}
-            onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-            onInput={(e) => debugInput("content", (e.target as HTMLTextAreaElement).value)}
+            onValueChange={(value) => {
+              onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+              debugInput("content", value);
+            }}
             onKeyDown={stopGlobalHotkeys}
           />
         )
@@ -130,18 +192,18 @@ export function BlockRenderer({
             {block.items.map((item, i) => (
               <li key={i} className="flex gap-2">
                 <span className="mt-1.5 text-muted-foreground">•</span>
-                <input
-                  className="min-w-0 flex-1 border-0 bg-transparent p-0.5 outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                <EditableContent
+                  ariaLabel={`글머리 항목 ${i + 1}`}
+                  className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
                   value={String(item ?? "")}
-                  onChange={(e) => {
+                  onValueChange={(value) => {
                     const next = [...block.items];
-                    next[i] = e.target.value;
+                    next[i] = value;
                     onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                    debugInput("items", value);
                   }}
-                  onKeyDown={(e) => {
-                    stopGlobalHotkeys(e);
-                    enterCreatesNewBlock(e);
-                  }}
+                  onEnter={() => onEnter?.(block.id)}
+                  onKeyDown={stopGlobalHotkeys}
                 />
               </li>
             ))}
@@ -161,18 +223,18 @@ export function BlockRenderer({
             {block.items.map((item, i) => (
               <li key={i} className="flex gap-2">
                 <span className="mt-0.5 w-5 shrink-0 text-right text-muted-foreground">{i + 1}.</span>
-                <input
-                  className="min-w-0 flex-1 border-0 bg-transparent p-0.5 outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
+                <EditableContent
+                  ariaLabel={`번호 항목 ${i + 1}`}
+                  className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
                   value={String(item ?? "")}
-                  onChange={(e) => {
+                  onValueChange={(value) => {
                     const next = [...block.items];
-                    next[i] = e.target.value;
+                    next[i] = value;
                     onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                    debugInput("items", value);
                   }}
-                  onKeyDown={(e) => {
-                    stopGlobalHotkeys(e);
-                    enterCreatesNewBlock(e);
-                  }}
+                  onEnter={() => onEnter?.(block.id)}
+                  onKeyDown={stopGlobalHotkeys}
                 />
               </li>
             ))}
@@ -191,15 +253,16 @@ export function BlockRenderer({
           {readOnly ? (
             <span className={block.checked ? "text-muted-foreground line-through" : ""}>{block.content}</span>
           ) : (
-            <input
-              className="flex-1 border-0 bg-transparent p-0 outline-none"
+            <EditableContent
+              ariaLabel="할 일 텍스트"
+              className="flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
               value={String(block.content ?? "")}
-              onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-              onInput={(e) => debugInput("content", (e.target as HTMLInputElement).value)}
-              onKeyDown={(e) => {
-                stopGlobalHotkeys(e);
-                enterCreatesNewBlock(e);
+              onValueChange={(value) => {
+                onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+                debugInput("content", value);
               }}
+              onEnter={() => onEnter?.(block.id)}
+              onKeyDown={stopGlobalHotkeys}
             />
           )}
         </label>
@@ -211,29 +274,21 @@ export function BlockRenderer({
             {readOnly ? (
               block.title
             ) : (
-              <span
-                contentEditable
-                suppressContentEditableWarning
-                role="textbox"
-                aria-label="토글 제목"
+              <EditableContent
+                ariaLabel="토글 제목"
                 className="inline-block min-w-[10ch] rounded px-1 py-0.5 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={(e) => e.stopPropagation()}
-                onInput={(e) => {
-                  const value = (e.currentTarget.textContent ?? "").replace(/\u00a0/g, " ");
+                value={String(block.title ?? "")}
+                onValueChange={(value) => {
                   onChange?.(block.id, { title: value } as Partial<TemplateBlock>);
                   debugInput("title", value);
                 }}
+                onEnter={() => onEnter?.(block.id)}
                 onKeyDown={(e) => {
                   stopGlobalHotkeys(e);
                   enterCreatesNewBlock(e);
                 }}
-              >
-                {String(block.title ?? "")}
-              </span>
+                onClick={(e) => e.stopPropagation()}
+              />
             )}
           </summary>
           <div className="mt-2 space-y-1 border-l-2 border-yeo-300 pl-3 dark:border-yeo-700">
@@ -273,21 +328,17 @@ export function BlockRenderer({
             {readOnly ? (
               <div className="whitespace-pre-wrap">{block.content}</div>
             ) : (
-              <div
-                contentEditable
-                suppressContentEditableWarning
-                role="textbox"
-                aria-label="콜아웃 내용"
+              <EditableContent
+                ariaLabel="콜아웃 내용"
+                multiline
                 className="min-h-7 w-full whitespace-pre-wrap rounded p-0.5 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-yeo-500/30"
-                onInput={(e) => {
-                  const value = (e.currentTarget.textContent ?? "").replace(/\u00a0/g, " ");
+                value={String(block.content ?? "")}
+                onValueChange={(value) => {
                   onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
                   debugInput("content", value);
                 }}
                 onKeyDown={stopGlobalHotkeys}
-              >
-                {String(block.content ?? "")}
-              </div>
+              />
             )}
           </div>
         </div>
@@ -297,12 +348,15 @@ export function BlockRenderer({
         readOnly ? (
           <blockquote className="border-l-4 border-yeo-400 pl-4 text-sm italic text-muted-foreground">{block.content}</blockquote>
         ) : (
-          <textarea
-            className="w-full resize-none border-l-4 border-yeo-400 bg-transparent pl-4 text-sm italic text-muted-foreground outline-none focus:ring-2 focus:ring-yeo-500/30 rounded-r"
-            rows={Math.max(2, String(block.content ?? "").split("\n").length)}
+          <EditableContent
+            ariaLabel="인용"
+            multiline
+            className="w-full min-h-8 whitespace-pre-wrap rounded-r border-l-4 border-yeo-400 bg-transparent pl-4 text-sm italic text-muted-foreground outline-none focus:ring-2 focus:ring-yeo-500/30"
             value={String(block.content ?? "")}
-            onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
-            onInput={(e) => debugInput("content", (e.target as HTMLTextAreaElement).value)}
+            onValueChange={(value) => {
+              onChange?.(block.id, { content: value } as Partial<TemplateBlock>);
+              debugInput("content", value);
+            }}
             onKeyDown={stopGlobalHotkeys}
           />
         )
