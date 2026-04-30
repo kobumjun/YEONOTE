@@ -152,7 +152,7 @@ export function BlockRenderer({
       );
     case "toggle":
       return wrap(
-        <details className="rounded-lg border bg-muted/30 px-3 py-2">
+        <details className="rounded-lg border bg-muted/30 px-3 py-2" open>
           <summary className="cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
             {readOnly ? (
               block.title
@@ -166,7 +166,7 @@ export function BlockRenderer({
             )}
           </summary>
           <div className="mt-2 space-y-1 border-l-2 border-yeo-300 pl-3 dark:border-yeo-700">
-            {block.children.map((c) => (
+            {(Array.isArray(block.children) ? block.children : []).map((c) => (
               <BlockRenderer
                 key={c.id}
                 block={c}
@@ -177,6 +177,9 @@ export function BlockRenderer({
                 depth={depth + 1}
               />
             ))}
+            {(Array.isArray(block.children) ? block.children.length : 0) === 0 && (
+              <p className="text-xs text-muted-foreground">하위 블록이 없습니다.</p>
+            )}
           </div>
         </details>
       );
@@ -414,6 +417,16 @@ export function BlockRenderer({
                   )}
                 </tr>
               ))}
+              {block.rows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={block.columns.length + (readOnly ? 0 : 1)}
+                    className="px-2 py-6 text-center text-xs text-muted-foreground"
+                  >
+                    {readOnly ? "등록된 행이 없습니다." : "아직 행이 없습니다. 아래에서 행을 추가하세요."}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           {!readOnly && (
