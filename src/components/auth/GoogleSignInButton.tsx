@@ -48,7 +48,7 @@ export function GoogleSignInButton({
     const origin = window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${origin}/callback?next=${encodeURIComponent(next)}` },
+      options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
     setLoading(false);
     if (error) toast.error(error.message);

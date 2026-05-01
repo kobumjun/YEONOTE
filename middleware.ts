@@ -53,6 +53,13 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if ((pathname === "/login" || pathname.startsWith("/login/")) && user) {
+    const nextParam = request.nextUrl.searchParams.get("next");
+    const safe =
+      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
+    return NextResponse.redirect(new URL(safe, request.url));
+  }
+
   if (isProtected && !user) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("next", pathname);
