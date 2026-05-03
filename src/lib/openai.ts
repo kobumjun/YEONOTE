@@ -11,6 +11,89 @@ GOLDEN RULE
 Structure must be COMPLEX and PROFESSIONAL. Content must be EMPTY or minimal placeholders.
 Think: elaborate skeleton, minimal flesh.
 
+CRITICAL RULES FOR TEMPLATE DEPTH AND QUALITY
+
+RULE 1: NEVER PRE-FILL USER TASKS
+Do NOT write specific tasks like "Review today's script changes" or "Meet with the production team".
+Instead, create EMPTY checkboxes or fields with placeholder text like "" (empty string) or at most a category hint like "[Morning task 1]".
+The USER decides what to do. YOU only build the framework.
+
+RULE 2: TEMPLATES MUST BE DEEP, NOT SHALLOW
+Bad example (too shallow):
+Morning Routine → 3 checkboxes → done
+
+Good example (deep structure):
+Monthly Overview (toggle) →
+Week 1 (toggle) →
+Day 1 - Monday (toggle) →
+Morning (heading3) → 4 empty to_do blocks
+Afternoon (heading3) → 4 empty to_do blocks
+Evening (heading3) → 4 empty to_do blocks
+Daily Notes (paragraph) → empty
+Day 2 - Tuesday (toggle) → same inner structure
+...through Day 7
+Week 2 (toggle) → same structure
+Week 3 (toggle) → same structure
+Week 4 (toggle) → same structure
+Monthly Reflection (heading2) → empty paragraphs
+
+RULE 3: USE NESTED TOGGLES FOR DEPTH
+Create page-within-page feeling using nested toggles:
+Level 1 toggle: Major time period or category
+Level 2 toggle: Sub-period or sub-category
+Level 3 content: Actual checkboxes, tables, notes (all EMPTY)
+
+RULE 4: MINIMUM COMPLEXITY REQUIREMENTS
+For routine/planner templates: minimum 4 weeks × 7 days = 28 day-level sections (each day section must contain real nested structure, not one line).
+For project templates: minimum 4 phases × 5 tasks each = 20 task sections (empty to_do or placeholder-only content).
+For tracker templates: minimum 2 database tables with 8+ columns each.
+Every template must have AT LEAST 50 blocks total (count every nested block inside toggles and columns).
+Use nested toggles to keep it organized (not a giant flat list).
+
+RULE 5: BUILD THE SKELETON, NOT THE CONTENT
+Your job is to create:
+✅ The organizational structure (sections, categories, time periods)
+✅ The tracking framework (tables with proper columns)
+✅ The rhythm (daily/weekly/monthly patterns)
+✅ Empty spaces for users to fill in
+Your job is NOT to create:
+❌ Specific task names
+❌ Specific routine items
+❌ Pre-filled checklist content
+❌ Motivational quotes (unless the template structure or skeleton explicitly calls for a quote block)
+
+RULE 6: TEMPLATE SIZE GUIDE
+Simple template (e.g. budget tracker): 50+ blocks
+Medium template (e.g. weekly planner): 80+ blocks
+Complex template (e.g. monthly routine): 150+ blocks
+The template should feel SUBSTANTIAL when scrolling through it.
+
+EXAMPLE — "Daily Routine Planner" depth (localize labels; keep to_do content empty or "[Morning task 1]" style only):
+H1: Daily Routine Planner
+Paragraph: "Customize your daily routine below."
+Toggle "📅 Week 1" →
+Toggle "Monday" →
+H3 "🌅 Morning" → to_do (empty), to_do (empty), to_do (empty)
+H3 "☀️ Afternoon" → to_do (empty), to_do (empty), to_do (empty)
+H3 "🌙 Evening" → to_do (empty), to_do (empty), to_do (empty)
+Paragraph "[Daily reflection notes]"
+Toggle "Tuesday" → (same inner structure)
+Toggle "Wednesday" → (same inner structure)
+Toggle "Thursday" → (same inner structure)
+Toggle "Friday" → (same inner structure)
+Toggle "Saturday" → (same inner structure)
+Toggle "Sunday" → (same inner structure)
+Toggle "📅 Week 2" → (same 7-day structure)
+Toggle "📅 Week 3" → (same 7-day structure)
+Toggle "📅 Week 4" → (same 7-day structure)
+Divider
+H2 "📊 Monthly Tracker"
+database_table: Date | Completed Tasks(number) | Mood(select) | Energy(select) | Sleep Hours(number) | Exercise(checkbox) | Notes(text) | Rating(select)
+H2 "📝 Monthly Review"
+H3 "What went well" → Paragraph (empty)
+H3 "What to improve" → Paragraph (empty)
+H3 "Goals for next month" → to_do (empty), to_do (empty), to_do (empty)
+
 CRITICAL — STRUCTURAL DIVERSITY
 Every template you generate MUST use a UNIQUE layout structure. You have access to these layout patterns — randomly pick 2–3 patterns to combine for each template. NEVER use the same combination twice in a row (vary pattern IDs and ordering every generation).
 
@@ -55,7 +138,7 @@ Organize by phases (Phase 1: Planning, Phase 2: Execution, Phase 3: Review). Eac
 STRUCTURAL RULES
 
 - NEVER generate two templates with the same pattern combination in spirit — rotate which patterns you emphasize.
-- Each template must have a MINIMUM of 30 blocks (count nested blocks inside toggles and columns).
+- Each template must have a MINIMUM of 50 blocks (count nested blocks inside toggles and columns); prefer 80+ for planners and 150+ for large routines when the user request implies that scale.
 - Database tables must have MINIMUM 7 columns each with diverse types (title, select, multi-select, date, checkbox, number, text, url, email as appropriate).
 - Use at least 2 different database tables per template with DIFFERENT column structures — never reuse the same column set between tables in one template.
 - Vary the NUMBER of sections: some templates 3 sections, others 7+.
@@ -86,7 +169,7 @@ WHAT NOT TO DO
 
 - Do NOT fill in fake names, fake projects, fake dates, fake amounts as if they were real user data.
 - Do NOT write long instructional essays.
-- Do NOT output fewer than 30 blocks total.
+- Do NOT output fewer than 50 blocks total.
 - Do NOT use fewer than 2 database tables.
 - Do NOT create database tables with fewer than 7 columns.
 
@@ -134,7 +217,7 @@ export function buildAiGenerationSystemPrompt(): {
 MANDATORY STRUCTURE FOR THIS TEMPLATE:
 ${selectedStructure.instruction}
 
-You MUST follow this exact structure. Do not deviate.`;
+You MUST follow this exact structure. Do not deviate. If the skeleton alone would produce fewer than the global minimum block count, scale it up in the same spirit (more nesting, periods, phases, or empty sections) without abandoning the skeleton.`;
   return {
     content,
     structureId: selectedStructure.id,

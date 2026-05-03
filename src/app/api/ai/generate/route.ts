@@ -74,6 +74,7 @@ export async function POST(req: Request) {
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,
+      max_tokens: 8000,
     });
   } catch (e) {
     console.error(e);

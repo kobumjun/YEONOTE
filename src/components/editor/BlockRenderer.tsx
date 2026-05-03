@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { TemplateBlock } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
 
+const CONTENT_DEBOUNCE_MS = 1000;
+
+/** contentEditable: never sync DOM from props while focused; debounce store updates so parent re-renders do not steal focus. */
 function EditableContent({
   value,
   onValueChange,
@@ -26,15 +29,59 @@ function EditableContent({
   ariaLabel?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isLocalEdit = useRef(false);
+  const isEditingRef = useRef(false);
+  const lastFlushedRef = useRef(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDebounce = useCallback(() => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  }, []);
+
+  const flush = useCallback(() => {
+    if (!ref.current) return;
+    const text = (ref.current.textContent ?? "").replace(/\u00a0/g, " ");
+    if (text !== lastFlushedRef.current) {
+      lastFlushedRef.current = text;
+      onValueChange(text);
+    }
+  }, [onValueChange]);
+
+  const scheduleDebouncedSave = useCallback(() => {
+    clearDebounce();
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      flush();
+    }, CONTENT_DEBOUNCE_MS);
+  }, [clearDebounce, flush]);
 
   useEffect(() => {
     if (!ref.current) return;
-    if (!isLocalEdit.current) {
-      if (ref.current.textContent !== value) ref.current.textContent = value;
+    if (isEditingRef.current) return;
+    const next = value ?? "";
+    if (ref.current.textContent !== next) {
+      ref.current.textContent = next;
     }
-    isLocalEdit.current = false;
+    lastFlushedRef.current = next;
   }, [value]);
+
+  useEffect(() => () => clearDebounce(), [clearDebounce]);
+
+  const handleFocus = useCallback(() => {
+    isEditingRef.current = true;
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    clearDebounce();
+    flush();
+    isEditingRef.current = false;
+  }, [clearDebounce, flush]);
+
+  const handleInput = useCallback(() => {
+    scheduleDebouncedSave();
+  }, [scheduleDebouncedSave]);
 
   return (
     <div
@@ -45,20 +92,116 @@ function EditableContent({
       aria-label={ariaLabel}
       className={className}
       onClick={onClick}
-      onInput={(e) => {
-        isLocalEdit.current = true;
-        const text = (e.currentTarget.textContent ?? "").replace(/\u00a0/g, " ");
-        onValueChange(text);
-      }}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onInput={handleInput}
       onKeyDown={(e) => {
         onKeyDown?.(e);
         if (!multiline && e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
+          clearDebounce();
+          flush();
           onEnter?.();
         }
       }}
     />
   );
+}
+
+/** input/textarea: sync from props only when not focused; debounced + blur commit (avoids controlled-input focus loss). */
+function DebouncedTextField({
+  value,
+  onCommit,
+  className,
+  multiline,
+  inputType = "text",
+  ariaLabel,
+  onKeyDown,
+}: {
+  value: string;
+  onCommit: (next: string) => void;
+  className: string;
+  multiline?: boolean;
+  inputType?: "text" | "number";
+  ariaLabel?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+  const isEditingRef = useRef(false);
+  const lastFlushedRef = useRef(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDebounce = useCallback(() => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  }, []);
+
+  const readDom = useCallback(() => {
+    if (multiline) return areaRef.current?.value ?? "";
+    return inputRef.current?.value ?? "";
+  }, [multiline]);
+
+  const flush = useCallback(() => {
+    const text = readDom();
+    if (text !== lastFlushedRef.current) {
+      lastFlushedRef.current = text;
+      onCommit(text);
+    }
+  }, [onCommit, readDom]);
+
+  const scheduleDebouncedSave = useCallback(() => {
+    clearDebounce();
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      flush();
+    }, CONTENT_DEBOUNCE_MS);
+  }, [clearDebounce, flush]);
+
+  useEffect(() => {
+    if (isEditingRef.current) return;
+    const next = value ?? "";
+    if (multiline) {
+      const el = areaRef.current;
+      if (el && el.value !== next) {
+        el.value = next;
+        lastFlushedRef.current = next;
+      }
+    } else {
+      const el = inputRef.current;
+      if (el && el.value !== next) {
+        el.value = next;
+        lastFlushedRef.current = next;
+      }
+    }
+  }, [value, multiline]);
+
+  useEffect(() => () => clearDebounce(), [clearDebounce]);
+
+  const bind = {
+    className,
+    defaultValue: value,
+    "aria-label": ariaLabel,
+    onFocus: () => {
+      isEditingRef.current = true;
+    },
+    onBlur: () => {
+      clearDebounce();
+      flush();
+      isEditingRef.current = false;
+    },
+    onInput: () => {
+      scheduleDebouncedSave();
+    },
+    onKeyDown,
+  };
+
+  if (multiline) {
+    return <textarea ref={areaRef} {...bind} />;
+  }
+  return <input ref={inputRef} type={inputType} {...bind} />;
 }
 
 export function BlockRenderer({
@@ -317,10 +460,10 @@ export function BlockRenderer({
           {readOnly ? (
             <span className="text-lg">{block.icon}</span>
           ) : (
-            <input
+            <DebouncedTextField
               className="w-10 shrink-0 border-0 bg-transparent text-center text-lg outline-none"
               value={String(block.icon ?? "")}
-              onChange={(e) => onChange?.(block.id, { icon: e.target.value } as Partial<TemplateBlock>)}
+              onCommit={(v) => onChange?.(block.id, { icon: v } as Partial<TemplateBlock>)}
               aria-label="Callout icon"
               onKeyDown={stopGlobalHotkeys}
             />
@@ -373,17 +516,18 @@ export function BlockRenderer({
           </pre>
         ) : (
           <div className="rounded-lg border bg-slate-950/95 p-3">
-            <input
+            <DebouncedTextField
               className="mb-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-300 outline-none focus:border-yeo-500"
               value={String(block.language ?? "")}
-              onChange={(e) => onChange?.(block.id, { language: e.target.value } as Partial<TemplateBlock>)}
+              onCommit={(v) => onChange?.(block.id, { language: v } as Partial<TemplateBlock>)}
               aria-label="Code language"
               onKeyDown={stopGlobalHotkeys}
             />
-            <textarea
+            <DebouncedTextField
               className="min-h-24 w-full resize-y rounded border border-slate-700 bg-slate-900 p-2 font-mono text-xs text-slate-100 outline-none focus:border-yeo-500"
               value={String(block.content ?? "")}
-              onChange={(e) => onChange?.(block.id, { content: e.target.value } as Partial<TemplateBlock>)}
+              onCommit={(v) => onChange?.(block.id, { content: v } as Partial<TemplateBlock>)}
+              multiline
               aria-label="Code body"
               onKeyDown={stopGlobalHotkeys}
             />
@@ -422,10 +566,11 @@ export function BlockRenderer({
             {readOnly ? (
               <p className="text-sm font-medium">{block.title}</p>
             ) : (
-              <input
+              <DebouncedTextField
                 className="w-full border-0 bg-transparent text-sm font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
                 value={block.title}
-                onChange={(e) => onChange?.(block.id, { title: e.target.value } as Partial<TemplateBlock>)}
+                onCommit={(v) => onChange?.(block.id, { title: v } as Partial<TemplateBlock>)}
+                aria-label="Table title"
               />
             )}
             {!readOnly && (
@@ -448,16 +593,16 @@ export function BlockRenderer({
             <thead>
               <tr className="border-b bg-muted/30">
                 {block.columns.map((c, ci) => (
-                  <th key={`${c.name}-${ci}`} className="px-2 py-2 font-medium">
+                  <th key={`col-h-${ci}`} className="px-2 py-2 font-medium">
                     {readOnly ? (
                       c.name
                     ) : (
-                      <input
+                      <DebouncedTextField
                         className="w-full border-0 bg-transparent text-xs font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
                         value={c.name}
-                        onChange={(e) => {
+                        onCommit={(nextNameRaw) => {
                           const prevName = c.name;
-                          const nextName = e.target.value || `Column ${ci + 1}`;
+                          const nextName = nextNameRaw || `Column ${ci + 1}`;
                           const nextColumns = [...block.columns];
                           nextColumns[ci] = { ...nextColumns[ci], name: nextName };
                           const nextRows = block.rows.map((row) => {
@@ -470,6 +615,7 @@ export function BlockRenderer({
                           });
                           onChange?.(block.id, { columns: nextColumns, rows: nextRows } as Partial<TemplateBlock>);
                         }}
+                        aria-label={`Column ${ci + 1} name`}
                       />
                     )}
                   </th>
@@ -480,7 +626,7 @@ export function BlockRenderer({
             <tbody>
               {block.rows.map((row, ri) => (
                 <tr key={ri} className="group/row border-b last:border-0">
-                  {block.columns.map((c) => {
+                  {block.columns.map((c, ci) => {
                     const value = row[c.name];
                     const updateCell = (nextVal: string | number | boolean | null) => {
                       const nextRows = [...block.rows];
@@ -488,7 +634,7 @@ export function BlockRenderer({
                       onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
                     };
                     return (
-                      <td key={`${ri}-${c.name}`} className="px-2 py-1.5 align-middle">
+                      <td key={`${ri}-col-${ci}`} className="px-2 py-1.5 align-middle">
                         {readOnly ? (
                           c.type === "checkbox" ? (
                             <Checkbox checked={Boolean(value)} disabled />
@@ -518,9 +664,9 @@ export function BlockRenderer({
                             onChange={(e) => updateCell(e.target.value)}
                           />
                         ) : c.type === "number" ? (
-                          <input
-                            type="number"
+                          <DebouncedTextField
                             className="h-7 w-full rounded border bg-background px-2 text-xs"
+                            inputType="number"
                             value={
                               typeof value === "number"
                                 ? String(value)
@@ -528,14 +674,15 @@ export function BlockRenderer({
                                   ? value
                                   : ""
                             }
-                            onChange={(e) => updateCell(e.target.value === "" ? null : Number(e.target.value))}
+                            onCommit={(text) => updateCell(text === "" ? null : Number(text))}
+                            aria-label={c.name}
                           />
                         ) : (
-                          <input
-                            type="text"
+                          <DebouncedTextField
                             className="h-7 w-full rounded border bg-background px-2 text-xs"
                             value={String(value ?? "")}
-                            onChange={(e) => updateCell(e.target.value)}
+                            onCommit={(text) => updateCell(text)}
+                            aria-label={c.name}
                           />
                         )}
                       </td>
