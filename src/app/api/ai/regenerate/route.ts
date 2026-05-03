@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getOpenAI, buildAiGenerationSystemPrompt } from "@/lib/openai";
+import { streamChatCompletionJson } from "@/lib/ai-completion";
+import { buildTimeoutFallbackTemplate } from "@/lib/ai-fallback-template";
 import { createClient } from "@/lib/supabase/server";
 import { canGenerateAI } from "@/lib/plan";
 import { limitAiGeneration } from "@/lib/ratelimit";
@@ -41,53 +43,84 @@ export async function POST(req: Request) {
 
   const openai = getOpenAI();
   const { content: systemPrompt } = buildAiGenerationSystemPrompt();
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: systemPrompt },
-      {
-        role: "user",
-        content: `Regenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 8000,
-  });
-
-  const raw = completion.choices[0]?.message?.content;
-  if (!raw) return NextResponse.json({ error: "Empty AI response" }, { status: 502 });
 
   let parsed: AITemplatePayload;
+  let usedCredit = true;
+  let completionTokens: number | null = null;
+
   try {
-    parsed = JSON.parse(raw) as AITemplatePayload;
-  } catch {
-    return NextResponse.json({ error: "Invalid AI JSON" }, { status: 502 });
+    const { raw, timedOut, usageTokens } = await streamChatCompletionJson(openai, {
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Regenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+    completionTokens = usageTokens;
+
+    if (timedOut || !raw.trim()) {
+      parsed = buildTimeoutFallbackTemplate(body.prompt);
+      usedCredit = false;
+    } else {
+      try {
+        parsed = JSON.parse(raw) as AITemplatePayload;
+      } catch {
+        return NextResponse.json({ error: "Invalid AI JSON" }, { status: 502 });
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "AI generation failed" }, { status: 502 });
   }
 
-  const { data: updatedProfile, error: creditErr } = await supabase
-    .from("profiles")
-    .update({ ai_credits: creditsBefore - 1 })
-    .eq("id", user.id)
-    .eq("ai_credits", creditsBefore)
-    .select("ai_credits")
-    .single();
+  let creditsRemaining = creditsBefore;
 
-  if (creditErr || updatedProfile == null) {
-    return NextResponse.json(
-      { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
-      { status: 409 }
-    );
+  if (usedCredit) {
+    const { data: updatedProfile, error: creditErr } = await supabase
+      .from("profiles")
+      .update({ ai_credits: creditsBefore - 1 })
+      .eq("id", user.id)
+      .eq("ai_credits", creditsBefore)
+      .select("ai_credits")
+      .single();
+
+    if (creditErr || updatedProfile == null) {
+      return NextResponse.json(
+        { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
+        { status: 409 }
+      );
+    }
+
+    creditsRemaining = updatedProfile.ai_credits ?? 0;
+
+    await supabase.from("ai_logs").insert({
+      user_id: user.id,
+      prompt: body.prompt,
+      model: "gpt-4o",
+      tokens_used: completionTokens,
+    });
+  } else {
+    await supabase.from("ai_logs").insert({
+      user_id: user.id,
+      prompt: `[timeout fallback regenerate] ${body.prompt}`,
+      model: "gpt-4o",
+      tokens_used: completionTokens,
+    });
   }
 
-  const creditsRemaining = updatedProfile.ai_credits ?? 0;
+  const warning = usedCredit
+    ? undefined
+    : "AI regeneration timed out — starter template applied. No credit was used.";
 
-  await supabase.from("ai_logs").insert({
-    user_id: user.id,
-    prompt: body.prompt,
-    model: "gpt-4o",
-    tokens_used: completion.usage?.total_tokens ?? null,
+  return NextResponse.json({
+    ...parsed,
+    creditsRemaining,
+    usedCredit,
+    warning,
   });
-
-  return NextResponse.json({ ...parsed, creditsRemaining });
 }

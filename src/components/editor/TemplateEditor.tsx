@@ -349,7 +349,13 @@ export function TemplateEditor({
           currentBlocksSummary: summary,
         }),
       });
-      const j = (await res.json()) as AITemplatePayload & { error?: string; code?: string; creditsRemaining?: number };
+      const j = (await res.json()) as AITemplatePayload & {
+        error?: string;
+        code?: string;
+        creditsRemaining?: number;
+        usedCredit?: boolean;
+        warning?: string;
+      };
       if (!res.ok) {
         if (j.code === "NO_CREDITS") {
           toast.error("You are out of AI credits. Top up in Billing.");
@@ -357,12 +363,15 @@ export function TemplateEditor({
         }
         throw new Error(j.error ?? "Failed");
       }
-      const { creditsRemaining, ...payload } = j;
+      const { creditsRemaining, usedCredit, warning, ...payload } = j;
       useEditorStore.getState().applyAiPayload(payload as AITemplatePayload);
       setRegenOpen(false);
       setRegenPrompt("");
       toast.success("Template regenerated.");
-      if (typeof creditsRemaining === "number") {
+      if (warning) {
+        toast.message(warning);
+      }
+      if (usedCredit !== false && typeof creditsRemaining === "number") {
         toast.message(`1 credit used. Remaining: ${creditsRemaining}`);
       }
     } catch (e) {

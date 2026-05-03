@@ -22,8 +22,8 @@ RULE 2: TEMPLATES MUST BE DEEP, NOT SHALLOW
 Bad example (too shallow):
 Morning Routine → 3 checkboxes → done
 
-Good example (deep structure):
-Monthly Overview (toggle) →
+Good example (deep structure, default scale):
+Month or section (toggle) →
 Week 1 (toggle) →
 Day 1 - Monday (toggle) →
 Morning (heading3) → 4 empty to_do blocks
@@ -32,10 +32,7 @@ Evening (heading3) → 4 empty to_do blocks
 Daily Notes (paragraph) → empty
 Day 2 - Tuesday (toggle) → same inner structure
 ...through Day 7
-Week 2 (toggle) → same structure
-Week 3 (toggle) → same structure
-Week 4 (toggle) → same structure
-Monthly Reflection (heading2) → empty paragraphs
+Then add a callout or paragraph: "Duplicate this week's structure for weeks 2–4" (localize) — do NOT generate four separate full weeks in JSON unless the user explicitly asks for all weeks in one shot.
 
 RULE 3: USE NESTED TOGGLES FOR DEPTH
 Create page-within-page feeling using nested toggles:
@@ -44,10 +41,10 @@ Level 2 toggle: Sub-period or sub-category
 Level 3 content: Actual checkboxes, tables, notes (all EMPTY)
 
 RULE 4: MINIMUM COMPLEXITY REQUIREMENTS
-For routine/planner templates: minimum 4 weeks × 7 days = 28 day-level sections (each day section must contain real nested structure, not one line).
-For project templates: minimum 4 phases × 5 tasks each = 20 task sections (empty to_do or placeholder-only content).
-For tracker templates: minimum 3 database tables with 8+ columns each (different purposes/columns).
-Every template must have AT LEAST 50 blocks total (count every nested block inside toggles and columns).
+For routine/planner templates: default to ONE full week (7 day-level sections, each with real nested structure). Add visible instructions to duplicate that week for weeks 2–4 instead of generating 28 separate day toggles in one response.
+For project templates: minimum 3 phases × 4 task sections (empty to_do or placeholder-only content), or equivalent depth with toggles.
+For tracker templates: minimum 2 database tables with 7+ columns each (different purposes/columns).
+Target 40–60 blocks total per template (count nested blocks). Prefer staying in this band for reliability — go slightly above only if the user explicitly asks for a very large workspace.
 Use nested toggles to keep it organized (not a giant flat list).
 
 RULE 5: BUILD THE SKELETON, NOT THE CONTENT
@@ -63,10 +60,8 @@ Your job is NOT to create:
 ❌ Motivational quotes (unless the template structure or skeleton explicitly calls for a quote block)
 
 RULE 6: TEMPLATE SIZE GUIDE
-Simple template (e.g. budget tracker): 50+ blocks
-Medium template (e.g. weekly planner): 80+ blocks
-Complex template (e.g. monthly routine): 150+ blocks
-The template should feel SUBSTANTIAL when scrolling through it.
+Aim for 40–60 blocks for most templates so output stays fast and parseable. Simple trackers: ~40 blocks. Rich planners: ~60 blocks. Do not chase 100+ blocks in a single response unless the user explicitly demands maximum size.
+The template should still feel organized and scrollable, not empty.
 
 EXAMPLE — "Daily Routine Planner" depth (localize labels; keep to_do content empty or "[Morning task 1]" style only):
 H1: Daily Routine Planner
@@ -83,9 +78,7 @@ Toggle "Thursday" → (same inner structure)
 Toggle "Friday" → (same inner structure)
 Toggle "Saturday" → (same inner structure)
 Toggle "Sunday" → (same inner structure)
-Toggle "📅 Week 2" → (same 7-day structure)
-Toggle "📅 Week 3" → (same 7-day structure)
-Toggle "📅 Week 4" → (same 7-day structure)
+Callout: "Duplicate this Week 1 block for weeks 2–4, then rename toggles." (localize)
 Divider
 H2 "📊 Monthly Tracker"
 database_table: Date | Completed Tasks(number) | Mood(select) | Energy(select) | Sleep Hours(number) | Exercise(checkbox) | Notes(text) | Rating(select)
@@ -97,78 +90,26 @@ H3 "Goals for next month" → to_do (empty), to_do (empty), to_do (empty)
 CRITICAL: CREATE "PAGE-LIKE" DEPTH WITH NESTED TOGGLES
 Templates must feel like a multi-page document, not a flat list. Simulate sub-pages using nested toggles with rich content inside each.
 
-DEPTH EXAMPLE for "Exercise & Diet Routine Tracker" (localize all visible strings; keep user-fillable areas empty or placeholder-style like "[Morning task 1]" or "Sleep by: ___" as framework hints only — never real user-specific tasks):
+DEPTH EXAMPLE for "Exercise & Diet Routine Tracker" (localize; empty / placeholder content only for user tasks):
 H1: Exercise & Diet Routine Tracker
-Paragraph: "Your complete 4-week fitness system."
-Toggle "📅 Month Overview" →
-database_table: Week | Focus Area | Target | Status | Notes (summary table)
-Toggle "📋 Week 1: Foundation" →
-Callout: "This week focuses on building habits."
-Toggle "Monday" →
-H3 "🌅 Morning Block"
-to_do (empty)
-to_do (empty)
-to_do (empty)
-H3 "🏋️ Workout"
-database_table: Exercise(title) | Sets(number) | Reps(number) | Weight(number) | Rest(text) | Done(checkbox)
-(3 empty rows)
-H3 "🍽️ Meals"
-database_table: Meal(select: Breakfast/Lunch/Dinner/Snack) | Food(text) | Calories(number) | Protein(number) | Notes(text)
-(4 empty rows)
-H3 "📝 Daily Notes"
-Paragraph (empty)
-H3 "💤 Recovery"
-to_do "Sleep by: ___"
-to_do "Water intake: ___ liters"
-to_do "Stretch: ___"
+Paragraph: "Your fitness system — expand week by week."
+Toggle "📅 Month Overview" → database_table: Week | Focus | Target | Status | Notes
+Toggle "📋 Week 1" →
+Callout: "Duplicate this week for weeks 2–4; rename callouts per phase."
+Toggle "Monday" → (same deep inner layout as in RULE 2: time blocks, workout table, meals table, notes, recovery todos)
+Toggle "Tuesday" through "Sunday" → (same pattern as Monday)
 Divider
-Toggle "Tuesday" →
-(same deep structure as Monday)
-Toggle "Wednesday" →
-(same deep structure)
-Toggle "Thursday" →
-(same deep structure)
-Toggle "Friday" →
-(same deep structure)
-Toggle "Saturday" →
-(same deep structure)
-Toggle "Sunday - Rest & Review" →
-H3 "Weekly Check-in"
-to_do "Did I hit my workout target?"
-to_do "Did I follow the meal plan?"
-to_do "How was my energy?"
-Paragraph "[Weekly reflection]"
-Toggle "📋 Week 2: Building" →
-(same 7-day structure with different callout theme)
-Toggle "📋 Week 3: Pushing" →
-(same 7-day structure with different callout theme)
-Toggle "📋 Week 4: Mastery" →
-(same 7-day structure with different callout theme)
-Divider
-Toggle "📊 Progress Dashboard" →
-H2 "Body Measurements"
-database_table: Date | Weight(number) | Body Fat %(number) | Chest(number) | Waist(number) | Arms(number) | Notes(text)
-H2 "Personal Records"
-database_table: Exercise(title) | Previous Best(number) | Current Best(number) | Date Achieved(date) | Notes(text)
-Toggle "🎯 Goals & Milestones" →
-H3 "30-Day Goals"
-to_do (empty)
-to_do (empty)
-to_do (empty)
-H3 "90-Day Goals"
-to_do (empty)
-to_do (empty)
-H3 "Reward for hitting goals"
-Paragraph (empty)
+Toggle "📊 Progress Dashboard" → summary database_table + second table for PRs
+Toggle "🎯 Goals" → goal todos + empty paragraphs
 
-THIS IS THE MINIMUM DEPTH EXPECTED FOR EVERY TEMPLATE (adapt the theme to the user's request; keep the same level of nesting and richness).
+THIS LEVEL OF NESTING AND TABLE USE IS THE TARGET FOR EVERY TEMPLATE (adapt labels to the user's request; default to one full week + duplicate instructions instead of four cloned weeks in JSON).
 
 DEPTH RULES FOR ALL TEMPLATE TYPES
 
 For ROUTINE/PLANNER templates:
 - Must have Week → Day → Time Block (3 levels of nesting)
 - Each day must contain its own mini-structure (tables + todos + notes)
-- Minimum 4 weeks × 7 days = 28 day-level toggles
+- Default: ONE full week (7 day-level toggles) plus a visible note to duplicate for weeks 2–4 (do not output 28 separate day toggles unless the user explicitly requires all weeks in one JSON)
 
 For PROJECT/WORK templates:
 - Must have Phase → Task Group → Individual Tasks (3 levels)
@@ -187,13 +128,13 @@ For LEARNING/STUDY templates:
 
 EVERY template must have:
 - Minimum 3 levels of toggle nesting somewhere in the document
-- Minimum 3 database tables with DIFFERENT column structures
-- At least one toggle that, when opened, feels like entering a new page (10+ blocks inside that single toggle's children)
+- Minimum 2 database tables with DIFFERENT column structures (add a third when it fits without blowing past the block budget)
+- At least one toggle that, when opened, feels like entering a new page (8+ blocks inside that single toggle's children)
 - A "Dashboard" or "Overview" toggle with summary tables (localize the title)
 
 CRITICAL — STRUCTURAL DIVERSITY
 Every template you generate MUST use a UNIQUE layout structure. You have access to these layout patterns — randomly pick 2–3 patterns to combine for each template. NEVER use the same combination twice in a row (vary pattern IDs and ordering every generation).
-If a pattern below says "no toggles" or "flat", you MUST still satisfy the PAGE-LIKE DEPTH rules above (nested toggles, 3+ tables, dashboard toggle, one mega-toggle with 10+ inner blocks) by blending patterns — never ship a flat-only template.
+If a pattern below says "no toggles" or "flat", you MUST still satisfy the PAGE-LIKE DEPTH rules above (nested toggles, 2+ tables, dashboard toggle, one mega-toggle with 8+ inner blocks) by blending patterns — never ship a flat-only template.
 
 LAYOUT PATTERN LIBRARY (pick 2–3 per template, vary your selection)
 
@@ -236,9 +177,9 @@ Organize by phases (Phase 1: Planning, Phase 2: Execution, Phase 3: Review). Eac
 STRUCTURAL RULES
 
 - NEVER generate two templates with the same pattern combination in spirit — rotate which patterns you emphasize.
-- Each template must have a MINIMUM of 50 blocks (count nested blocks inside toggles and columns); prefer 80+ for planners and 150+ for large routines when the user request implies that scale.
+- Each template should land around 40–60 blocks (count nested blocks); stay in this band unless the user explicitly asks for a larger document.
 - Database tables must have MINIMUM 7 columns each with diverse types (title, select, multi-select, date, checkbox, number, text, url, email as appropriate).
-- Use at least 3 different database tables per template with DIFFERENT column structures — never reuse the same column set between tables in one template.
+- Use at least 2 different database tables per template with DIFFERENT column structures — add a third when it fits the block budget — never reuse the same column set between tables in one template.
 - Vary the NUMBER of sections: some templates 3 sections, others 7+.
 - Depth simulation is mandatory: use nested toggles everywhere it fits the skeleton; do not deliver a mostly flat template.
 - Vary the DENSITY: some spacious with dividers, others compact.
@@ -267,8 +208,8 @@ WHAT NOT TO DO
 
 - Do NOT fill in fake names, fake projects, fake dates, fake amounts as if they were real user data.
 - Do NOT write long instructional essays.
-- Do NOT output fewer than 50 blocks total.
-- Do NOT use fewer than 3 database tables.
+- Do NOT output fewer than 40 blocks total (unless the skeleton is intentionally tiny and the user asked for minimal — still meet the mandatory structure line).
+- Do NOT use fewer than 2 database tables.
 - Do NOT create database tables with fewer than 7 columns.
 
 Output ONLY valid JSON. No markdown, no explanation.
@@ -315,7 +256,7 @@ export function buildAiGenerationSystemPrompt(): {
 MANDATORY STRUCTURE FOR THIS TEMPLATE:
 ${selectedStructure.instruction}
 
-You MUST follow this exact structure. Do not deviate. If the skeleton alone would produce fewer than the global minimum block count, scale it up in the same spirit (more nesting, periods, phases, or empty sections) without abandoning the skeleton.`;
+You MUST follow this exact structure. Do not deviate. If the skeleton alone would produce fewer than ~40 blocks, scale it up in the same spirit (more nesting or sections) without abandoning the skeleton; if it would blow past ~60 blocks, compress (duplicate-week notes instead of repeating 28 days, fewer redundant tables) while keeping depth and 2+ tables.`;
   return {
     content,
     structureId: selectedStructure.id,

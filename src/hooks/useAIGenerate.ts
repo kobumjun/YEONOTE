@@ -5,7 +5,12 @@ import type { AITemplatePayload } from "@/types/template";
 
 type ProgressCb = (message: string) => void;
 
-export type AIGenerateResult = { payload: AITemplatePayload; creditsRemaining: number | null };
+export type AIGenerateResult = {
+  payload: AITemplatePayload;
+  creditsRemaining: number | null;
+  usedCredit: boolean;
+  warning?: string;
+};
 
 export function useAIGenerate() {
   const [streaming, setStreaming] = useState(false);
@@ -19,7 +24,14 @@ export function useAIGenerate() {
       setStreaming(true);
       setError(null);
       const rawBlocks: unknown[] = [];
-      let meta: { title?: string; icon?: string; cover?: string; creditsRemaining?: number } = {};
+      let meta: {
+        title?: string;
+        icon?: string;
+        cover?: string;
+        creditsRemaining?: number;
+        usedCredit?: boolean;
+        warning?: string;
+      } = {};
 
       try {
         const res = await fetch("/api/ai/generate", {
@@ -67,12 +79,21 @@ export function useAIGenerate() {
                 opts.onBlock?.(data.block);
               }
               if (data.type === "done") {
+                const done = data as unknown as {
+                  title?: string;
+                  icon?: string;
+                  cover?: string;
+                  creditsRemaining?: number;
+                  usedCredit?: boolean;
+                  warning?: string;
+                };
                 meta = {
-                  title: data.title,
-                  icon: data.icon,
-                  cover: data.cover,
-                  creditsRemaining:
-                    typeof data.creditsRemaining === "number" ? data.creditsRemaining : undefined,
+                  title: done.title,
+                  icon: done.icon,
+                  cover: done.cover,
+                  creditsRemaining: typeof done.creditsRemaining === "number" ? done.creditsRemaining : undefined,
+                  usedCredit: typeof done.usedCredit === "boolean" ? done.usedCredit : true,
+                  warning: done.warning,
                 };
               }
             } catch {
@@ -100,6 +121,8 @@ export function useAIGenerate() {
       return {
         payload,
         creditsRemaining: meta.creditsRemaining ?? null,
+        usedCredit: meta.usedCredit !== false,
+        warning: meta.warning,
       };
     },
     []

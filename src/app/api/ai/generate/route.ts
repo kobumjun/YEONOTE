@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getOpenAI, buildAiGenerationSystemPrompt } from "@/lib/openai";
+import { streamChatCompletionJson } from "@/lib/ai-completion";
+import { buildTimeoutFallbackTemplate } from "@/lib/ai-fallback-template";
 import { createClient } from "@/lib/supabase/server";
 import { canGenerateAI } from "@/lib/plan";
 import { limitAiGeneration } from "@/lib/ratelimit";
@@ -64,70 +66,84 @@ export async function POST(req: Request) {
     .filter(Boolean)
     .join("\n");
 
-  let completion;
+  let parsed: AITemplatePayload;
+  let usedCredit = true;
+  let completionTokens: number | null = null;
+
   try {
-    completion = await openai.chat.completions.create({
+    const { raw, timedOut, usageTokens } = await streamChatCompletionJson(openai, {
       model: "gpt-4o",
-      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      response_format: { type: "json_object" },
     });
+    completionTokens = usageTokens;
+
+    if (timedOut || !raw.trim()) {
+      parsed = buildTimeoutFallbackTemplate(prompt);
+      usedCredit = false;
+    } else {
+      try {
+        parsed = JSON.parse(raw) as AITemplatePayload;
+      } catch {
+        return NextResponse.json({ error: "Invalid AI JSON" }, { status: 502 });
+      }
+    }
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "AI generation failed" }, { status: 502 });
   }
 
-  const raw = completion.choices[0]?.message?.content;
-  if (!raw) {
-    return NextResponse.json({ error: "Empty AI response" }, { status: 502 });
+  let creditsRemaining = creditsBefore;
+
+  if (usedCredit) {
+    const { data: updatedProfile, error: creditErr } = await supabase
+      .from("profiles")
+      .update({ ai_credits: creditsBefore - 1 })
+      .eq("id", user.id)
+      .eq("ai_credits", creditsBefore)
+      .select("ai_credits")
+      .single();
+
+    if (creditErr || updatedProfile == null) {
+      return NextResponse.json(
+        { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
+        { status: 409 }
+      );
+    }
+
+    creditsRemaining = updatedProfile.ai_credits ?? 0;
+
+    await supabase.from("ai_logs").insert({
+      user_id: user.id,
+      prompt,
+      model: "gpt-4o",
+      tokens_used: completionTokens,
+    });
+  } else {
+    await supabase.from("ai_logs").insert({
+      user_id: user.id,
+      prompt: `[timeout fallback] ${prompt}`,
+      model: "gpt-4o",
+      tokens_used: completionTokens,
+    });
   }
-
-  let parsed: AITemplatePayload;
-  try {
-    parsed = JSON.parse(raw) as AITemplatePayload;
-  } catch {
-    return NextResponse.json({ error: "Invalid AI JSON" }, { status: 502 });
-  }
-
-  const { data: updatedProfile, error: creditErr } = await supabase
-    .from("profiles")
-    .update({ ai_credits: creditsBefore - 1 })
-    .eq("id", user.id)
-    .eq("ai_credits", creditsBefore)
-    .select("ai_credits")
-    .single();
-
-  if (creditErr || updatedProfile == null) {
-    return NextResponse.json(
-      { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
-      { status: 409 }
-    );
-  }
-
-  const creditsRemaining = updatedProfile.ai_credits ?? 0;
-
-  const tokens = completion.usage?.total_tokens ?? null;
-
-  await supabase.from("ai_logs").insert({
-    user_id: user.id,
-    prompt,
-    model: "gpt-4o",
-    tokens_used: tokens,
-  });
 
   const encoder = new TextEncoder();
   const blocks = Array.isArray(parsed.blocks) ? parsed.blocks : [];
+  const warning = usedCredit
+    ? undefined
+    : "AI generation timed out — a starter template was applied. No credit was used. Try a shorter prompt or try again.";
 
   const stream = new ReadableStream({
     async start(controller) {
       const send = (obj: unknown) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
       };
-      send({ type: "progress", message: "Structuring your template..." });
+      send({ type: "progress", message: usedCredit ? "Structuring your template..." : "Applying starter template…" });
       await new Promise((r) => setTimeout(r, 200));
       send({ type: "progress", message: "Generating blocks..." });
       for (let i = 0; i < blocks.length; i++) {
@@ -140,6 +156,8 @@ export async function POST(req: Request) {
         icon: parsed.icon,
         cover: parsed.cover,
         creditsRemaining,
+        usedCredit,
+        warning,
       });
       controller.close();
     },

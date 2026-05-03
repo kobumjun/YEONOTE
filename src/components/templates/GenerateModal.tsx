@@ -107,7 +107,10 @@ export function GenerateModal() {
         return;
       }
       toast.success("Template created.");
-      if (typeof result.creditsRemaining === "number") {
+      if (result.warning) {
+        toast.message(result.warning);
+      }
+      if (result.usedCredit && typeof result.creditsRemaining === "number") {
         toast.message(`1 credit used. Remaining: ${result.creditsRemaining}`);
       }
       setOpen(false);
