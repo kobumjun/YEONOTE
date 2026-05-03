@@ -28,6 +28,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
         blocks,
         is_favorited: tpl.is_favorited,
         is_public: tpl.is_public,
+        is_deleted: tpl.is_deleted,
       }}
     />
   );

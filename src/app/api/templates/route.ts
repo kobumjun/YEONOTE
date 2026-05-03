@@ -9,6 +9,8 @@ function emptyContent(): TemplateContent {
   return { blocks: [] };
 }
 
+const PAGE_SIZE = 12;
+
 export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,13 +19,22 @@ export async function GET(req: Request) {
   const view = searchParams.get("view") ?? "all";
   const sort = searchParams.get("sort") ?? "recent";
   const q = searchParams.get("q")?.trim();
+  const filter = searchParams.get("filter")?.trim();
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
 
   const supabase = await createClient();
-  let query = supabase.from("templates").select("*").eq("user_id", user.id);
 
   if (view === "shared") {
-    return NextResponse.json({ templates: [] });
+    return NextResponse.json({ templates: [], total: 0, page: 1, pageSize: PAGE_SIZE });
   }
+
+  if (view === "my" && filter === "shared_with_me") {
+    return NextResponse.json({ templates: [], total: 0, page: 1, pageSize: PAGE_SIZE });
+  }
+
+  let query = supabase.from("templates").select("*", { count: "exact" }).eq("user_id", user.id);
 
   if (view === "trash") query = query.eq("is_deleted", true);
   else query = query.eq("is_deleted", false);
@@ -37,9 +48,16 @@ export async function GET(req: Request) {
   else if (sort === "updated") query = query.order("updated_at", { ascending: false });
   else query = query.order("updated_at", { ascending: false });
 
-  const { data, error } = await query;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ templates: data ?? [] });
+  return NextResponse.json({
+    templates: data ?? [],
+    total: count ?? 0,
+    page,
+    pageSize: PAGE_SIZE,
+  });
 }
 
 export async function POST(req: Request) {

@@ -12,7 +12,8 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Star, Share2, Sparkles, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Star, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,9 +135,11 @@ export function TemplateEditor({
     blocks: TemplateBlock[];
     is_favorited?: boolean;
     is_public?: boolean;
+    is_deleted?: boolean;
   };
   readOnly?: boolean;
 }) {
+  const router = useRouter();
   const editorRef = useRef<HTMLDivElement>(null);
   const slashRef = useRef<SlashCommandHandle>(null);
   const loadFromServer = useEditorStore((s) => s.loadFromServer);
@@ -161,6 +164,13 @@ export function TemplateEditor({
   const [regenPrompt, setRegenPrompt] = useState("");
   const [regenBusy, setRegenBusy] = useState(false);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
+  const [inTrash, setInTrash] = useState(Boolean(initial.is_deleted));
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  useEffect(() => {
+    setInTrash(Boolean(initial.is_deleted));
+  }, [templateId, initial.is_deleted]);
 
   useEffect(() => {
     loadFromServer({
@@ -293,6 +303,38 @@ export function TemplateEditor({
     toast.success("Link copied.");
   }
 
+  async function moveToTrash() {
+    setDeleteBusy(true);
+    try {
+      const res = await fetch(`/api/templates/${templateId}`, { method: "DELETE" });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error((j as { error?: string }).error ?? "Could not delete");
+        return;
+      }
+      toast.success("Moved to trash.");
+      setDeleteOpen(false);
+      router.push("/dashboard?view=trash");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  async function restoreFromTrash() {
+    const res = await fetch(`/api/templates/${templateId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_deleted: false }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error((j as { error?: string }).error ?? "Could not restore");
+      return;
+    }
+    setInTrash(false);
+    toast.success("Restored from trash.");
+  }
+
   async function runRegenerate() {
     if (!regenPrompt.trim()) return;
     setRegenBusy(true);
@@ -347,23 +389,59 @@ export function TemplateEditor({
           {!readOnly && (
             <>
               <CoverPicker value={cover} onChange={(c) => setMeta({ cover: c })} />
-              <Button type="button" variant="ghost" size="icon" onClick={toggleFav} aria-label="Favorite">
+              <Button type="button" variant="ghost" size="icon" onClick={toggleFav} aria-label="Favorite" disabled={inTrash}>
                 <Star className={cn("size-5", fav && "fill-amber-400 text-amber-500")} />
               </Button>
-              <Button type="button" variant="outline" size="sm" className="rounded-xl border-border shadow-sm" onClick={sharePublic}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-border shadow-sm"
+                onClick={sharePublic}
+                disabled={inTrash}
+              >
                 <Share2 className="mr-1 size-4 stroke-[1.5]" />
                 Share
               </Button>
               <ExportMenu editorRef={editorRef} />
-              <Button type="button" variant="secondary" size="sm" className="rounded-xl border border-border shadow-sm" onClick={() => setRegenOpen(true)}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="rounded-xl border border-border shadow-sm"
+                onClick={() => setRegenOpen(true)}
+                disabled={inTrash}
+              >
                 <Sparkles className="mr-1 size-4 stroke-[1.5]" />
                 Regenerate
               </Button>
+              {inTrash ? (
+                <Button type="button" variant="outline" size="sm" className="rounded-xl border-border" onClick={() => void restoreFromTrash()}>
+                  Restore from trash
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="Move to trash"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="size-4 stroke-[1.5]" />
+                </Button>
+              )}
             </>
           )}
           {dirty && !readOnly && <span className="text-xs text-muted-foreground">Saving…</span>}
         </div>
       </header>
+
+      {inTrash && !readOnly && (
+        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-950 dark:text-amber-100">
+          This template is in trash. You can restore it or leave it here and manage it from the Trash page.
+        </div>
+      )}
 
       <div className={cn("h-36 w-full bg-gradient-to-br", gradientClass(cover))} />
 
@@ -445,6 +523,23 @@ export function TemplateEditor({
             </Button>
             <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={runRegenerate} disabled={regenBusy}>
               {regenBusy ? "Generating…" : "Generate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Move to trash?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">You can restore this template later from the Trash page.</p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setDeleteOpen(false)} disabled={deleteBusy}>
+              Cancel
+            </Button>
+            <Button type="button" className="rounded-xl bg-yeo-600 shadow-sm hover:bg-yeo-700" onClick={() => void moveToTrash()} disabled={deleteBusy}>
+              {deleteBusy ? "Moving…" : "Move to trash"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -11,7 +11,9 @@ import { creditsDisplay } from "@/lib/credits";
 
 const links = [
   { href: "/dashboard", label: "All Templates" },
+  { href: "/dashboard?view=my", label: "My Templates" },
   { href: "/dashboard?view=favorites", label: "Favorites" },
+  { href: "/dashboard?view=trash", label: "Trash" },
   { href: "/explore", label: "Explore" },
   { href: "/settings", label: "Settings" },
 ];

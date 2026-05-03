@@ -61,12 +61,31 @@ export async function PATCH(req: Request, ctx: Ctx) {
   return NextResponse.json({ template: data });
 }
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export async function DELETE(req: Request, ctx: Ctx) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
   const supabase = await createClient();
+  const permanent = new URL(req.url).searchParams.get("permanent") === "true" || new URL(req.url).searchParams.get("permanent") === "1";
+
+  if (permanent) {
+    const { data: existing, error: selErr } = await supabase
+      .from("templates")
+      .select("id, is_deleted")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (selErr) return NextResponse.json({ error: selErr.message }, { status: 500 });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!existing.is_deleted) {
+      return NextResponse.json({ error: "Move to trash before permanent delete." }, { status: 400 });
+    }
+    const { error: delErr } = await supabase.from("templates").delete().eq("id", id).eq("user_id", user.id);
+    if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
+    return NextResponse.json({ ok: true, permanent: true });
+  }
+
   const { data, error } = await supabase
     .from("templates")
     .update({ is_deleted: true, deleted_at: new Date().toISOString() })
