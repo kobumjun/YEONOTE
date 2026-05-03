@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { getOpenAI, TEMPLATE_SYSTEM_PROMPT } from "@/lib/openai";
+import { getOpenAI, buildAiGenerationSystemPrompt } from "@/lib/openai";
 import { createClient } from "@/lib/supabase/server";
 import { canGenerateAI } from "@/lib/plan";
 import { limitAiGeneration } from "@/lib/ratelimit";
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
   }
 
   const openai = getOpenAI();
+  const { content: systemPrompt } = buildAiGenerationSystemPrompt();
   const userMessage = [
     body.tags?.length ? `Tags: ${body.tags.join(", ")}` : "",
     body.style ? `Style: ${body.style}` : "",
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
       model: "gpt-4o",
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: TEMPLATE_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { getOpenAI, TEMPLATE_SYSTEM_PROMPT } from "@/lib/openai";
+import { getOpenAI, buildAiGenerationSystemPrompt } from "@/lib/openai";
 import { createClient } from "@/lib/supabase/server";
 import { canGenerateAI } from "@/lib/plan";
 import { limitAiGeneration } from "@/lib/ratelimit";
@@ -40,11 +40,12 @@ export async function POST(req: Request) {
   }
 
   const openai = getOpenAI();
+  const { content: systemPrompt } = buildAiGenerationSystemPrompt();
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: TEMPLATE_SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       {
         role: "user",
         content: `Regenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { TEMPLATE_STRUCTURES } from "@/lib/templateStructures";
 
 export const TEMPLATE_SYSTEM_PROMPT = `You are YEO, a premium template architect.
 
@@ -118,6 +119,28 @@ Each block must have a "type" field. Supported types and fields:
 - database_gallery: { "type", "title", "imageColumn", "columns", "rows" }
 - columns: { "type", "layout": "2"|"3", "children": [[blocks per column]] }
 - embed: { "type", "src", "title?" }`;
+
+/** Picks a random skeleton and appends it to the base system prompt (used for generate + regenerate). */
+export function buildAiGenerationSystemPrompt(): {
+  content: string;
+  structureId: number;
+  structureName: string;
+} {
+  const randomIndex = Math.floor(Math.random() * TEMPLATE_STRUCTURES.length);
+  const selectedStructure = TEMPLATE_STRUCTURES[randomIndex]!;
+  console.log("Selected template structure:", selectedStructure.name);
+  const content = `${TEMPLATE_SYSTEM_PROMPT}
+
+MANDATORY STRUCTURE FOR THIS TEMPLATE:
+${selectedStructure.instruction}
+
+You MUST follow this exact structure. Do not deviate.`;
+  return {
+    content,
+    structureId: selectedStructure.id,
+    structureName: selectedStructure.name,
+  };
+}
 
 export function getOpenAI() {
   const key = process.env.OPENAI_API_KEY;
