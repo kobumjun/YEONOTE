@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { TemplateBlock } from "@/types/template";
+import { getSelectColumnOptions, type TemplateBlock } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
@@ -650,7 +650,7 @@ export function BlockRenderer({
                             onChange={(e) => updateCell(e.target.value)}
                           >
                             <option value="">Select</option>
-                            {(c.options ?? []).map((opt) => (
+                            {getSelectColumnOptions(c).map((opt) => (
                               <option key={opt} value={opt}>
                                 {opt}
                               </option>

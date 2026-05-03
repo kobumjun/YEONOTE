@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-export const AI_GENERATION_MAX_TOKENS = 4000;
+export const AI_GENERATION_MAX_TOKENS = 6000;
 export const AI_GENERATION_TIMEOUT_MS = 45_000;
 
 export type StreamJsonResult = {

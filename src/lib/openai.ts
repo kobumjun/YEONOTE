@@ -41,10 +41,10 @@ Level 2 toggle: Sub-period or sub-category
 Level 3 content: Actual checkboxes, tables, notes (all EMPTY)
 
 RULE 4: MINIMUM COMPLEXITY REQUIREMENTS
-For routine/planner templates: default to ONE full week (7 day-level sections, each with real nested structure). Add visible instructions to duplicate that week for weeks 2–4 instead of generating 28 separate day toggles in one response.
-For project templates: minimum 3 phases × 4 task sections (empty to_do or placeholder-only content), or equivalent depth with toggles.
-For tracker templates: minimum 2 database tables with 7+ columns each (different purposes/columns).
-Target 40–60 blocks total per template (count nested blocks). Prefer staying in this band for reliability — go slightly above only if the user explicitly asks for a very large workspace.
+For routine/planner templates: default to ONE full week (7 day-level sections, each with real nested structure). Add visible instructions to duplicate that week for weeks 2–4 instead of generating 28 separate day toggles in one response unless the user explicitly asks for all weeks in one shot.
+For project templates: substantial phase structure with nested toggles and trackers (empty to_do or placeholder-only content).
+For tracker templates: minimum 2 database tables with 7+ columns each (different purposes/columns; every select column MUST include an "options" array with 4–6 descriptive choices — see SELECT COLUMNS section below).
+Minimum 40 blocks total per template (count nested blocks). Aim for 45–80 blocks when depth warrants it; do not pad with meaningless repetition — use nesting, toggles, and structural variety instead of empty fluff.
 Use nested toggles to keep it organized (not a giant flat list).
 
 RULE 5: BUILD THE SKELETON, NOT THE CONTENT
@@ -59,9 +59,18 @@ Your job is NOT to create:
 ❌ Pre-filled checklist content
 ❌ Motivational quotes (unless the template structure or skeleton explicitly calls for a quote block)
 
-RULE 6: TEMPLATE SIZE GUIDE
-Aim for 40–60 blocks for most templates so output stays fast and parseable. Simple trackers: ~40 blocks. Rich planners: ~60 blocks. Do not chase 100+ blocks in a single response unless the user explicitly demands maximum size.
-The template should still feel organized and scrollable, not empty.
+RULE 6: QUALITY REQUIREMENTS (non-negotiable)
+
+Every template must feel PROFESSIONAL and SUBSTANTIAL.
+Minimum 40 blocks per template (count nested blocks).
+Use emojis at the start of the content string in ALL heading2 and heading3 blocks.
+Every database table must have 7+ columns with DIVERSE types (title, text, number, select, date, person, checkbox).
+Every select column MUST include an "options" array with 4–6 options with emoji prefixes when it fits the language — NEVER omit or empty it (see examples under SELECT COLUMNS).
+Mix block types: do not use the same block type 3 times in a row.
+Include at least 2 database tables with DIFFERENT purposes and DIFFERENT columns.
+Use toggles to organize major sections — each such toggle should contain 5+ child blocks.
+Add callout blocks with contextual tips for using the template (not generic motivational quotes).
+Leave paragraph / to_do / table cell content EMPTY or minimal placeholders for user input, but make the STRUCTURE rich and detailed.
 
 EXAMPLE — "Daily Routine Planner" depth (localize labels; keep to_do content empty or "[Morning task 1]" style only):
 H1: Daily Routine Planner
@@ -129,7 +138,7 @@ For LEARNING/STUDY templates:
 EVERY template must have:
 - Minimum 3 levels of toggle nesting somewhere in the document
 - Minimum 2 database tables with DIFFERENT column structures (add a third when it fits without blowing past the block budget)
-- At least one toggle that, when opened, feels like entering a new page (8+ blocks inside that single toggle's children)
+- At least one major toggle that, when opened, feels like entering a new page (minimum 5+ child blocks; prefer 8+ for the main dashboard or week section)
 - A "Dashboard" or "Overview" toggle with summary tables (localize the title)
 
 CRITICAL — STRUCTURAL DIVERSITY
@@ -166,7 +175,7 @@ PATTERN 9 — "Split View"
 Use a columns block for side-by-side layouts. Left column: planning/input. Right column: tracking/output.
 
 PATTERN 10 — "Minimal Focus"
-Intentionally sparse. One strong heading, one brief paragraph, one focused database table with 10+ well-designed columns, and almost nothing else. Clean, professional, data-centric.
+Still meet the global minimum block count and depth rules: one strong heading, one brief paragraph, one rich database table with 10+ columns, then add toggles, a second table, callouts, or sections until the template is substantial (40+ blocks). Clean, professional, data-centric.
 
 PATTERN 11 — "Multi-Database Hub"
 3–4 smaller database tables, each with 4–5 columns, serving different purposes. Connected by headings and brief descriptions. No toggles — everything visible at once.
@@ -177,15 +186,17 @@ Organize by phases (Phase 1: Planning, Phase 2: Execution, Phase 3: Review). Eac
 STRUCTURAL RULES
 
 - NEVER generate two templates with the same pattern combination in spirit — rotate which patterns you emphasize.
-- Each template should land around 40–60 blocks (count nested blocks); stay in this band unless the user explicitly asks for a larger document.
-- Database tables must have MINIMUM 7 columns each with diverse types (title, select, multi-select, date, checkbox, number, text, url, email as appropriate).
-- Use at least 2 different database tables per template with DIFFERENT column structures — add a third when it fits the block budget — never reuse the same column set between tables in one template.
-- Vary the NUMBER of sections: some templates 3 sections, others 7+.
+- Minimum 40 blocks per template (count nested blocks); prefer 45–80 when the skeleton supports it without hollow repetition.
+- Do not use the same block type 3 times in a row — vary headings, paragraphs, todos, callouts, dividers, tables, columns, etc.
+- Database tables must have MINIMUM 7 columns each with diverse types (title, text, number, select with full options array, date, person, checkbox as appropriate).
+- Use at least 2 different database tables per template with DIFFERENT purposes and DIFFERENT column sets — add a third when it fits — never clone the same column set across tables in one template.
+- Major section toggles: each should contain 5+ child blocks (nested count), not a token-saving stub.
+- Vary the NUMBER of sections: some templates 4 sections, others 8+.
 - Depth simulation is mandatory: use nested toggles everywhere it fits the skeleton; do not deliver a mostly flat template.
 - Vary the DENSITY: some spacious with dividers, others compact.
 - Include at least one unusual/creative block usage per template (e.g., code block for formulas or pseudo-formulas, bookmark block for references, image block as placeholder for vision boards).
 - The quote block must NOT appear in every template — use a quote block in only about 30% of templates; omit it entirely in the other 70%.
-- Some templates should use NO callout blocks at all; others may use several with varied icons.
+- Some templates should use NO callout blocks at all; others may use several with varied icons (when you use callouts, prefer contextual how-to tips per RULE 6).
 - Some templates should have NO quote blocks at all (in addition to the 70% rule above).
 
 COLUMN VARIETY REQUIREMENTS
@@ -198,9 +209,26 @@ Config D: Entry(title), Mood(select), Energy(select), Sleep Hours(number), Exerc
 Config E: Resource(title), Type(select), URL(text), Rating(select), Tags(text), Last Reviewed(date), Archived(checkbox)
 Config F: Goal(title), Category(select), Target(number), Current(number), Unit(text), Deadline(date), Status(select), Confidence(select)
 
+SELECT COLUMNS — DATABASE (critical)
+
+Every select column MUST include an "options" array with 4–6 descriptive choices. Example: { "name": "Priority", "type": "select", "options": ["🔴 Critical", "🟠 High", "🟡 Medium", "🟢 Low"] }
+
+NEVER omit "options", NEVER output an empty array, NEVER output fewer than 4 strings for a select column.
+
+Good examples (localize when the template is not in English):
+
+{ "name": "Status", "type": "select", "options": ["📋 Not Started", "🔄 In Progress", "👀 Under Review", "✅ Completed", "⏸ On Hold"] }
+{ "name": "Priority", "type": "select", "options": ["🔴 Critical", "🟠 High", "🟡 Medium", "🟢 Low"] }
+{ "name": "Category", "type": "select", "options": ["💼 Work", "📚 Study", "🏋️ Health", "💰 Finance", "🎨 Creative", "🏠 Personal"] }
+{ "name": "Mood", "type": "select", "options": ["😄 Great", "🙂 Good", "😐 Okay", "😩 Tired", "🔥 Motivated"] }
+{ "name": "Intensity", "type": "select", "options": ["⚡ High", "🔋 Medium", "🪫 Low"] }
+
+ALWAYS include options like these for every select column. NEVER leave select options empty.
+
 VISUAL VARIETY
 
-- Vary emoji usage: some templates heavy on emojis, others minimal/professional.
+- Every heading2 and heading3 MUST begin its content with a relevant emoji (e.g. "📅 Weekly overview").
+- Vary emoji usage in other blocks as fits the template tone.
 - Vary callout icons when used: 💡 📌 ⚠️ 🎯 📊 ✨ 🔑 💪 📋 🗓️
 - Vary divider frequency: many in some templates, none in others.
 
@@ -208,7 +236,7 @@ WHAT NOT TO DO
 
 - Do NOT fill in fake names, fake projects, fake dates, fake amounts as if they were real user data.
 - Do NOT write long instructional essays.
-- Do NOT output fewer than 40 blocks total (unless the skeleton is intentionally tiny and the user asked for minimal — still meet the mandatory structure line).
+- Do NOT output fewer than 40 blocks total (count nested blocks).
 - Do NOT use fewer than 2 database tables.
 - Do NOT create database tables with fewer than 7 columns.
 
@@ -235,7 +263,7 @@ Each block must have a "type" field. Supported types and fields:
 - code: { "type", "language", "content" }
 - image: { "type", "src?", "alt?", "caption?" }
 - bookmark: { "type", "url", "title?", "description?" }
-- database_table: { "type", "title", "columns": [{ "name", "type", "options?" }], "rows": [{}] }
+- database_table: { "type", "title", "columns": [{ "name", "type" } — for "type": "select" you MUST include "options": string[] with 4–6 values, never empty], "rows": [{}] }
 - database_board: { "type", "title", "groupBy", "columns", "rows" }
 - database_calendar: { "type", "title", "dateColumn", "columns", "rows" }
 - database_gallery: { "type", "title", "imageColumn", "columns", "rows" }
@@ -256,7 +284,7 @@ export function buildAiGenerationSystemPrompt(): {
 MANDATORY STRUCTURE FOR THIS TEMPLATE:
 ${selectedStructure.instruction}
 
-You MUST follow this exact structure. Do not deviate. If the skeleton alone would produce fewer than ~40 blocks, scale it up in the same spirit (more nesting or sections) without abandoning the skeleton; if it would blow past ~60 blocks, compress (duplicate-week notes instead of repeating 28 days, fewer redundant tables) while keeping depth and 2+ tables.`;
+You MUST follow this exact structure. Do not deviate. Ensure the final template has at least 40 blocks (count nested). If the skeleton alone would be short, scale up in the same spirit (more nesting, toggles with 5+ children, sections) without abandoning the skeleton. Avoid hollow repetition: use duplicate-week instructions instead of cloning 28 identical days in JSON; keep 2+ rich database tables, 7+ columns each, every select with a full options array, and varied block types (never 3 identical types in a row).`;
   return {
     content,
     structureId: selectedStructure.id,

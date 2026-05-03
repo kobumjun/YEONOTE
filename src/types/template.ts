@@ -19,6 +19,60 @@ export type DatabaseColumn = {
 
 export type DatabaseRow = Record<string, string | number | boolean | null | undefined>;
 
+const DATABASE_COLUMN_TYPES: DatabaseColumnType[] = [
+  "title",
+  "text",
+  "number",
+  "select",
+  "date",
+  "person",
+  "checkbox",
+];
+
+export const DEFAULT_SELECT_OPTIONS: string[] = [
+  "📋 Not Started",
+  "🔄 In Progress",
+  "👀 Under Review",
+  "✅ Completed",
+  "⏸ On Hold",
+];
+
+/** Options for select columns when missing or empty (AI JSON or legacy data). */
+export function getSelectColumnOptions(col: DatabaseColumn): string[] {
+  if (col.type !== "select") return [];
+  const o = col.options;
+  if (Array.isArray(o) && o.length > 0) return o;
+  return [...DEFAULT_SELECT_OPTIONS];
+}
+
+/** Ensures select columns always have options (fixes empty AI dropdowns). */
+export function coerceDatabaseColumn(col: Record<string, unknown>): DatabaseColumn {
+  const name = (String(col.name ?? "Column").trim() || "Column") as string;
+  const raw = String(col.type ?? "text").toLowerCase();
+  const type = (DATABASE_COLUMN_TYPES.includes(raw as DatabaseColumnType)
+    ? raw
+    : "text") as DatabaseColumnType;
+
+  if (type === "select") {
+    const optsRaw = Array.isArray(col.options)
+      ? (col.options as unknown[]).map((x) => String(x).trim()).filter(Boolean)
+      : [];
+    const options =
+      optsRaw.length >= 4 ? optsRaw : [...DEFAULT_SELECT_OPTIONS];
+    return { name, type: "select", options };
+  }
+
+  const options = Array.isArray(col.options)
+    ? (col.options as unknown[]).map((x) => String(x)).filter(Boolean)
+    : undefined;
+  return { name, type, ...(options?.length ? { options } : {}) };
+}
+
+export function coerceDatabaseColumns(raw: unknown): DatabaseColumn[] {
+  if (!Array.isArray(raw)) return [];
+  return (raw as Record<string, unknown>[]).map((c) => coerceDatabaseColumn(c));
+}
+
 type BlockBase = { id: BlockId };
 
 export type HeadingBlock = BlockBase & {
@@ -277,7 +331,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         id: bid,
         type: "database_table",
         title: String(raw.title ?? ""),
-        columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
+        columns: coerceDatabaseColumns(raw.columns),
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };
     case "database_board":
@@ -286,7 +340,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         type: "database_board",
         title: String(raw.title ?? ""),
         groupBy: String(raw.groupBy ?? "Status"),
-        columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
+        columns: coerceDatabaseColumns(raw.columns),
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };
     case "database_calendar":
@@ -295,7 +349,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         type: "database_calendar",
         title: String(raw.title ?? ""),
         dateColumn: String(raw.dateColumn ?? "Date"),
-        columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
+        columns: coerceDatabaseColumns(raw.columns),
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };
     case "database_gallery":
@@ -304,7 +358,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         type: "database_gallery",
         title: String(raw.title ?? ""),
         imageColumn: String(raw.imageColumn ?? "Image"),
-        columns: Array.isArray(raw.columns) ? (raw.columns as DatabaseColumn[]) : [],
+        columns: coerceDatabaseColumns(raw.columns),
         rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
       };
     case "columns": {
