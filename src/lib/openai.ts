@@ -69,9 +69,11 @@ monthly_calendar: {
 
 === DIVERSITY ===
 - Do NOT ship the same outline for "gym routine", "university transfer", and "weekly project". Vary section order, block types, and hierarchy.
+- Every template must use at least FIVE distinct block types.
+- Avoid monotonous runs: do not place the same block type 3+ times in a row (e.g. table→table→table).
 - Reference examples (do NOT copy verbatim — adapt to the user's topic):
-  • Gym / routine: goals table → month day checklist → exercise master with row links → daily log table → nutrition → hydration checklist → weekly review toggle → body metrics → injury log → motivation callouts.
-  • University admissions: goal callout + checklist → university master with row links → subject progress table → weekly study toggles → past-paper analysis table → application checklist → score trend table → costs table → month calendar checklist → warnings callout.
+  • Gym / routine: goals table → monthly_calendar → exercise master with row links → nutrition guide → hydration checklist → weekly review toggle → body metrics → injury callouts.
+  • University admissions: goal callout + checklist → monthly_calendar → university master with row links → weekly study toggles → past-paper analysis table → application checklist → score trend table → costs table → warnings callout + quote.
   • Weekly project: different again (milestones, risks, kanban-style tables, stakeholders, etc.).
 
 === SELECT OPTIONS (mandatory for Korean-facing templates) ===
@@ -99,12 +101,20 @@ monthly_calendar: {
 === DATE ROUTINES (mandatory) ===
 - For routines/plans that depend on days in a month, you MUST include at least one "monthly_calendar" block.
 - Never represent month days as 28–31 checklist lines. Date navigation belongs in monthly_calendar.
-- Populate monthly_calendar.dayDetailTemplate.blocks with rich day-level structure (e.g. checklist + 1-2 tables + notes/toggle).
+- MAIN PAGE RULE (level 1): include monthly_calendar + overview/goal/settings/reference sections only. Do NOT place day-by-day record-management sections on the main page.
+- DAY PAGE RULE (level 2, monthly_calendar.dayDetailTemplate.blocks): include the full daily record-management structure for that date (at least 3 block kinds; recommended checklist + 1-2 tables + callout/toggle/quote mix).
+- Day detail tables should be practical: at least one primary table with 5+ columns.
 - Checklist items inside dayDetailTemplate may include item-level detailTemplate for 3rd-level drill-down, but keep it lightweight.
+- 3rd-level lightweight rule (if used): table 1개(3-4 columns) + checklist 1개(3-4 items) + memo toggle 1개 정도면 충분.
 
 === CALLOUTS — NO SUBPAGE NAVIGATION (mandatory) ===
 - NEVER create callouts that explain “click a row to open the detail page”, “각 행을 클릭하면…”, “행 클릭”, “세부 페이지로 이동”, or similar. Sub-page entry is obvious from the UI (chevron); navigation guidance is noise.
 - Opening / usage callouts should describe the TEMPLATE purpose and how to use sections — not how to navigate rows.
+- Callouts must contain meaningful text. Never output empty callout content.
+
+=== FILLING RULES (critical) ===
+- Fill structural content text richly: callout text, headings, checklist labels, paragraph text, quote text, bulleted/numbered items, toggle titles, table column names, select options.
+- Keep user-entered data empty: table row cells, freeform text field values, and toggle body content.
 
 === FORBIDDEN ===
 - Any column whose purpose is row→detail routing (세부 페이지, linkedSectionId-as-column, etc.).
@@ -129,8 +139,9 @@ FINAL CHECK:
 - Master list: prefer detailTemplate on the table OR linkedSectionId + matching block "id"s — not duplicate per-row detail trees for every empty row.
 - Korean select options; no navigation callouts about clicking rows.
 - Date-based templates include monthly_calendar (not date checklist lines).
+- Main page keeps overview content; daily record-management lives in monthly_calendar.dayDetailTemplate.
 - No sample entity names or numbers in cells; no personalized habit slogans in checklists.
-- ≥4 distinct block kinds; heavy use of checklist, toggle, sub_page, callout, divider as appropriate.
+- ≥5 distinct block kinds; avoid 3+ same-type blocks in a row.
 - Topic-specific layout (not a copy of the gym or admissions example unless the user asked for that topic).`;
   return {
     content,

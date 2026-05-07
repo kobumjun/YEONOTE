@@ -758,9 +758,9 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
     case "heading1":
     case "heading2":
     case "heading3":
-      return { id: bid, type, content: coerceText(raw.content) };
+      return { id: bid, type, content: coerceText(raw.content ?? raw.text ?? raw.title) };
     case "paragraph":
-      return { id: bid, type: "paragraph", content: coerceText(raw.content) };
+      return { id: bid, type: "paragraph", content: coerceText(raw.content ?? raw.text) };
     case "bulleted_list":
       return {
         id: bid,
@@ -828,10 +828,10 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         id: bid,
         type: "callout",
         icon: coerceText(raw.icon) || "💡",
-        content: coerceText(raw.content),
+        content: coerceText(raw.content ?? raw.text ?? raw.message),
       };
     case "quote":
-      return { id: bid, type: "quote", content: coerceText(raw.content) };
+      return { id: bid, type: "quote", content: coerceText(raw.content ?? raw.text) };
     case "divider":
       return { id: bid, type: "divider" };
     case "code":

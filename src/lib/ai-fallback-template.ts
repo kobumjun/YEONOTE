@@ -4,10 +4,10 @@ import type {
   BulletedListBlock,
   CalloutBlock,
   ChecklistBlock,
-  ChecklistItem,
   DatabaseColumn,
   DatabaseTableBlock,
   HeadingBlock,
+  MonthlyCalendarBlock,
   ParagraphBlock,
   SubPageBlock,
   TemplateBlock,
@@ -21,18 +21,6 @@ function tableBlock(title: string, columns: DatabaseColumn[]): DatabaseTableBloc
   b.columns = columns;
   b.rows = padDatabaseRowsToMin(columns, []);
   return b;
-}
-
-function monthDayChecklistItems(year: number, monthIndexZeroBased: number): ChecklistItem[] {
-  const last = new Date(year, monthIndexZeroBased + 1, 0).getDate();
-  const wdays = ["일", "월", "화", "수", "목", "금", "토"];
-  const items: ChecklistItem[] = [];
-  for (let d = 1; d <= last; d++) {
-    const dt = new Date(year, monthIndexZeroBased, d);
-    const wk = wdays[dt.getDay()];
-    items.push({ content: `${monthIndexZeroBased + 1}/${d} (${wk})`, checked: false });
-  }
-  return items;
 }
 
 function detailSubPage(id: string, title: string): SubPageBlock {
@@ -66,7 +54,7 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
   const guide = createBlock("callout") as CalloutBlock;
   guide.icon = "📌";
   guide.content =
-    "마스터 표에서 연결된 행을 누르면 아래 상세 영역으로 이동합니다. 표 칸은 비어 있으니 직접 채워 주세요. AI로 다시 생성하면 주제에 맞게 규모와 구조가 달라집니다.";
+    "캘린더에서 날짜를 열어 해당 일자의 기록을 작성하고, 메인 페이지에서는 목표와 개요를 관리하세요. 표 셀은 비어 있으니 직접 입력해 주세요.";
 
   const intro = createBlock("paragraph") as ParagraphBlock;
   intro.content = `생성이 시간 안에 끝나지 않아 최소 연결 예시만 드립니다. 요청: ${preview || "(없음)"}`;
@@ -83,8 +71,43 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
 
   const hCal = createBlock("heading2") as HeadingBlock;
   hCal.content = "📅 이번 달 캘린더";
-  const calCheck = createBlock("checklist") as ChecklistBlock;
-  calCheck.items = monthDayChecklistItems(y, m);
+  const cal = createBlock("monthly_calendar") as MonthlyCalendarBlock;
+  cal.title = "월간 루틴 캘린더";
+  cal.year = y;
+  cal.month = m + 1;
+  cal.days = {};
+  cal.dayDetailTemplate = {
+    blocks: [
+      {
+        id: crypto.randomUUID(),
+        type: "callout",
+        icon: "🗓️",
+        content: "오늘 진행한 내용을 아래에 기록해 주세요.",
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "checklist",
+        items: [
+          { content: "핵심 작업 완료", checked: false },
+          { content: "기록 업데이트", checked: false },
+          { content: "리뷰 작성", checked: false },
+        ],
+      },
+      tableBlock("일일 기록", [
+        { name: "항목", type: "title" },
+        { name: "분류", type: "select", options: ["시작 전", "진행 중", "완료", "보류"] },
+        { name: "소요 시간(분)", type: "number" },
+        { name: "메모", type: "text" },
+        { name: "상태", type: "select", options: ["정상", "주의", "개선 필요"] },
+      ]),
+      {
+        id: crypto.randomUUID(),
+        type: "toggle",
+        title: "오늘의 메모",
+        children: [{ id: crypto.randomUUID(), type: "paragraph", content: "" }],
+      },
+    ],
+  };
 
   const hMaster = createBlock("heading2") as HeadingBlock;
   hMaster.content = "🏋️ 마스터 목록 (행 연결 예시)";
@@ -102,18 +125,6 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
   const sp1 = detailSubPage("detail-slot-1", "상세 ①");
   const sp2 = detailSubPage("detail-slot-2", "상세 ②");
   const sp3 = detailSubPage("detail-slot-3", "상세 ③");
-
-  const hLog = createBlock("heading2") as HeadingBlock;
-  hLog.content = "📝 일별 로그";
-  const daily = tableBlock("일별 기록", [
-    { name: "날짜", type: "date" },
-    { name: "항목", type: "title" },
-    { name: "세트", type: "number" },
-    { name: "반복", type: "number" },
-    { name: "중량(kg)", type: "number" },
-    { name: "휴식(초)", type: "number" },
-    { name: "메모", type: "text" },
-  ]);
 
   const hHyd = createBlock("heading2") as HeadingBlock;
   hHyd.content = "💧 수분 · 보충";
@@ -149,14 +160,12 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
     hGoals,
     goalsTable,
     hCal,
-    calCheck,
+    cal,
     hMaster,
     master,
     sp1,
     sp2,
     sp3,
-    hLog,
-    daily,
     hHyd,
     hyd,
     hRev,
