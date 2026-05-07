@@ -13,7 +13,6 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeft,
-  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
@@ -21,7 +20,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/dashboard", label: "All Templates", icon: LayoutDashboard, dashboardView: "all" as const },
@@ -108,17 +106,6 @@ export function Sidebar({
 
   const initials = (displayName || email || "U").slice(0, 2).toUpperCase();
 
-  async function handleSignOut() {
-    if (!window.confirm("Are you sure you want to sign out?")) return;
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    } finally {
-      router.push("/");
-      router.refresh();
-    }
-  }
-
   return (
     <aside
       className={cn(
@@ -158,7 +145,11 @@ export function Sidebar({
       )}
       <div className="border-t border-sidebar-border p-2">
         {!collapsed ? (
-          <div className="mb-2 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/20 p-2">
+          <button
+            type="button"
+            className="mb-2 w-full rounded-lg border border-sidebar-border/70 bg-sidebar-accent/20 p-2 text-left transition-colors hover:bg-sidebar-accent/40"
+            onClick={() => router.push("/settings")}
+          >
             <div className="flex items-center gap-2">
               <Avatar className="size-8">
                 {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
@@ -168,19 +159,8 @@ export function Sidebar({
                 <p className="truncate text-sm font-medium">{displayName || "User"}</p>
                 <p className="truncate text-xs text-sidebar-foreground/70">{email || "—"}</p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-7 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                onClick={() => void handleSignOut()}
-                title="Sign out"
-                aria-label="Sign out"
-              >
-                <LogOut className="size-4 stroke-[1.5]" />
-              </Button>
             </div>
-          </div>
+          </button>
         ) : null}
         <Button
           type="button"
