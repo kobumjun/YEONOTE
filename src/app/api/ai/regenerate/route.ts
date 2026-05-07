@@ -12,22 +12,22 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
 
   const rl = await limitAiGeneration(user.id);
   if (!rl.ok) {
-    return NextResponse.json({ error: "Too many requests", retryAfter: rl.retryAfter }, { status: 429 });
+    return NextResponse.json({ error: "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.", retryAfter: rl.retryAfter }, { status: 429 });
   }
 
   const supabase = await createClient();
   const { data: profile } = await supabase.from("profiles").select("ai_credits").eq("id", user.id).single();
 
-  if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 400 });
+  if (!profile) return NextResponse.json({ error: "프로필을 찾을 수 없어요." }, { status: 400 });
 
   const creditsBefore = profile.ai_credits ?? 0;
   if (!canGenerateAI(creditsBefore)) {
     return NextResponse.json(
-      { error: "You are out of AI credits. Top up and try again.", code: "NO_CREDITS" },
+      { error: "AI 크레딧이 없어요. 충전한 뒤 다시 시도해 주세요.", code: "NO_CREDITS" },
       { status: 403 }
     );
   }
@@ -38,11 +38,12 @@ export async function POST(req: Request) {
     currentBlocksSummary?: string;
   } | null;
   if (!body?.prompt?.trim()) {
-    return NextResponse.json({ error: "Prompt required" }, { status: 400 });
+    return NextResponse.json({ error: "프롬프트를 입력해 주세요." }, { status: 400 });
   }
 
   const openai = getOpenAI();
   const { content: systemPrompt } = buildAiGenerationSystemPrompt();
+  const today = new Date().toISOString().slice(0, 10);
 
   let parsed: AITemplatePayload;
   let usedCredit = true;
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Regenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,
+          content: `Today's date (YYYY-MM-DD) for defaulting date cells in tables: ${today}\n\nRegenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,
         },
       ],
       temperature: 0.7,
@@ -70,12 +71,12 @@ export async function POST(req: Request) {
       try {
         parsed = JSON.parse(raw) as AITemplatePayload;
       } catch {
-        return NextResponse.json({ error: "Invalid AI JSON" }, { status: 502 });
+        return NextResponse.json({ error: "AI 응답을 해석하지 못했어요." }, { status: 502 });
       }
     }
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "AI generation failed" }, { status: 502 });
+    return NextResponse.json({ error: "AI 생성에 실패했어요." }, { status: 502 });
   }
 
   let creditsRemaining = creditsBefore;
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
 
     if (creditErr || updatedProfile == null) {
       return NextResponse.json(
-        { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
+        { error: "크레딧 차감에 실패했어요. 잠시 후 다시 시도해 주세요.", code: "CREDIT_RACE" },
         { status: 409 }
       );
     }

@@ -55,7 +55,7 @@ export function LoginForm() {
   if (checking) {
     return (
       <div className="flex w-full max-w-md min-h-[200px] items-center justify-center rounded-xl border border-border bg-card p-8 shadow-sm">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">불러오는 중…</p>
       </div>
     );
   }
@@ -63,8 +63,8 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8 shadow-sm">
       <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Sign In</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Use Google to sign in or create your YEO account.</p>
+        <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">로그인</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Google 계정으로 로그인하거나 YEO 계정을 만들 수 있어요.</p>
       </div>
       <GoogleSignInButton next={next} className="w-full rounded-xl shadow-sm" size="lg" />
     </div>

@@ -81,7 +81,7 @@ function SortableBlock({
               className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground"
               {...attributes}
               {...listeners}
-              aria-label="Drag"
+              aria-label="끌어서 순서 변경"
             >
               <span className="text-sm leading-none">⠿</span>
             </button>
@@ -94,7 +94,7 @@ function SortableBlock({
               className="pointer-events-auto inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground"
               {...attributes}
               {...listeners}
-              aria-label="Drag"
+              aria-label="끌어서 순서 변경"
             >
               <span className="text-sm leading-none">⠿</span>
             </button>
@@ -220,7 +220,7 @@ export function TemplateEditor({
     });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      throw new Error((j as { error?: string }).error ?? "Save failed");
+      throw new Error((j as { error?: string }).error ?? "저장에 실패했어요");
     }
     markClean();
   }, [templateId, markClean]);
@@ -266,7 +266,7 @@ export function TemplateEditor({
     });
     if (!res.ok) return;
     setFav(next);
-    toast.success(next ? "Added to favorites." : "Removed from favorites.");
+    toast.success(next ? "즐겨찾기에 추가했어요." : "즐겨찾기에서 뺐어요.");
   }
 
   async function sharePublic() {
@@ -283,15 +283,15 @@ export function TemplateEditor({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error((j as { error?: string }).error ?? "Could not update sharing.");
+        toast.error((j as { error?: string }).error ?? "공개 설정을 바꾸지 못했어요.");
         return;
       }
       const j = (await res.json().catch(() => ({}))) as { template?: { is_public?: boolean } };
       const resolved = typeof j.template?.is_public === "boolean" ? j.template.is_public : next;
       setIsPublic(resolved);
-      toast.success(resolved ? "Template published." : "Template is now private.");
+      toast.success(resolved ? "둘러보기에 공개했어요." : "비공개로 바꿨어요.");
     } catch {
-      toast.error("Could not update sharing.");
+      toast.error("공개 설정을 바꾸지 못했어요.");
     } finally {
       setShareBusy(false);
     }
@@ -300,7 +300,7 @@ export function TemplateEditor({
   async function copyShareLink() {
     const url = `https://yeonote.vercel.app/shared/${templateId}`;
     await navigator.clipboard.writeText(url);
-    toast.success("Link copied.");
+    toast.success("링크를 복사했어요.");
   }
 
   async function moveToTrash() {
@@ -309,10 +309,10 @@ export function TemplateEditor({
       const res = await fetch(`/api/templates/${templateId}`, { method: "DELETE" });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error((j as { error?: string }).error ?? "Could not delete");
+        toast.error((j as { error?: string }).error ?? "삭제하지 못했어요");
         return;
       }
-      toast.success("Moved to trash.");
+      toast.success("휴지통으로 옮겼어요.");
       setDeleteOpen(false);
       router.push("/dashboard?view=trash");
     } finally {
@@ -328,11 +328,11 @@ export function TemplateEditor({
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error((j as { error?: string }).error ?? "Could not restore");
+      toast.error((j as { error?: string }).error ?? "복원하지 못했어요");
       return;
     }
     setInTrash(false);
-    toast.success("Restored from trash.");
+    toast.success("휴지통에서 복원했어요.");
   }
 
   async function runRegenerate() {
@@ -358,24 +358,24 @@ export function TemplateEditor({
       };
       if (!res.ok) {
         if (j.code === "NO_CREDITS") {
-          toast.error("You are out of AI credits. Top up in Billing.");
+          toast.error("AI 크레딧이 없어요. 결제·크레딧 메뉴에서 충전해 주세요.");
           return;
         }
-        throw new Error(j.error ?? "Failed");
+        throw new Error(j.error ?? "실패했어요");
       }
       const { creditsRemaining, usedCredit, warning, ...payload } = j;
       useEditorStore.getState().applyAiPayload(payload as AITemplatePayload);
       setRegenOpen(false);
       setRegenPrompt("");
-      toast.success("Template regenerated.");
+      toast.success("템플릿을 다시 생성했어요.");
       if (warning) {
         toast.message(warning);
       }
       if (usedCredit !== false && typeof creditsRemaining === "number") {
-        toast.message(`1 credit used. Remaining: ${creditsRemaining}`);
+        toast.message(`크레딧 1개를 사용했어요. 남은 크레딧: ${creditsRemaining}`);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : "문제가 발생했어요");
     } finally {
       setRegenBusy(false);
     }
@@ -385,7 +385,7 @@ export function TemplateEditor({
     <div className="flex min-h-0 flex-1 flex-col bg-background">
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
         <Link href="/dashboard" className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground">
-          ← Dashboard
+          ← 대시보드
         </Link>
         {!readOnly && <IconPicker value={icon} onChange={(i) => setMeta({ icon: i })} />}
         <Input
@@ -398,7 +398,7 @@ export function TemplateEditor({
           {!readOnly && (
             <>
               <CoverPicker value={cover} onChange={(c) => setMeta({ cover: c })} />
-              <Button type="button" variant="ghost" size="icon" onClick={toggleFav} aria-label="Favorite" disabled={inTrash}>
+              <Button type="button" variant="ghost" size="icon" onClick={toggleFav} aria-label="즐겨찾기" disabled={inTrash}>
                 <Star className={cn("size-5", fav && "fill-amber-400 text-amber-500")} />
               </Button>
               <Button
@@ -410,7 +410,7 @@ export function TemplateEditor({
                 disabled={inTrash}
               >
                 <Share2 className="mr-1 size-4 stroke-[1.5]" />
-                Share
+                공유
               </Button>
               <ExportMenu editorRef={editorRef} />
               <Button
@@ -422,11 +422,11 @@ export function TemplateEditor({
                 disabled={inTrash}
               >
                 <Sparkles className="mr-1 size-4 stroke-[1.5]" />
-                Regenerate
+                다시 생성
               </Button>
               {inTrash ? (
                 <Button type="button" variant="outline" size="sm" className="rounded-xl border-border" onClick={() => void restoreFromTrash()}>
-                  Restore from trash
+                  휴지통에서 복원
                 </Button>
               ) : (
                 <Button
@@ -434,7 +434,7 @@ export function TemplateEditor({
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-destructive"
-                  aria-label="Move to trash"
+                  aria-label="휴지통으로 이동"
                   onClick={() => setDeleteOpen(true)}
                 >
                   <Trash2 className="size-4 stroke-[1.5]" />
@@ -442,13 +442,13 @@ export function TemplateEditor({
               )}
             </>
           )}
-          {dirty && !readOnly && <span className="text-xs text-muted-foreground">Saving…</span>}
+          {dirty && !readOnly && <span className="text-xs text-muted-foreground">저장 중…</span>}
         </div>
       </header>
 
       {inTrash && !readOnly && (
         <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-950 dark:text-amber-100">
-          This template is in trash. You can restore it or leave it here and manage it from the Trash page.
+          이 템플릿은 휴지통에 있어요. 여기서 복원하거나 휴지통 페이지에서 관리할 수 있어요.
         </div>
       )}
 
@@ -478,7 +478,7 @@ export function TemplateEditor({
                         type="button"
                         onClick={() => openInsertAt(i)}
                         className="group/insert relative my-1 hidden h-4 w-full items-center md:flex"
-                        aria-label={`Insert block before ${i + 1}`}
+                        aria-label={`${i + 1}번째 위에 블록 삽입`}
                       >
                         <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
                         <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
@@ -501,7 +501,7 @@ export function TemplateEditor({
                     type="button"
                     onClick={() => openInsertAt(blocks.length)}
                     className="group/insert relative mt-1 hidden h-4 w-full items-center md:flex"
-                    aria-label="Insert block at end"
+                    aria-label="맨 아래에 블록 삽입"
                   >
                     <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
                     <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
@@ -518,20 +518,20 @@ export function TemplateEditor({
       <Dialog open={regenOpen} onOpenChange={setRegenOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Regenerate with AI</DialogTitle>
+            <DialogTitle>AI로 다시 생성</DialogTitle>
           </DialogHeader>
           <Textarea
-            placeholder="Describe what you want to change…"
+            placeholder="바꾸고 싶은 점을 적어 주세요…"
             value={regenPrompt}
             onChange={(e) => setRegenPrompt(e.target.value)}
             rows={4}
           />
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setRegenOpen(false)}>
-              Cancel
+              취소
             </Button>
             <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={runRegenerate} disabled={regenBusy}>
-              {regenBusy ? "Generating…" : "Generate"}
+              {regenBusy ? "생성 중…" : "생성하기"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -540,15 +540,15 @@ export function TemplateEditor({
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
-            <DialogTitle>Move to trash?</DialogTitle>
+            <DialogTitle>휴지통으로 옮길까요?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">You can restore this template later from the Trash page.</p>
+          <p className="text-sm text-muted-foreground">나중에 휴지통에서 다시 복원할 수 있어요.</p>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" className="rounded-xl" onClick={() => setDeleteOpen(false)} disabled={deleteBusy}>
-              Cancel
+              취소
             </Button>
             <Button type="button" className="rounded-xl bg-yeo-600 shadow-sm hover:bg-yeo-700" onClick={() => void moveToTrash()} disabled={deleteBusy}>
-              {deleteBusy ? "Moving…" : "Move to trash"}
+              {deleteBusy ? "옮기는 중…" : "휴지통으로 이동"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -557,12 +557,12 @@ export function TemplateEditor({
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Share template</DialogTitle>
+            <DialogTitle>템플릿 공유</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
               <label htmlFor="template-share-toggle" className="text-sm text-foreground">
-                Publish to Explore
+                둘러보기에 공개
               </label>
               <Switch
                 id="template-share-toggle"
@@ -581,17 +581,17 @@ export function TemplateEditor({
                     {`https://yeonote.vercel.app/shared/${templateId}`}
                   </div>
                   <Button size="sm" variant="outline" onClick={copyShareLink} disabled={shareBusy}>
-                    Copy Link
+                    링크 복사
                   </Button>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">When published, your template appears on Explore and the share link works.</p>
+              <p className="text-xs text-muted-foreground">공개하면 둘러보기에 올라가고, 공유 링크로 열 수 있어요.</p>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setShareOpen(false)} disabled={shareBusy}>
-              Close
+              닫기
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -54,30 +54,30 @@ export default function ProfileSettingsPage() {
       })
       .eq("id", user.id);
     if (error) toast.error(error.message);
-    else toast.success("Saved.");
+    else toast.success("저장했어요.");
   }
 
-  if (loading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+  if (loading) return <div className="p-8 text-sm text-muted-foreground">불러오는 중…</div>;
 
   return (
     <div className="mx-auto max-w-lg p-4 md:p-8">
       <Link href="/settings" className="text-sm text-yeo-600 transition-colors duration-200 hover:underline">
-        ← Settings
+        ← 설정
       </Link>
-      <h1 className="mt-4 font-heading text-2xl font-semibold tracking-[-0.02em]">Profile</h1>
+      <h1 className="mt-4 font-heading text-2xl font-semibold tracking-[-0.02em]">프로필</h1>
       <div className="mt-6 space-y-4">
         <div>
-          <Label>Name</Label>
+          <Label>이름</Label>
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-2 rounded-xl border-border" />
         </div>
         <div>
-          <Label>Bio</Label>
+          <Label>소개</Label>
           <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="mt-2 rounded-xl border-border" rows={4} />
         </div>
         <div className="flex items-center justify-between rounded-xl border border-border p-4">
           <div>
-            <p className="font-medium">Language preference</p>
-            <p className="text-xs text-muted-foreground">Stored on your profile (English / Korean)</p>
+            <p className="font-medium">언어</p>
+            <p className="text-xs text-muted-foreground">프로필에 저장돼요 (English / 한국어)</p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <span>EN</span>
@@ -86,19 +86,19 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
         <div>
-          <Label>Theme</Label>
+          <Label>테마</Label>
           <select
             className="mt-2 flex h-10 w-full rounded-xl border border-border bg-background px-3 text-sm transition-colors duration-200"
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
           >
-            <option value="system">System</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="system">시스템 설정</option>
+            <option value="light">라이트</option>
+            <option value="dark">다크</option>
           </select>
         </div>
         <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={save}>
-          Save
+          저장하기
         </Button>
       </div>
     </div>

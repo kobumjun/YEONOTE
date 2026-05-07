@@ -7,12 +7,10 @@ import { cn } from "@/lib/utils";
 export function TemplateListPagination({
   total,
   pageSize,
-  noun = "templates",
   className,
 }: {
   total: number;
   pageSize: number;
-  noun?: string;
   className?: string;
 }) {
   const pathname = usePathname();
@@ -36,7 +34,7 @@ export function TemplateListPagination({
   return (
     <div className={cn("mt-8 flex flex-col items-center gap-3", className)}>
       <p className="text-center text-sm text-muted-foreground">
-        Showing {from}-{to} of {total} {noun}
+        총 {total}개 중 {from}~{to}번째
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
         {safePage > 1 ? (
@@ -44,14 +42,14 @@ export function TemplateListPagination({
             href={hrefFor(safePage - 1)}
             className="text-foreground underline-offset-4 transition-colors hover:text-yeo-600 hover:underline"
           >
-            ← Previous
+            ← 이전
           </Link>
         ) : (
-          <span className="pointer-events-none text-muted-foreground/50">← Previous</span>
+          <span className="pointer-events-none text-muted-foreground/50">← 이전</span>
         )}
         <span className="text-muted-foreground">|</span>
         <span className="tabular-nums text-foreground">
-          Page {safePage} of {totalPages}
+          {safePage} / {totalPages} 페이지
         </span>
         <span className="text-muted-foreground">|</span>
         {safePage < totalPages ? (
@@ -59,10 +57,10 @@ export function TemplateListPagination({
             href={hrefFor(safePage + 1)}
             className="text-foreground underline-offset-4 transition-colors hover:text-yeo-600 hover:underline"
           >
-            Next →
+            다음 →
           </Link>
         ) : (
-          <span className="pointer-events-none text-muted-foreground/50">Next →</span>
+          <span className="pointer-events-none text-muted-foreground/50">다음 →</span>
         )}
       </div>
     </div>

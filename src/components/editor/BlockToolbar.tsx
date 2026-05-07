@@ -20,7 +20,7 @@ export function BlockToolbar({
         variant="ghost"
         className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground"
         onClick={onDuplicate}
-        aria-label="Duplicate"
+        aria-label="복제"
       >
         <Copy className="size-4" />
       </Button>
@@ -30,7 +30,7 @@ export function BlockToolbar({
         variant="ghost"
         className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive"
         onClick={onDelete}
-        aria-label="Delete"
+        aria-label="삭제"
       >
         <Trash2 className="size-4" />
       </Button>

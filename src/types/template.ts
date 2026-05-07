@@ -47,7 +47,7 @@ export function getSelectColumnOptions(col: DatabaseColumn): string[] {
 
 /** Ensures select columns always have options (fixes empty AI dropdowns). */
 export function coerceDatabaseColumn(col: Record<string, unknown>): DatabaseColumn {
-  const name = (String(col.name ?? "Column").trim() || "Column") as string;
+  const name = (String(col.name ?? "Entry").trim() || "Entry") as string;
   const raw = String(col.type ?? "text").toLowerCase();
   const type = (DATABASE_COLUMN_TYPES.includes(raw as DatabaseColumnType)
     ? raw
@@ -71,6 +71,27 @@ export function coerceDatabaseColumn(col: Record<string, unknown>): DatabaseColu
 export function coerceDatabaseColumns(raw: unknown): DatabaseColumn[] {
   if (!Array.isArray(raw)) return [];
   return (raw as Record<string, unknown>[]).map((c) => coerceDatabaseColumn(c));
+}
+
+const MIN_AI_DATABASE_ROWS = 3;
+
+/** Ensures AI/imported tables have enough starter rows (date cells default to today in ISO). */
+export function padDatabaseRowsToMin(columns: DatabaseColumn[], rows: DatabaseRow[]): DatabaseRow[] {
+  if (columns.length === 0) return rows;
+  const today = new Date().toISOString().slice(0, 10);
+  const out = [...rows];
+  const makeRow = (): DatabaseRow => {
+    const r: DatabaseRow = {};
+    for (const c of columns) {
+      if (c.type === "checkbox") r[c.name] = false;
+      else if (c.type === "number") r[c.name] = null;
+      else if (c.type === "date") r[c.name] = today;
+      else r[c.name] = "";
+    }
+    return r;
+  };
+  while (out.length < MIN_AI_DATABASE_ROWS) out.push(makeRow());
+  return out;
 }
 
 type BlockBase = { id: BlockId };
@@ -389,6 +410,32 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
   }
 }
 
+/** Pads database rows for AI-generated payloads only (not used on plain server load). */
+function padMinRowsOnDatabaseBlocks(block: TemplateBlock): TemplateBlock {
+  if (block.type === "database_table") {
+    return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
+  }
+  if (block.type === "database_board") {
+    return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
+  }
+  if (block.type === "database_calendar") {
+    return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
+  }
+  if (block.type === "database_gallery") {
+    return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
+  }
+  if (block.type === "toggle") {
+    return { ...block, children: block.children.map(padMinRowsOnDatabaseBlocks) };
+  }
+  if (block.type === "columns") {
+    return {
+      ...block,
+      children: block.children.map((col) => col.map(padMinRowsOnDatabaseBlocks)),
+    };
+  }
+  return block;
+}
+
 export function normalizeAiTemplate(payload: AITemplatePayload): {
   title: string;
   icon: string;
@@ -397,9 +444,10 @@ export function normalizeAiTemplate(payload: AITemplatePayload): {
 } {
   const blocks = (payload.blocks ?? [])
     .map((b) => normalizeAiBlock(b as Record<string, unknown>))
-    .filter((b): b is TemplateBlock => b !== null);
+    .filter((b): b is TemplateBlock => b !== null)
+    .map(padMinRowsOnDatabaseBlocks);
   return {
-    title: payload.title || "Untitled",
+    title: payload.title || "제목 없음",
     icon: payload.icon || "📄",
     cover: payload.cover ?? null,
     blocks,

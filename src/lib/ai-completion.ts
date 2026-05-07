@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-export const AI_GENERATION_MAX_TOKENS = 6000;
+/** High enough for multi-section templates with several wide tables (output must not truncate mid-JSON). */
+export const AI_GENERATION_MAX_TOKENS = 8192;
 export const AI_GENERATION_TIMEOUT_MS = 45_000;
 
 export type StreamJsonResult = {

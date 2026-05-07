@@ -10,12 +10,12 @@ import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
 
 const links = [
-  { href: "/dashboard", label: "All Templates" },
-  { href: "/dashboard?view=my", label: "My Templates" },
-  { href: "/dashboard?view=favorites", label: "Favorites" },
-  { href: "/dashboard?view=trash", label: "Trash" },
-  { href: "/explore", label: "Explore" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", label: "전체 템플릿" },
+  { href: "/dashboard?view=my", label: "내 템플릿" },
+  { href: "/dashboard?view=favorites", label: "즐겨찾기" },
+  { href: "/dashboard?view=trash", label: "휴지통" },
+  { href: "/explore", label: "둘러보기" },
+  { href: "/settings", label: "설정" },
 ];
 
 export function MobileNav({
@@ -37,7 +37,7 @@ export function MobileNav({
         <Sheet>
           <SheetTrigger
             className={cn(buttonVariants({ variant: "outline", size: "icon" }), "rounded-xl border-border")}
-            aria-label="Menu"
+            aria-label="메뉴"
           >
             <Menu className="size-4 stroke-[1.5]" />
           </SheetTrigger>
@@ -55,10 +55,10 @@ export function MobileNav({
               ))}
             </nav>
             <div className="mt-6 rounded-xl border border-border bg-muted/30 p-3 text-sm">
-              <p className="font-medium text-foreground">{displayName || "User"}</p>
+              <p className="font-medium text-foreground">{displayName || "사용자"}</p>
               <p className="truncate text-xs text-muted-foreground">{email || "—"}</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                AI Credits: {creditsDisplay(aiCredits, aiCreditsCeiling)} remaining
+                AI 크레딧 {creditsDisplay(aiCredits, aiCreditsCeiling)} 남음
               </p>
               <Link
                 href="/settings/billing"
@@ -67,14 +67,14 @@ export function MobileNav({
                   "mt-2 flex w-full justify-center rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
                 )}
               >
-                Top Up
+                충전하기
               </Link>
             </div>
           </SheetContent>
         </Sheet>
         <Logo href="/dashboard" />
         <Button type="button" size="sm" className="ml-auto rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>
-          New Template
+          새 템플릿
         </Button>
       </div>
     </div>

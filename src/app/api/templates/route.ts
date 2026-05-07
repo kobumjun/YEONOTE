@@ -13,7 +13,7 @@ const PAGE_SIZE = 12;
 
 export async function GET(req: Request) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const view = searchParams.get("view") ?? "all";
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
 
   const supabase = await createClient();
   const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).single();
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       .eq("is_deleted", false);
     if ((count ?? 0) >= FREE_MAX_TEMPLATES) {
       return NextResponse.json(
-        { error: `Free plan allows up to ${FREE_MAX_TEMPLATES} templates.` },
+        { error: `무료 플랜에서는 템플릿을 최대 ${FREE_MAX_TEMPLATES}개까지 만들 수 있어요.` },
         { status: 403 }
       );
     }
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
   const content: TemplateContent = blank
     ? { blocks: createBlankTemplateBlocks() }
     : (body.content ?? emptyContent());
-  const title = blank ? (body.title?.trim() || "Untitled") : (body.title ?? "Untitled");
+  const title = blank ? (body.title?.trim() || "제목 없음") : (body.title ?? "제목 없음");
   const icon = blank ? (body.icon?.trim() || "📄") : (body.icon ?? "📄");
 
   const { data, error } = await supabase

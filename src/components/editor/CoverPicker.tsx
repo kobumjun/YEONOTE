@@ -21,10 +21,10 @@ export function CoverPicker({
   return (
     <Popover>
       <PopoverTrigger className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl border-border shadow-sm")}>
-        Cover
+        커버
       </PopoverTrigger>
       <PopoverContent className="w-64 rounded-xl border-border p-3" align="start">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">Gradients</p>
+        <p className="mb-2 text-xs font-medium text-muted-foreground">그라데이션</p>
         <div className="grid grid-cols-2 gap-2">
           {presets.map((p) => (
             <button
@@ -41,7 +41,7 @@ export function CoverPicker({
           ))}
         </div>
         <Button type="button" variant="ghost" size="sm" className="mt-3 w-full rounded-xl" onClick={() => onChange(null)}>
-          Remove cover
+          커버 제거
         </Button>
       </PopoverContent>
     </Popover>

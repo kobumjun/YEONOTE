@@ -10,7 +10,7 @@ import type { CreditPack } from "@/types/billing";
 export async function GET() {
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
   }
 
   const productId = getLemonProductId() ?? null;

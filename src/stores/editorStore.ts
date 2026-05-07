@@ -31,7 +31,7 @@ export type EditorState = {
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   templateId: null,
-  title: "Untitled",
+  title: "제목 없음",
   icon: "📄",
   cover: null,
   blocks: [],

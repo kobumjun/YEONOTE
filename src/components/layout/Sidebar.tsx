@@ -20,12 +20,12 @@ import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
 
 const links = [
-  { href: "/dashboard", label: "All Templates", icon: LayoutDashboard, dashboardView: "all" as const },
-  { href: "/dashboard?view=my", label: "My Templates", icon: FileText, dashboardView: "my" as const },
-  { href: "/dashboard?view=favorites", label: "Favorites", icon: Star, dashboardView: "favorites" as const },
-  { href: "/dashboard?view=trash", label: "Trash", icon: Trash2, dashboardView: "trash" as const },
-  { href: "/explore", label: "Explore", icon: Sparkles, dashboardView: null },
-  { href: "/settings", label: "Settings", icon: Settings, dashboardView: null },
+  { href: "/dashboard", label: "전체 템플릿", icon: LayoutDashboard, dashboardView: "all" as const },
+  { href: "/dashboard?view=my", label: "내 템플릿", icon: FileText, dashboardView: "my" as const },
+  { href: "/dashboard?view=favorites", label: "즐겨찾기", icon: Star, dashboardView: "favorites" as const },
+  { href: "/dashboard?view=trash", label: "휴지통", icon: Trash2, dashboardView: "trash" as const },
+  { href: "/explore", label: "둘러보기", icon: Sparkles, dashboardView: null },
+  { href: "/settings", label: "설정", icon: Settings, dashboardView: null },
 ];
 
 function SidebarNavLinks({ collapsed }: { collapsed: boolean }) {
@@ -119,7 +119,7 @@ export function Sidebar({
       {!collapsed && (
         <div className="border-t border-sidebar-border p-3">
           <p className="text-xs font-medium text-sidebar-foreground/80">
-            AI Credits: {creditsDisplay(aiCredits, aiCreditsCeiling)} remaining
+            AI 크레딧 {creditsDisplay(aiCredits, aiCreditsCeiling)} 남음
           </p>
           <Link
             href="/settings/billing"
@@ -128,7 +128,7 @@ export function Sidebar({
               "mt-2 flex w-full justify-center rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
             )}
           >
-            Top Up
+            충전하기
           </Link>
         </div>
       )}
@@ -139,9 +139,10 @@ export function Sidebar({
           size="sm"
           className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent/60"
           onClick={toggleSidebar}
+          aria-label={collapsed ? "사이드바 펼치기" : "사이드바 접기"}
         >
           {collapsed ? <PanelLeft className="size-4 stroke-[1.5]" /> : <PanelLeftClose className="size-4 stroke-[1.5]" />}
-          {!collapsed && <span>Collapse sidebar</span>}
+          {!collapsed && <span>사이드바 접기</span>}
         </Button>
       </div>
     </aside>

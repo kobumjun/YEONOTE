@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(_req: Request, ctx: Ctx) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
 
   const { id } = await ctx.params;
   const supabase = await createClient();
@@ -24,7 +24,7 @@ export async function POST(_req: Request, ctx: Ctx) {
       .eq("user_id", user.id)
       .eq("is_deleted", false);
     if ((count ?? 0) >= FREE_MAX_TEMPLATES) {
-      return NextResponse.json({ error: `Free plan allows up to ${FREE_MAX_TEMPLATES} templates.` }, { status: 403 });
+      return NextResponse.json({ error: `무료 플랜에서는 템플릿을 최대 ${FREE_MAX_TEMPLATES}개까지 만들 수 있어요.` }, { status: 403 });
     }
   }
 
@@ -34,9 +34,9 @@ export async function POST(_req: Request, ctx: Ctx) {
     .eq("id", id)
     .maybeSingle();
 
-  if (fetchErr || !src) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (fetchErr || !src) return NextResponse.json({ error: "찾을 수 없어요." }, { status: 404 });
   if (src.user_id !== user.id && !(src.is_public && !src.is_deleted)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "접근할 수 없어요." }, { status: 403 });
   }
 
   const content = (src.content ?? { blocks: [] }) as TemplateContent;

@@ -256,7 +256,7 @@ export function BlockRenderer({
           <h2 className="font-heading text-3xl font-bold text-surface-dark dark:text-white">{block.content}</h2>
         ) : (
           <EditableContent
-            ariaLabel="Heading 1"
+            ariaLabel="제목 1"
             className="font-heading w-full rounded-md bg-transparent px-0.5 text-3xl font-bold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white"
             value={String(block.content ?? "")}
             onValueChange={(value) => {
@@ -274,7 +274,7 @@ export function BlockRenderer({
           <h3 className="font-heading text-2xl font-semibold text-surface-dark dark:text-white">{block.content}</h3>
         ) : (
           <EditableContent
-            ariaLabel="Heading 2"
+            ariaLabel="제목 2"
             className="font-heading w-full rounded-md bg-transparent px-0.5 text-2xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white"
             value={String(block.content ?? "")}
             onValueChange={(value) => {
@@ -292,7 +292,7 @@ export function BlockRenderer({
           <h4 className="font-heading text-xl font-semibold text-surface-dark dark:text-white">{block.content}</h4>
         ) : (
           <EditableContent
-            ariaLabel="Heading 3"
+            ariaLabel="제목 3"
             className="font-heading w-full rounded-md bg-transparent px-0.5 text-xl font-semibold text-surface-dark outline-none focus:ring-2 focus:ring-yeo-500/30 dark:text-white"
             value={String(block.content ?? "")}
             onValueChange={(value) => {
@@ -310,7 +310,7 @@ export function BlockRenderer({
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{block.content}</p>
         ) : (
           <EditableContent
-            ariaLabel="Paragraph"
+            ariaLabel="본문"
             multiline
             className="w-full min-h-8 whitespace-pre-wrap rounded-md bg-transparent p-1 text-sm leading-relaxed outline-none ring-0 focus:ring-2 focus:ring-yeo-500/30"
             value={String(block.content ?? "")}
@@ -336,7 +336,7 @@ export function BlockRenderer({
               <li key={i} className="flex gap-2">
                 <span className="mt-1.5 text-muted-foreground">•</span>
                 <EditableContent
-                  ariaLabel={`Bulleted item ${i + 1}`}
+                  ariaLabel={`글머리 항목 ${i + 1}`}
                   className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
                   value={String(item ?? "")}
                   onValueChange={(value) => {
@@ -367,7 +367,7 @@ export function BlockRenderer({
               <li key={i} className="flex gap-2">
                 <span className="mt-0.5 w-5 shrink-0 text-right text-muted-foreground">{i + 1}.</span>
                 <EditableContent
-                  ariaLabel={`Numbered item ${i + 1}`}
+                  ariaLabel={`번호 목록 항목 ${i + 1}`}
                   className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
                   value={String(item ?? "")}
                   onValueChange={(value) => {
@@ -397,7 +397,7 @@ export function BlockRenderer({
             <span className={block.checked ? "text-muted-foreground line-through" : ""}>{block.content}</span>
           ) : (
             <EditableContent
-              ariaLabel="To-do text"
+              ariaLabel="할 일 내용"
               className="flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
               value={String(block.content ?? "")}
               onValueChange={(value) => {
@@ -419,7 +419,7 @@ export function BlockRenderer({
               block.title
             ) : (
               <EditableContent
-                ariaLabel="Toggle title"
+                ariaLabel="토글 제목"
                 className="inline-block min-w-[10ch] rounded px-1 py-0.5 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30"
                 value={String(block.title ?? "")}
                 onValueChange={(value) => {
@@ -449,7 +449,7 @@ export function BlockRenderer({
               />
             ))}
             {(Array.isArray(block.children) ? block.children.length : 0) === 0 && (
-              <p className="text-xs text-muted-foreground">No nested blocks yet.</p>
+              <p className="text-xs text-muted-foreground">아직 안에 블록이 없어요.</p>
             )}
           </div>
         </details>
@@ -464,7 +464,7 @@ export function BlockRenderer({
               className="w-10 shrink-0 border-0 bg-transparent text-center text-lg outline-none"
               value={String(block.icon ?? "")}
               onCommit={(v) => onChange?.(block.id, { icon: v } as Partial<TemplateBlock>)}
-              aria-label="Callout icon"
+              aria-label="콜아웃 아이콘"
               onKeyDown={stopGlobalHotkeys}
             />
           )}
@@ -473,7 +473,7 @@ export function BlockRenderer({
               <div className="whitespace-pre-wrap">{block.content}</div>
             ) : (
               <EditableContent
-                ariaLabel="Callout content"
+                ariaLabel="콜아웃 내용"
                 multiline
                 className="min-h-7 w-full whitespace-pre-wrap rounded p-0.5 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-yeo-500/30"
                 value={String(block.content ?? "")}
@@ -493,7 +493,7 @@ export function BlockRenderer({
           <blockquote className="border-l-4 border-yeo-400 pl-4 text-sm italic text-muted-foreground">{block.content}</blockquote>
         ) : (
           <EditableContent
-            ariaLabel="Quote"
+            ariaLabel="인용"
             multiline
             className="w-full min-h-8 whitespace-pre-wrap rounded-r border-l-4 border-yeo-400 bg-transparent pl-4 text-sm italic text-muted-foreground outline-none focus:ring-2 focus:ring-yeo-500/30"
             value={String(block.content ?? "")}
@@ -520,7 +520,7 @@ export function BlockRenderer({
               className="mb-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] uppercase tracking-wide text-slate-300 outline-none focus:border-yeo-500"
               value={String(block.language ?? "")}
               onCommit={(v) => onChange?.(block.id, { language: v } as Partial<TemplateBlock>)}
-              aria-label="Code language"
+              aria-label="코드 언어"
               onKeyDown={stopGlobalHotkeys}
             />
             <DebouncedTextField
@@ -528,7 +528,7 @@ export function BlockRenderer({
               value={String(block.content ?? "")}
               onCommit={(v) => onChange?.(block.id, { content: v } as Partial<TemplateBlock>)}
               multiline
-              aria-label="Code body"
+              aria-label="코드 내용"
               onKeyDown={stopGlobalHotkeys}
             />
           </div>
@@ -541,7 +541,7 @@ export function BlockRenderer({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={block.src} alt={block.alt ?? ""} className="mx-auto max-h-64 rounded-md" />
           ) : (
-            <div className="py-8 text-sm text-muted-foreground">Image placeholder</div>
+            <div className="py-8 text-sm text-muted-foreground">이미지 자리</div>
           )}
           {block.caption ? <figcaption className="mt-2">{block.caption}</figcaption> : null}
         </figure>
@@ -570,7 +570,7 @@ export function BlockRenderer({
                 className="w-full border-0 bg-transparent text-sm font-medium outline-none focus:ring-2 focus:ring-yeo-500/30 rounded"
                 value={block.title}
                 onCommit={(v) => onChange?.(block.id, { title: v } as Partial<TemplateBlock>)}
-                aria-label="Table title"
+                aria-label="표 제목"
               />
             )}
             {!readOnly && (
@@ -582,8 +582,8 @@ export function BlockRenderer({
                   const nextRows = block.rows.map((r) => ({ ...r, [nextColumns[nextColumns.length - 1].name]: "" }));
                   onChange?.(block.id, { columns: nextColumns, rows: nextRows } as Partial<TemplateBlock>);
                 }}
-                aria-label="Add column"
-                title="Add column"
+                aria-label="열 추가"
+                title="열 추가"
               >
                 <Plus className="size-4" />
               </button>
@@ -615,7 +615,7 @@ export function BlockRenderer({
                           });
                           onChange?.(block.id, { columns: nextColumns, rows: nextRows } as Partial<TemplateBlock>);
                         }}
-                        aria-label={`Column ${ci + 1} name`}
+                        aria-label={`열 이름 ${ci + 1}`}
                       />
                     )}
                   </th>
@@ -649,7 +649,7 @@ export function BlockRenderer({
                             value={String(value ?? "")}
                             onChange={(e) => updateCell(e.target.value)}
                           >
-                            <option value="">Select</option>
+                            <option value="">선택</option>
                             {getSelectColumnOptions(c).map((opt) => (
                               <option key={opt} value={opt}>
                                 {opt}
@@ -697,7 +697,7 @@ export function BlockRenderer({
                           const nextRows = block.rows.filter((_, idx) => idx !== ri);
                           onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
                         }}
-                        aria-label="Delete row"
+                        aria-label="행 삭제"
                       >
                         <Trash2 className="size-4" />
                       </button>
@@ -711,7 +711,7 @@ export function BlockRenderer({
                     colSpan={block.columns.length + (readOnly ? 0 : 1)}
                     className="px-2 py-6 text-center text-xs text-muted-foreground"
                   >
-                    {readOnly ? "No rows yet." : "No rows yet. Add a row below."}
+                    {readOnly ? "아직 행이 없어요." : "아직 행이 없어요. 아래에서 행을 추가해 보세요."}
                   </td>
                 </tr>
               )}
@@ -731,7 +731,7 @@ export function BlockRenderer({
                 }}
               >
                 <Plus className="size-3.5" />
-                Add row
+                + 행 추가
               </button>
             </div>
           )}
@@ -741,7 +741,7 @@ export function BlockRenderer({
       const colKey = block.groupBy;
       const groups = new Map<string, typeof block.rows>();
       for (const row of block.rows) {
-        const k = String(row[colKey] ?? "Other");
+        const k = String(row[colKey] ?? "기타");
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k)!.push(row);
       }
@@ -839,8 +839,8 @@ export function BlockRenderer({
     case "embed":
       return wrap(
         <div className="overflow-hidden rounded-lg border shadow-sm">
-          <p className="border-b bg-muted/40 px-3 py-2 text-xs font-medium">{block.title ?? "Embed"}</p>
-          <iframe src={block.src} title={block.title ?? "embed"} className="h-64 w-full bg-white" />
+          <p className="border-b bg-muted/40 px-3 py-2 text-xs font-medium">{block.title ?? "임베드"}</p>
+          <iframe src={block.src} title={block.title ?? "임베드"} className="h-64 w-full bg-white" />
         </div>
       );
     default:

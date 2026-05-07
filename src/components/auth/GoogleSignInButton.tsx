@@ -32,7 +32,7 @@ export function GoogleSignInButton({
   className,
   variant = "default",
   size = "default",
-  label = "Continue with Google",
+  label = "Google로 계속하기",
 }: {
   next?: string;
   className?: string;
@@ -64,7 +64,7 @@ export function GoogleSignInButton({
       onClick={() => void onClick()}
     >
       <GoogleIcon />
-      {loading ? "Connecting…" : label}
+      {loading ? "연결 중…" : label}
     </Button>
   );
 }

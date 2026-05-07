@@ -13,46 +13,46 @@ import {
 
 const tiers = [
   {
-    name: "Free",
+    name: "무료",
     price: "$0",
-    desc: "Start free and build manually with the block editor.",
+    desc: "무료로 시작하고 블록 에디터로 직접 템플릿을 만들어 보세요.",
     features: [
-      `${TUTORIAL_SIGNUP_CREDITS} tutorial credits`,
-      "Basic block editor",
-      "Manual template creation",
+      `가입 시 튜토리얼 크레딧 ${TUTORIAL_SIGNUP_CREDITS}개`,
+      "기본 블록 에디터",
+      "수동 템플릿 작성",
     ],
     href: "/login",
-    cta: "Get Started Free",
+    cta: "무료로 시작하기",
     highlight: false,
     badge: null as string | null,
   },
   {
     name: "Pro",
     price: `$${PRO_CREDIT_PACK_USD}`,
-    desc: "For power users who generate templates with AI often.",
+    desc: "AI로 템플릿을 자주 만드는 분께 추천해요.",
     features: [
-      `${PRO_CREDIT_PACK_CREDITS} AI credits`,
-      "All block types",
-      "PDF & PNG export",
-      "Version history",
+      `AI 크레딧 ${PRO_CREDIT_PACK_CREDITS}개`,
+      "모든 블록 타입",
+      "PDF·PNG보내기",
+      "버전 기록",
     ],
     href: "/login?next=/settings/billing",
-    cta: "Buy Credits",
+    cta: "크레딧 구매하기",
     highlight: true,
-    badge: "Most Popular",
+    badge: "가장 인기",
   },
   {
     name: "Team",
     price: `$${TEAM_CREDIT_PACK_USD}`,
-    desc: "For teams that need more credits and collaboration headroom.",
+    desc: "크레딧이 더 필요하고 팀 단위로 쓰고 싶을 때.",
     features: [
-      `${TEAM_CREDIT_PACK_CREDITS} AI credits`,
-      "Everything in Pro",
-      "Team workspace",
-      "Shared templates",
+      `AI 크레딧 ${TEAM_CREDIT_PACK_CREDITS}개`,
+      "Pro의 모든 기능",
+      "팀 워크스페이스",
+      "공유 템플릿",
     ],
     href: "/login?next=/settings/billing",
-    cta: "Buy Credits",
+    cta: "크레딧 구매하기",
     highlight: false,
     badge: null as string | null,
   },
@@ -63,9 +63,9 @@ export function Pricing() {
     <section id="pricing" className="scroll-mt-20 border-t border-border bg-muted/30 px-4 py-20 dark:bg-muted/10">
       <div className="mx-auto max-w-6xl">
         <h2 className="text-center font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">
-          Pricing
+          요금제
         </h2>
-        <p className="mt-2 text-center text-sm text-muted-foreground">Buy credits when you need them. No monthly lock-in.</p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">필요할 때만 크레딧을 구매하세요. 월 정액에 묶이지 않아요.</p>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {tiers.map((t) => (
             <Card

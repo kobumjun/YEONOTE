@@ -8,35 +8,35 @@ export function Footer() {
         <div>
           <Logo href="/" className="text-white [&_span:last-child]:text-white" />
           <p className="mt-3 max-w-xs text-sm text-neutral-400">
-            Design, edit, and share structured templates—powered by AI, refined by you.
+            AI로 빠르게 짜고, 직접 다듬어 완성하는 구조화 템플릿 — YEO와 함께하세요.
           </p>
         </div>
         <div className="flex flex-wrap gap-12 text-sm">
           <div className="space-y-2">
-            <p className="font-medium text-white">Product</p>
+            <p className="font-medium text-white">서비스</p>
             <Link href="/#pricing" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              Pricing
+              요금제
             </Link>
             <Link href="/explore" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              Explore
+              둘러보기
             </Link>
           </div>
           <div className="space-y-2">
-            <p className="font-medium text-white">Account</p>
+            <p className="font-medium text-white">계정</p>
             <Link href="/login" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              Sign In
+              로그인
             </Link>
             <Link href="/login" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              Get Started
+              시작하기
             </Link>
           </div>
           <div className="space-y-2">
-            <p className="font-medium text-white">Legal</p>
+            <p className="font-medium text-white">약관</p>
             <Link href="/privacy" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              Privacy Policy
+              개인정보 처리방침
             </Link>
             <Link href="/terms" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              Terms of Service
+              이용약관
             </Link>
           </div>
         </div>

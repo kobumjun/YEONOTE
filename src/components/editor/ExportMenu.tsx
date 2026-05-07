@@ -28,16 +28,16 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
         body: JSON.stringify({ templateId, title, blocks }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Export failed");
+      if (!res.ok) throw new Error(j.error ?? "보내기에 실패했어요");
       const blob = new Blob([j.markdown], { type: "text/markdown;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `${title || "template"}.md`;
+      a.download = `${title || "템플릿"}.md`;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast.success("Markdown downloaded.");
+      toast.success("Markdown을 받았어요.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : "문제가 발생했어요");
     } finally {
       setBusy(false);
     }
@@ -52,7 +52,7 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
         body: JSON.stringify({ templateId, title, blocks }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Export failed");
+      if (!res.ok) throw new Error(j.error ?? "보내기에 실패했어요");
       const binary = atob(j.pdfBase64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -62,9 +62,9 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
       a.download = j.filename ?? "export.pdf";
       a.click();
       URL.revokeObjectURL(a.href);
-      toast.success("PDF downloaded.");
+      toast.success("PDF를 받았어요.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : "문제가 발생했어요");
     } finally {
       setBusy(false);
     }
@@ -81,16 +81,16 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
       });
       if (!res.ok) {
         const j = await res.json();
-        throw new Error(j.error ?? "Export failed");
+        throw new Error(j.error ?? "보내기에 실패했어요");
       }
       const dataUrl = await toPng(editorRef.current, { pixelRatio: 2 });
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `${title || "template"}.png`;
+      a.download = `${title || "템플릿"}.png`;
       a.click();
-      toast.success("PNG downloaded.");
+      toast.success("PNG를 받았어요.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+      toast.error(e instanceof Error ? e.message : "문제가 발생했어요");
     } finally {
       setBusy(false);
     }
@@ -100,10 +100,10 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
     const blob = new Blob([JSON.stringify({ title, blocks }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${title || "template"}.json`;
+    a.download = `${title || "템플릿"}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("JSON downloaded.");
+    toast.success("JSON을 받았어요.");
   }
 
   function mdLocal() {
@@ -111,27 +111,30 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${title || "template"}.md`;
+    a.download = `${title || "템플릿"}.md`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("Markdown downloaded (local).");
+    toast.success("Markdown을 이 기기에서 저장했어요.");
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl border-border shadow-sm")}
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "gap-1 rounded-xl border-border shadow-sm"
+        )}
         disabled={busy}
       >
-        <Download className="mr-1 size-4 stroke-[1.5]" />
-        Export
+        <Download className="size-4 stroke-[1.5]" />
+        보내기
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52 rounded-xl border-border">
         <DropdownMenuItem onClick={markdown}>
-          <FileText className="mr-2 size-4 stroke-[1.5]" /> Markdown (server)
+          <FileText className="mr-2 size-4 stroke-[1.5]" /> Markdown (서버)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={mdLocal}>
-          <FileText className="mr-2 size-4 stroke-[1.5]" /> Markdown (local)
+          <FileText className="mr-2 size-4 stroke-[1.5]" /> Markdown (로컬)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={pdf}>
           <FileText className="mr-2 size-4 stroke-[1.5]" /> PDF
