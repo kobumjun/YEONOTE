@@ -373,11 +373,17 @@ export type BookmarkBlock = BlockBase & {
   description?: string;
 };
 
+/** Shared per-row detail layout for database_table (cloned on open; saves tokens vs per-row linked blocks). */
+export type DatabaseTableDetailTemplate = {
+  blocks: TemplateBlock[];
+};
+
 export type DatabaseTableBlock = BlockBase & {
   type: "database_table";
   title: string;
   columns: DatabaseColumn[];
   rows: DatabaseRow[];
+  detailTemplate?: DatabaseTableDetailTemplate;
 };
 
 export type DatabaseBoardBlock = BlockBase & {
@@ -526,6 +532,162 @@ export function remapBlockIds(block: TemplateBlock): TemplateBlock {
   return { ...block, id } as TemplateBlock;
 }
 
+/** Replaces {{행제목}} / {{row_title}} in detailTemplate blocks when opening a row view. */
+export function replaceDetailRowTitlePlaceholders(text: string, rowTitle: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\{\{행제목\}\}/g, rowTitle)
+    .replace(/\{\{row_title\}\}/gi, rowTitle)
+    .replace(/\{\{ROW_TITLE\}\}/g, rowTitle);
+}
+
+export function isNavigationGuideCalloutContent(content: string): boolean {
+  const t = content.trim().toLowerCase();
+  if (!t) return false;
+  const patterns = [
+    "행을 클릭",
+    "행 클릭",
+    "세부 페이지로 이동",
+    "상세 페이지로 이동",
+    "클릭하면 이동",
+    "누르면 이동",
+    "클릭하면 세부",
+  ];
+  return patterns.some((p) => t.includes(p));
+}
+
+function applyDetailRowTitlePlaceholdersToBlock(block: TemplateBlock, rowTitle: string): TemplateBlock {
+  const r = (s: string) => replaceDetailRowTitlePlaceholders(s, rowTitle);
+  switch (block.type) {
+    case "heading1":
+    case "heading2":
+    case "heading3":
+      return { ...block, content: r(block.content) };
+    case "paragraph":
+      return { ...block, content: r(block.content) };
+    case "bulleted_list":
+      return { ...block, items: block.items.map((i) => r(i)) };
+    case "numbered_list":
+      return { ...block, items: block.items.map((i) => r(i)) };
+    case "to_do":
+      return { ...block, content: r(block.content) };
+    case "checklist":
+      return {
+        ...block,
+        items: block.items.map((it) => ({ ...it, content: r(it.content) })),
+      };
+    case "toggle":
+      return {
+        ...block,
+        title: r(block.title),
+        children: block.children.map((c) => applyDetailRowTitlePlaceholdersToBlock(c, rowTitle)),
+      };
+    case "sub_page":
+      return {
+        ...block,
+        title: r(block.title),
+        ...(block.icon ? { icon: r(block.icon) } : {}),
+        children: block.children.map((c) => applyDetailRowTitlePlaceholdersToBlock(c, rowTitle)),
+      };
+    case "linked_page":
+      return {
+        ...block,
+        title: r(block.title),
+        ...(block.icon ? { icon: r(block.icon) } : {}),
+        ...(block.description ? { description: r(block.description) } : {}),
+        children: block.children.map((c) => applyDetailRowTitlePlaceholdersToBlock(c, rowTitle)),
+      };
+    case "callout":
+      return { ...block, content: r(block.content) };
+    case "quote":
+      return { ...block, content: r(block.content) };
+    case "database_table":
+      return {
+        ...block,
+        title: r(block.title),
+        columns: block.columns.map((c) => ({ ...c, name: r(c.name) })),
+        detailTemplate: block.detailTemplate
+          ? {
+              blocks: block.detailTemplate.blocks.map((b) =>
+                applyDetailRowTitlePlaceholdersToBlock(b, rowTitle)
+              ),
+            }
+          : undefined,
+        rows: block.rows,
+      };
+    case "database_board":
+      return {
+        ...block,
+        title: r(block.title),
+        groupBy: r(block.groupBy),
+        columns: block.columns.map((c) => ({ ...c, name: r(c.name) })),
+        rows: block.rows,
+      };
+    case "database_calendar":
+      return {
+        ...block,
+        title: r(block.title),
+        dateColumn: r(block.dateColumn),
+        columns: block.columns.map((c) => ({ ...c, name: r(c.name) })),
+        rows: block.rows,
+      };
+    case "database_gallery":
+      return {
+        ...block,
+        title: r(block.title),
+        imageColumn: r(block.imageColumn),
+        columns: block.columns.map((c) => ({ ...c, name: r(c.name) })),
+        rows: block.rows,
+      };
+    case "columns":
+      return {
+        ...block,
+        children: block.children.map((col) =>
+          col.map((c) => applyDetailRowTitlePlaceholdersToBlock(c, rowTitle))
+        ),
+      };
+    case "code":
+      return { ...block, content: r(block.content) };
+    case "image":
+      return {
+        ...block,
+        ...(block.alt ? { alt: r(block.alt) } : {}),
+        ...(block.caption ? { caption: r(block.caption) } : {}),
+      };
+    case "bookmark":
+      return {
+        ...block,
+        ...(block.title ? { title: r(block.title) } : {}),
+        ...(block.description ? { description: r(block.description) } : {}),
+      };
+    case "embed":
+      return { ...block, ...(block.title ? { title: r(block.title) } : {}) };
+    default:
+      return block;
+  }
+}
+
+export function instantiateDetailTemplate(
+  template: DatabaseTableDetailTemplate,
+  rowTitle: string
+): TemplateBlock[] {
+  return template.blocks.map((b) =>
+    remapBlockIds(applyDetailRowTitlePlaceholdersToBlock(b, rowTitle))
+  );
+}
+
+function parseDetailTemplateFromAi(raw: unknown): DatabaseTableDetailTemplate | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  if (!Array.isArray(o.blocks)) return undefined;
+  const tpl = o.blocks
+    .map((b) => normalizeAiBlock(b as Record<string, unknown>))
+    .filter((b): b is TemplateBlock => b !== null)
+    .map(padMinRowsOnDatabaseBlocks);
+  if (tpl.length === 0) return undefined;
+  return { blocks: tpl };
+}
+
 export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): TemplateBlock | null {
   const bid = pickBlockId(raw, id);
   const type = resolveAiBlockType(raw);
@@ -637,12 +799,16 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
       let columns = coerceDatabaseColumns(raw.columns);
       let rows = normalizeDatabaseRowsFromAi(raw.rows, columns);
       ({ columns, rows } = stripMetaLinkColumnsFromDatabaseTable(columns, rows));
+      const detailTemplate =
+        parseDetailTemplateFromAi(raw.detailTemplate) ??
+        parseDetailTemplateFromAi(raw.detail_template);
       return {
         id: bid,
         type: "database_table",
         title: String(raw.title ?? ""),
         columns,
         rows,
+        ...(detailTemplate ? { detailTemplate } : {}),
       };
     }
     case "database_board": {
@@ -715,7 +881,17 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
 /** Pads database rows for AI-generated payloads only (not used on plain server load). */
 function padMinRowsOnDatabaseBlocks(block: TemplateBlock): TemplateBlock {
   if (block.type === "database_table") {
-    return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
+    const rows = padDatabaseRowsToMin(block.columns, block.rows);
+    if (!block.detailTemplate?.blocks?.length) {
+      return { ...block, rows };
+    }
+    return {
+      ...block,
+      rows,
+      detailTemplate: {
+        blocks: block.detailTemplate.blocks.map(padMinRowsOnDatabaseBlocks),
+      },
+    };
   }
   if (block.type === "database_board") {
     return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };

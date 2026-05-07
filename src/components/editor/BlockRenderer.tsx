@@ -5,6 +5,7 @@ import {
   getEffectiveLinkedSectionId,
   getSelectColumnOptions,
   isHiddenMetaDatabaseColumnName,
+  isNavigationGuideCalloutContent,
   type DatabaseRow,
   type TemplateBlock,
 } from "@/types/template";
@@ -217,7 +218,7 @@ export function BlockRenderer({
   onDelete,
   onDuplicate,
   onEnter,
-  onOpenLinkedDetail,
+  onOpenTableRowDetail,
   depth = 0,
 }: {
   block: TemplateBlock;
@@ -226,11 +227,12 @@ export function BlockRenderer({
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onEnter?: (id: string) => void;
-  /** Master database_table row → full-page detail view (TemplateEditor). */
-  onOpenLinkedDetail?: (ctx: {
-    linkedSectionId: string;
+  /** Master database_table row → full-page detail (linked blocks or shared detailTemplate). */
+  onOpenTableRowDetail?: (ctx: {
     parentTableBlockId: string;
+    row: DatabaseRow;
     rowTitle: string;
+    source: "linked" | "template";
   }) => void;
   depth?: number;
 }) {
@@ -267,26 +269,40 @@ export function BlockRenderer({
     </div>
   );
 
-  const emitOpenLinkedDetail = (row: DatabaseRow) => {
-    if (block.type !== "database_table") return;
+  const tryOpenTableRowDetail = (row: DatabaseRow) => {
+    if (block.type !== "database_table" || !onOpenTableRowDetail) return;
     const cols = block.columns;
-    const lid = getEffectiveLinkedSectionId(row, cols)?.trim();
-    if (!lid || !onOpenLinkedDetail) return;
     const key0 = cols.find((c) => !isHiddenMetaDatabaseColumnName(c.name))?.name;
     const rowTitle = key0 ? String(row[key0] ?? "").trim() : "";
-    onOpenLinkedDetail({
-      linkedSectionId: lid,
-      parentTableBlockId: block.id,
-      rowTitle: rowTitle || "상세",
-    });
+    const linked = getEffectiveLinkedSectionId(row, cols)?.trim();
+    const hasTemplate = (block.detailTemplate?.blocks?.length ?? 0) > 0;
+    if (linked) {
+      onOpenTableRowDetail({
+        parentTableBlockId: block.id,
+        row,
+        rowTitle: rowTitle || "상세",
+        source: "linked",
+      });
+      return;
+    }
+    if (hasTemplate) {
+      onOpenTableRowDetail({
+        parentTableBlockId: block.id,
+        row,
+        rowTitle: rowTitle || "항목",
+        source: "template",
+      });
+    }
   };
 
   const handleLinkedRowActivate = (e: React.MouseEvent | React.KeyboardEvent, row: DatabaseRow) => {
     if (block.type !== "database_table") return;
-    if (!getEffectiveLinkedSectionId(row, block.columns)?.trim() || !onOpenLinkedDetail) return;
+    const linked = getEffectiveLinkedSectionId(row, block.columns)?.trim();
+    const hasTemplate = (block.detailTemplate?.blocks?.length ?? 0) > 0;
+    if ((!linked && !hasTemplate) || !onOpenTableRowDetail) return;
     const el = e.target as HTMLElement | null;
     if (el?.closest("button, input, select, textarea, a, [contenteditable='true']")) return;
-    emitOpenLinkedDetail(row);
+    tryOpenTableRowDetail(row);
   };
 
   switch (block.type) {
@@ -522,7 +538,7 @@ export function BlockRenderer({
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onEnter={onEnter}
-                onOpenLinkedDetail={onOpenLinkedDetail}
+                onOpenTableRowDetail={onOpenTableRowDetail}
                 depth={depth + 1}
               />
             ))}
@@ -585,7 +601,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
-                  onOpenLinkedDetail={onOpenLinkedDetail}
+                  onOpenTableRowDetail={onOpenTableRowDetail}
                   depth={depth + 1}
                 />
               ))}
@@ -686,7 +702,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
-                  onOpenLinkedDetail={onOpenLinkedDetail}
+                  onOpenTableRowDetail={onOpenTableRowDetail}
                   depth={depth + 1}
                 />
               ))}
@@ -698,6 +714,9 @@ export function BlockRenderer({
         </div>
       );
     case "callout":
+      if (isNavigationGuideCalloutContent(block.content)) {
+        return null;
+      }
       return wrap(
         <div className="flex gap-3 rounded-lg border border-yeo-200 bg-yeo-50/90 p-4 text-sm dark:border-yeo-800 dark:bg-yeo-950/50">
           {readOnly ? (
@@ -804,8 +823,10 @@ export function BlockRenderer({
       );
     case "database_table": {
       const visibleColCount = block.columns.filter((c) => !isHiddenMetaDatabaseColumnName(c.name)).length;
+      const hasDetailTemplate = (block.detailTemplate?.blocks?.length ?? 0) > 0;
       const showLinkColumn =
-        block.rows.some((r) => getEffectiveLinkedSectionId(r, block.columns)) && Boolean(onOpenLinkedDetail);
+        Boolean(onOpenTableRowDetail) &&
+        (hasDetailTemplate || block.rows.some((r) => getEffectiveLinkedSectionId(r, block.columns)));
       const colSpanEmpty = visibleColCount + (showLinkColumn ? 1 : 0) + (!readOnly ? 1 : 0);
       return wrap(
         <div className="group/table relative overflow-x-auto rounded-lg border shadow-sm">
@@ -878,7 +899,10 @@ export function BlockRenderer({
             <tbody>
               {block.rows.map((row, ri) => {
                 const linkId = getEffectiveLinkedSectionId(row, block.columns)?.trim();
-                const rowNavActive = Boolean(linkId && onOpenLinkedDetail);
+                const rowCanOpen =
+                  Boolean(onOpenTableRowDetail) &&
+                  (hasDetailTemplate || Boolean(linkId));
+                const rowNavActive = rowCanOpen;
                 return (
                   <tr
                     key={ri}
@@ -970,10 +994,18 @@ export function BlockRenderer({
                     })}
                     {showLinkColumn ? (
                       <td className="px-2 py-1.5 text-center align-middle">
-                        {linkId ? (
-                          <div className="inline-flex rounded-md p-1 text-muted-foreground/40 transition-all duration-150 group-hover/row:bg-muted group-hover/row:text-muted-foreground">
+                        {rowCanOpen ? (
+                          <button
+                            type="button"
+                            className="inline-flex rounded-md p-1 text-muted-foreground/40 transition-all duration-150 group-hover/row:bg-muted group-hover/row:text-muted-foreground"
+                            aria-label="상세 페이지"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              tryOpenTableRowDetail(row);
+                            }}
+                          >
                             <ChevronRight className="size-4" aria-hidden />
-                          </div>
+                          </button>
                         ) : null}
                       </td>
                     ) : null}
@@ -1121,7 +1153,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
-                  onOpenLinkedDetail={onOpenLinkedDetail}
+                  onOpenTableRowDetail={onOpenTableRowDetail}
                   depth={depth}
                 />
               ))}

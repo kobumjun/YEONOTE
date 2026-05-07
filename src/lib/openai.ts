@@ -35,12 +35,18 @@ OUTPUT
   "rows": [ { "Exercise": "", "Muscle": "", "linkedSectionId": "detail-1" } ]
 - WRONG (never do this): adding { "name": "세부 페이지", "type": "text" } and putting "detail-1" in that cell.
 - If using row "cells" arrays: length must equal the number of columns only; put the detail slug in linkedSectionId (or targetBlockId) on the row — never as an extra trailing cells entry.
-- For topics with a master list (universities, exercises, projects, clients, courses), include ONE primary master database_table where each row can link to a detail area.
+
+*** PREFERRED: shared detailTemplate (token-efficient) ***
+- Do NOT give every master row its own linkedSectionId plus duplicate detail block trees (5–10 rows × full detail = huge JSON). Instead, on the primary master database_table add ONE "detailTemplate": { "blocks": [ ... ] } that defines the shared detail-page layout for EVERY row.
+- detailTemplate.blocks can include heading2/3, database_table, checklist, paragraph, toggle, callout, etc. Use "{{행제목}}" in any text/heading/title — the app replaces it with the row’s first column value when the user opens a row.
+- Master rows: 5–10 EMPTY rows; omit linkedSectionId on all rows when using detailTemplate only. The UI shows a detail affordance on every row using the same template.
+- Optional advanced: if you truly need distinct per-row detail content in the JSON, use linkedSectionId on specific rows + matching root-level block "id"s below the table — use sparingly.
+
+For topics with a master list (universities, exercises, projects, clients, courses), include ONE primary master database_table with either detailTemplate OR row linkedSectionId patterns (not both duplicated at scale).
 - Give EVERY block that is a link target a stable string "id" field (slug style: letters, digits, hyphen, underscore only). Example: "detail-univ-snu", "detail-exercise-squat-slot-1".
-- On each master row that should open a detail section, set "linkedSectionId" on that ROW OBJECT to EXACTLY match the target block's "id". Use 5–10 master rows; link at least the first 3–5 rows to distinct detail sub_pages (remaining rows may omit linkedSectionId until the user links them).
-- Each linked detail target SHOULD be a "sub_page" (or heading2 + children) placed BELOW the master table in the block order, with rich nested content (empty tables, checklists with allowed structural items only).
+- When using linked rows: set "linkedSectionId" on that ROW OBJECT to EXACTLY match the target block's "id". Each linked detail target SHOULD be a "sub_page" (or heading2 + children) placed BELOW the master table in the block order, with rich nested content (empty tables, checklists with allowed structural items only).
 - Alternate accepted key: "targetBlockId" on a row (app normalizes to linkedSectionId).
-- UI BEHAVIOR (critical): Blocks whose root-level "id" is referenced by ANY master row's linkedSectionId are HIDDEN on the main template view; they appear ONLY after the user opens that row's detail page (full-page switch, like Notion sub-pages). Detail clusters must be self-contained (instructions, empty tables, checklists, toggles, etc.). One row may open multiple consecutive root blocks: set linkedSectionId to the first detail block's id, then place additional root blocks immediately after it in the JSON blocks array before the next row's linked detail anchor — those siblings open in the same detail view together.
+- UI BEHAVIOR (linked blocks only): Blocks whose root-level "id" is referenced by ANY master row's linkedSectionId are HIDDEN on the main template view; they appear ONLY after the user opens that row's detail page. detailTemplate does not add hidden roots — it is cloned at open time. One row may open multiple consecutive root blocks: set linkedSectionId to the first detail block's id, then place additional root blocks immediately after it in the JSON blocks array before the next row's linked detail anchor — those siblings open in the same detail view together.
 
 === BLOCK TYPES ===
 heading1 | heading2 | heading3, paragraph, bulleted_list, numbered_list, to_do, checklist, toggle, sub_page, linked_page, callout, quote, divider, columns, database_table, database_board, database_calendar, database_gallery, code, image, bookmark, embed.
@@ -51,7 +57,7 @@ JSON shape:
 Each block object MUST include "type". Prefer explicit "database_table" (alias "table" is accepted).
 
 sub_page: { "type", "id"?: string, "title", "icon"?: string, "children": [ ... ] }
-database_table: { "type", "title", "columns": [...], "rows": [ { "colA": "", "linkedSectionId": "detail-x" }, ... ] }
+database_table: { "type", "title", "columns": [...], "rows": [...], "detailTemplate"?: { "blocks": [...] } }
 
 === DIVERSITY ===
 - Do NOT ship the same outline for "gym routine", "university transfer", and "weekly project". Vary section order, block types, and hierarchy.
@@ -60,15 +66,24 @@ database_table: { "type", "title", "columns": [...], "rows": [ { "colA": "", "li
   • University admissions: goal callout + checklist → university master with row links → subject progress table → weekly study toggles → past-paper analysis table → application checklist → score trend table → costs table → month calendar checklist → warnings callout.
   • Weekly project: different again (milestones, risks, kanban-style tables, stakeholders, etc.).
 
+=== SELECT OPTIONS (mandatory for Korean-facing templates) ===
+- Every "select" column "options" array MUST use Korean labels only: e.g. 상태: 시작 전, 진행 중, 완료, 보류; 우선순위: 높음, 중간, 낮음; 강도: 가볍게, 보통, 강하게; 부위: 상체, 하체, 전신, 코어.
+- Never use English option labels (In Progress, High, Low, Medium, Done, etc.) when the user’s language is Korean.
+
+=== CALLOUTS — NO SUBPAGE NAVIGATION (mandatory) ===
+- NEVER create callouts that explain “click a row to open the detail page”, “각 행을 클릭하면…”, “행 클릭”, “세부 페이지로 이동”, or similar. Sub-page entry is obvious from the UI (chevron); navigation guidance is noise.
+- Opening / usage callouts should describe the TEMPLATE purpose and how to use sections — not how to navigate rows.
+
 === FORBIDDEN ===
 - Any column whose purpose is row→detail routing (세부 페이지, linkedSectionId-as-column, etc.).
+- Navigation / row-click callouts (see above).
 - Placeholder column names: "Column", "Col", "Field", "Value".
 - Table-only templates with no checklists/toggles/sub_pages.
 - Decorative KPI/stat tiles with fake numbers.
 - Reusing one generic master outline for every topic.
 
 === MINIMUM ===
-- Opening callout: short usage guide — linked master rows open a dedicated detail page (word naturally in the user's language).`;
+- Opening callout: short usage guide for the template’s PURPOSE and sections only — never row-navigation or “open detail” instructions.`;
 
 export function buildAiGenerationSystemPrompt(): {
   content: string;
@@ -79,7 +94,8 @@ export function buildAiGenerationSystemPrompt(): {
 
 FINAL CHECK:
 - ≥8 sections worth of structure; tables have 5–10 empty rows; cells empty per rules.
-- Master + linkedSectionId + matching block "id"s if you used a master list.
+- Master list: prefer detailTemplate on the table OR linkedSectionId + matching block "id"s — not duplicate per-row detail trees for every empty row.
+- Korean select options; no navigation callouts about clicking rows.
 - Month calendar checklist covers every day of the given calendar month.
 - No sample entity names or numbers in cells; no personalized habit slogans in checklists.
 - ≥4 distinct block kinds; heavy use of checklist, toggle, sub_page, callout, divider as appropriate.

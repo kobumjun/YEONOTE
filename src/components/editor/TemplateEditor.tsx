@@ -35,11 +35,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useEditorStore } from "@/stores/editorStore";
-import type { AITemplatePayload, TemplateBlock } from "@/types/template";
+import type { AITemplatePayload, DatabaseRow, TemplateBlock } from "@/types/template";
 import {
   collectHiddenRootIdsForMasterView,
   collectLinkedSectionTargets,
   getDetailRootIdsForLinkedSection,
+  getEffectiveLinkedSectionId,
+  instantiateDetailTemplate,
 } from "@/types/template";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +58,8 @@ function gradientClass(cover: string | null) {
 interface TemplateSubPageState {
   isOpen: boolean;
   blockIds: string[];
+  /** Cloned from database_table.detailTemplate (not in store). */
+  ephemeralBlocks: TemplateBlock[] | null;
   title: string;
   parentTableBlockId: string;
 }
@@ -67,7 +71,7 @@ function SortableBlock({
   onDelete,
   onDuplicate,
   onEnter,
-  onOpenLinkedDetail,
+  onOpenTableRowDetail,
 }: {
   block: TemplateBlock;
   readOnly?: boolean;
@@ -75,10 +79,11 @@ function SortableBlock({
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onEnter: (id: string) => void;
-  onOpenLinkedDetail?: (ctx: {
-    linkedSectionId: string;
+  onOpenTableRowDetail?: (ctx: {
     parentTableBlockId: string;
+    row: DatabaseRow;
     rowTitle: string;
+    source: "linked" | "template";
   }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -133,7 +138,7 @@ function SortableBlock({
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onEnter={onEnter}
-            onOpenLinkedDetail={onOpenLinkedDetail}
+            onOpenTableRowDetail={onOpenTableRowDetail}
           />
         </div>
       </div>
@@ -189,6 +194,7 @@ export function TemplateEditor({
   const [subPage, setSubPage] = useState<TemplateSubPageState>({
     isOpen: false,
     blockIds: [],
+    ephemeralBlocks: null,
     title: "",
     parentTableBlockId: "",
   });
@@ -203,19 +209,43 @@ export function TemplateEditor({
     [blocks, hiddenMasterRootIds]
   );
 
-  const openLinkedDetail = useCallback(
-    (ctx: { linkedSectionId: string; parentTableBlockId: string; rowTitle: string }) => {
-      const chain = getDetailRootIdsForLinkedSection(ctx.linkedSectionId, blocks, linkedTargets);
-      if (chain.length === 0) {
-        toast.message("연결된 상세 블록을 찾지 못했어요. 표 행의 연결 ID를 확인해 주세요.");
-        return;
+  const openTableRowDetail = useCallback(
+    (ctx: {
+      parentTableBlockId: string;
+      row: DatabaseRow;
+      rowTitle: string;
+      source: "linked" | "template";
+    }) => {
+      const tbl = blocks.find((b) => b.id === ctx.parentTableBlockId);
+      if (!tbl || tbl.type !== "database_table") return;
+
+      if (ctx.source === "linked") {
+        const lid = getEffectiveLinkedSectionId(ctx.row, tbl.columns);
+        if (!lid) return;
+        const chain = getDetailRootIdsForLinkedSection(lid, blocks, linkedTargets);
+        if (chain.length === 0) {
+          toast.message("연결된 상세 블록을 찾지 못했어요. 표 행의 연결 ID를 확인해 주세요.");
+          return;
+        }
+        setSubPage({
+          isOpen: true,
+          blockIds: chain,
+          ephemeralBlocks: null,
+          title: ctx.rowTitle || "상세",
+          parentTableBlockId: ctx.parentTableBlockId,
+        });
+      } else {
+        if (!tbl.detailTemplate?.blocks?.length) return;
+        const inst = instantiateDetailTemplate(tbl.detailTemplate, ctx.rowTitle || "항목");
+        setSubPage({
+          isOpen: true,
+          blockIds: [],
+          ephemeralBlocks: inst,
+          title: ctx.rowTitle || "상세",
+          parentTableBlockId: ctx.parentTableBlockId,
+        });
       }
-      setSubPage({
-        isOpen: true,
-        blockIds: chain,
-        title: ctx.rowTitle || "상세",
-        parentTableBlockId: ctx.parentTableBlockId,
-      });
+
       requestAnimationFrame(() => {
         const viewport = editorRef.current?.closest("[data-radix-scroll-area-viewport]");
         if (viewport instanceof HTMLElement) viewport.scrollTo({ top: 0, behavior: "smooth" });
@@ -244,6 +274,7 @@ export function TemplateEditor({
       return {
         isOpen: false,
         blockIds: [],
+        ephemeralBlocks: null,
         title: "",
         parentTableBlockId: "",
       };
@@ -254,18 +285,22 @@ export function TemplateEditor({
     setSubPage({
       isOpen: false,
       blockIds: [],
+      ephemeralBlocks: null,
       title: "",
       parentTableBlockId: "",
     });
   }, [templateId]);
 
   useEffect(() => {
-    if (!subPage.isOpen || subPage.blockIds.length === 0) return;
+    if (!subPage.isOpen) return;
+    if (subPage.ephemeralBlocks && subPage.ephemeralBlocks.length > 0) return;
+    if (subPage.blockIds.length === 0) return;
     const ok = subPage.blockIds.every((id) => blocks.some((b) => b.id === id));
     if (!ok) {
       setSubPage({
         isOpen: false,
         blockIds: [],
+        ephemeralBlocks: null,
         title: "",
         parentTableBlockId: "",
       });
@@ -586,22 +621,22 @@ export function TemplateEditor({
               </button>
               <h2 className="font-heading text-2xl font-bold text-surface-dark dark:text-white">{subPage.title}</h2>
               <div className="space-y-1">
-                {subPage.blockIds.map((id) => {
-                  const b = blocks.find((x) => x.id === id);
-                  if (!b) return null;
-                  return (
-                    <BlockRenderer
-                      key={id}
-                      block={b}
-                      readOnly={readOnly}
-                      onChange={updateBlock}
-                      onDelete={removeBlock}
-                      onDuplicate={duplicateBlock}
-                      onEnter={insertParagraphAfter}
-                      onOpenLinkedDetail={openLinkedDetail}
-                    />
-                  );
-                })}
+                {(subPage.ephemeralBlocks ??
+                  subPage.blockIds
+                    .map((id) => blocks.find((x) => x.id === id))
+                    .filter((b): b is TemplateBlock => b != null)
+                ).map((b) => (
+                  <BlockRenderer
+                    key={b.id}
+                    block={b}
+                    readOnly={readOnly || Boolean(subPage.ephemeralBlocks?.length)}
+                    onChange={updateBlock}
+                    onDelete={removeBlock}
+                    onDuplicate={duplicateBlock}
+                    onEnter={insertParagraphAfter}
+                    onOpenTableRowDetail={openTableRowDetail}
+                  />
+                ))}
               </div>
             </div>
           ) : (
@@ -644,7 +679,7 @@ export function TemplateEditor({
                           onDelete={removeBlock}
                           onDuplicate={duplicateBlock}
                           onEnter={insertParagraphAfter}
-                          onOpenLinkedDetail={openLinkedDetail}
+                          onOpenTableRowDetail={openTableRowDetail}
                         />
                       </div>
                     ))}
