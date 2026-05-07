@@ -47,6 +47,7 @@ const groups: { label: string; items: { type: InsertableBlockType; label: string
       { type: "database_board", label: "데이터베이스 · 보드" },
       { type: "database_calendar", label: "데이터베이스 · 캘린더" },
       { type: "database_gallery", label: "데이터베이스 · 갤러리" },
+      { type: "monthly_calendar", label: "월간 캘린더" },
       { type: "columns", label: "열 나누기" },
       { type: "embed", label: "임베드" },
     ],

@@ -55,13 +55,13 @@ function gradientClass(cover: string | null) {
   return map[cover ?? ""] ?? "from-yeo-200 to-yeo-700";
 }
 
-interface TemplateSubPageState {
-  isOpen: boolean;
-  blockIds: string[];
-  /** Cloned from database_table.detailTemplate (not in store). */
-  ephemeralBlocks: TemplateBlock[] | null;
+interface PageView {
+  id: string;
   title: string;
-  parentTableBlockId: string;
+  blockIds: string[];
+  /** Cloned page blocks (not in store) */
+  ephemeralBlocks: TemplateBlock[] | null;
+  sourceAnchorId?: string;
 }
 
 function mapBlocksDeep(blocks: TemplateBlock[], mapper: (b: TemplateBlock) => TemplateBlock): TemplateBlock[] {
@@ -181,6 +181,7 @@ function SortableBlock({
   onDuplicate,
   onEnter,
   onOpenTableRowDetail,
+  onOpenNestedPage,
 }: {
   block: TemplateBlock;
   readOnly?: boolean;
@@ -194,6 +195,7 @@ function SortableBlock({
     rowTitle: string;
     source: "linked" | "template";
   }) => void;
+  onOpenNestedPage?: (ctx: { id: string; title: string; blocks: TemplateBlock[] }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -248,6 +250,7 @@ function SortableBlock({
             onDuplicate={onDuplicate}
             onEnter={onEnter}
             onOpenTableRowDetail={onOpenTableRowDetail}
+            onOpenNestedPage={onOpenNestedPage}
           />
         </div>
       </div>
@@ -300,13 +303,8 @@ export function TemplateEditor({
   const [inTrash, setInTrash] = useState(Boolean(initial.is_deleted));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const [subPage, setSubPage] = useState<TemplateSubPageState>({
-    isOpen: false,
-    blockIds: [],
-    ephemeralBlocks: null,
-    title: "",
-    parentTableBlockId: "",
-  });
+  const [pageStack, setPageStack] = useState<PageView[]>([]);
+  const currentPage = pageStack.length > 0 ? pageStack[pageStack.length - 1] : null;
 
   const linkedTargets = useMemo(() => collectLinkedSectionTargets(blocks), [blocks]);
   const hiddenMasterRootIds = useMemo(
@@ -336,23 +334,29 @@ export function TemplateEditor({
           toast.message("연결된 상세 블록을 찾지 못했어요. 표 행의 연결 ID를 확인해 주세요.");
           return;
         }
-        setSubPage({
-          isOpen: true,
-          blockIds: chain,
-          ephemeralBlocks: null,
-          title: ctx.rowTitle || "상세",
-          parentTableBlockId: ctx.parentTableBlockId,
-        });
+        setPageStack((prev) => [
+          ...prev,
+          {
+            id: `${ctx.parentTableBlockId}-linked-${lid}`,
+            title: ctx.rowTitle || "상세",
+            blockIds: chain,
+            ephemeralBlocks: null,
+            sourceAnchorId: ctx.parentTableBlockId,
+          },
+        ]);
       } else {
         if (!tbl.detailTemplate?.blocks?.length) return;
         const inst = instantiateDetailTemplate(tbl.detailTemplate, ctx.rowTitle || "항목");
-        setSubPage({
-          isOpen: true,
-          blockIds: [],
-          ephemeralBlocks: inst,
-          title: ctx.rowTitle || "상세",
-          parentTableBlockId: ctx.parentTableBlockId,
-        });
+        setPageStack((prev) => [
+          ...prev,
+          {
+            id: `${ctx.parentTableBlockId}-template-${ctx.rowTitle}`,
+            title: ctx.rowTitle || "상세",
+            blockIds: [],
+            ephemeralBlocks: inst,
+            sourceAnchorId: ctx.parentTableBlockId,
+          },
+        ]);
       }
 
       requestAnimationFrame(() => {
@@ -364,88 +368,104 @@ export function TemplateEditor({
     [blocks, linkedTargets]
   );
 
-  const updateSubPageBlock = useCallback((id: string, patch: Partial<TemplateBlock>) => {
-    setSubPage((prev) => {
-      if (!prev.ephemeralBlocks?.length) return prev;
-      return {
-        ...prev,
-        ephemeralBlocks: mapBlocksDeep(prev.ephemeralBlocks, (b) => (b.id === id ? ({ ...b, ...patch } as TemplateBlock) : b)),
+  const pushNestedPage = useCallback((ctx: { id: string; title: string; blocks: TemplateBlock[] }) => {
+    setPageStack((prev) => [
+      ...prev,
+      { id: ctx.id, title: ctx.title, blockIds: [], ephemeralBlocks: ctx.blocks },
+    ]);
+    requestAnimationFrame(() => {
+      const viewport = editorRef.current?.closest("[data-radix-scroll-area-viewport]");
+      if (viewport instanceof HTMLElement) viewport.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }, []);
+
+  const updateCurrentPageBlock = useCallback((id: string, patch: Partial<TemplateBlock>) => {
+    setPageStack((prev) => {
+      if (prev.length === 0) return prev;
+      const idx = prev.length - 1;
+      const page = prev[idx];
+      if (!page.ephemeralBlocks?.length) return prev;
+      const nextPage: PageView = {
+        ...page,
+        ephemeralBlocks: mapBlocksDeep(page.ephemeralBlocks, (b) =>
+          b.id === id ? ({ ...b, ...patch } as TemplateBlock) : b
+        ),
       };
+      return [...prev.slice(0, idx), nextPage];
     });
   }, []);
 
-  const removeSubPageBlock = useCallback((id: string) => {
-    setSubPage((prev) => {
-      if (!prev.ephemeralBlocks?.length) return prev;
-      return { ...prev, ephemeralBlocks: removeBlockDeep(prev.ephemeralBlocks, id) };
+  const removeCurrentPageBlock = useCallback((id: string) => {
+    setPageStack((prev) => {
+      if (prev.length === 0) return prev;
+      const idx = prev.length - 1;
+      const page = prev[idx];
+      if (!page.ephemeralBlocks?.length) return prev;
+      const nextPage: PageView = { ...page, ephemeralBlocks: removeBlockDeep(page.ephemeralBlocks, id) };
+      return [...prev.slice(0, idx), nextPage];
     });
   }, []);
 
-  const duplicateSubPageBlock = useCallback((id: string) => {
-    setSubPage((prev) => {
-      if (!prev.ephemeralBlocks?.length) return prev;
-      return { ...prev, ephemeralBlocks: duplicateBlockDeep(prev.ephemeralBlocks, id) };
+  const duplicateCurrentPageBlock = useCallback((id: string) => {
+    setPageStack((prev) => {
+      if (prev.length === 0) return prev;
+      const idx = prev.length - 1;
+      const page = prev[idx];
+      if (!page.ephemeralBlocks?.length) return prev;
+      const nextPage: PageView = { ...page, ephemeralBlocks: duplicateBlockDeep(page.ephemeralBlocks, id) };
+      return [...prev.slice(0, idx), nextPage];
     });
   }, []);
 
-  const insertParagraphAfterSubPageBlock = useCallback((id: string) => {
-    setSubPage((prev) => {
-      if (!prev.ephemeralBlocks?.length) return prev;
-      return { ...prev, ephemeralBlocks: insertParagraphAfterDeep(prev.ephemeralBlocks, id) };
+  const insertParagraphAfterCurrentPageBlock = useCallback((id: string) => {
+    setPageStack((prev) => {
+      if (prev.length === 0) return prev;
+      const idx = prev.length - 1;
+      const page = prev[idx];
+      if (!page.ephemeralBlocks?.length) return prev;
+      const nextPage: PageView = { ...page, ephemeralBlocks: insertParagraphAfterDeep(page.ephemeralBlocks, id) };
+      return [...prev.slice(0, idx), nextPage];
     });
   }, []);
 
-  const closeLinkedDetail = useCallback(() => {
-    setSubPage((prev) => {
-      const tableId = prev.parentTableBlockId;
+  const popPage = useCallback(() => {
+    setPageStack((prev) => {
+      const popped = prev[prev.length - 1];
+      const next = prev.slice(0, -1);
+      const anchorId = next.length === 0 ? popped?.sourceAnchorId : undefined;
       requestAnimationFrame(() => {
-        const viewport = editorRef.current?.closest("[data-radix-scroll-area-viewport]");
-        const anchor = document.getElementById(`yeo-block-${tableId}`);
-        if (anchor && viewport instanceof HTMLElement) {
-          const top =
-            anchor.getBoundingClientRect().top -
-            viewport.getBoundingClientRect().top +
-            viewport.scrollTop;
-          viewport.scrollTo({ top: Math.max(0, top - 16), behavior: "smooth" });
-        } else {
-          anchor?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (anchorId) {
+          const viewport = editorRef.current?.closest("[data-radix-scroll-area-viewport]");
+          const anchor = document.getElementById(`yeo-block-${anchorId}`);
+          if (anchor && viewport instanceof HTMLElement) {
+            const top =
+              anchor.getBoundingClientRect().top -
+              viewport.getBoundingClientRect().top +
+              viewport.scrollTop;
+            viewport.scrollTo({ top: Math.max(0, top - 16), behavior: "smooth" });
+          } else {
+            anchor?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         }
       });
-      return {
-        isOpen: false,
-        blockIds: [],
-        ephemeralBlocks: null,
-        title: "",
-        parentTableBlockId: "",
-      };
+      return next;
     });
   }, []);
 
   useEffect(() => {
-    setSubPage({
-      isOpen: false,
-      blockIds: [],
-      ephemeralBlocks: null,
-      title: "",
-      parentTableBlockId: "",
-    });
+    setPageStack([]);
   }, [templateId]);
 
   useEffect(() => {
-    if (!subPage.isOpen) return;
-    if (subPage.ephemeralBlocks && subPage.ephemeralBlocks.length > 0) return;
-    if (subPage.blockIds.length === 0) return;
-    const ok = subPage.blockIds.every((id) => blocks.some((b) => b.id === id));
+    if (!currentPage) return;
+    if (currentPage.ephemeralBlocks && currentPage.ephemeralBlocks.length > 0) return;
+    if (currentPage.blockIds.length === 0) return;
+    const ok = currentPage.blockIds.every((id) => blocks.some((b) => b.id === id));
     if (!ok) {
-      setSubPage({
-        isOpen: false,
-        blockIds: [],
-        ephemeralBlocks: null,
-        title: "",
-        parentTableBlockId: "",
-      });
+      setPageStack((prev) => prev.slice(0, -1));
     }
-  }, [blocks, subPage]);
+  }, [blocks, currentPage]);
 
   useEffect(() => {
     setInTrash(Boolean(initial.is_deleted));
@@ -463,7 +483,7 @@ export function TemplateEditor({
   }, [templateId]);
 
   useEffect(() => {
-    if (readOnly || subPage.isOpen) return;
+    if (readOnly || Boolean(currentPage)) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
@@ -475,11 +495,11 @@ export function TemplateEditor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readOnly, masterBlocks.length, subPage.isOpen]);
+  }, [readOnly, masterBlocks.length, currentPage]);
 
   useEffect(() => {
-    if (!readOnly && insertIndex === null && !subPage.isOpen) setInsertIndex(masterBlocks.length);
-  }, [masterBlocks.length, readOnly, insertIndex, subPage.isOpen]);
+    if (!readOnly && insertIndex === null && !currentPage) setInsertIndex(masterBlocks.length);
+  }, [masterBlocks.length, readOnly, insertIndex, currentPage]);
 
   useEffect(() => {
     setIsPublic(initial.is_public ?? false);
@@ -748,21 +768,41 @@ export function TemplateEditor({
       <div className={cn("h-36 w-full bg-gradient-to-br", gradientClass(cover))} />
 
       <ScrollArea className="min-h-0 flex-1">
-        <div ref={editorRef} className={cn("mx-auto px-6 py-10 pb-32", subPage.isOpen ? "max-w-4xl" : "max-w-3xl")}>
-          {subPage.isOpen ? (
+        <div ref={editorRef} className={cn("mx-auto px-6 py-10 pb-32", currentPage ? "max-w-4xl" : "max-w-3xl")}>
+          {currentPage ? (
             <div className="yeo-subpage-enter space-y-6">
+              <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                <button type="button" onClick={() => setPageStack([])} className="rounded px-1.5 py-0.5 hover:bg-muted hover:text-foreground">
+                  메인
+                </button>
+                {pageStack.map((page, i) => (
+                  <span key={page.id} className="inline-flex items-center gap-1">
+                    <span>/</span>
+                    <button
+                      type="button"
+                      onClick={() => setPageStack((prev) => prev.slice(0, i + 1))}
+                      className={cn(
+                        "rounded px-1.5 py-0.5",
+                        i === pageStack.length - 1 ? "font-medium text-foreground" : "hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      {page.title}
+                    </button>
+                  </span>
+                ))}
+              </div>
               <button
                 type="button"
-                onClick={closeLinkedDetail}
+                onClick={popPage}
                 className="inline-flex items-center gap-1.5 rounded-md py-1.5 pl-1 pr-3 text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
               >
                 <ArrowLeft className="size-4 shrink-0" aria-hidden />
                 돌아가기
               </button>
-              <h2 className="font-heading text-2xl font-bold text-surface-dark dark:text-white">{subPage.title}</h2>
+              <h2 className="font-heading text-2xl font-bold text-surface-dark dark:text-white">{currentPage.title}</h2>
               <div className="space-y-1">
-                {(subPage.ephemeralBlocks ??
-                  subPage.blockIds
+                {(currentPage.ephemeralBlocks ??
+                  currentPage.blockIds
                     .map((id) => blocks.find((x) => x.id === id))
                     .filter((b): b is TemplateBlock => b != null)
                 ).map((b) => (
@@ -770,11 +810,12 @@ export function TemplateEditor({
                     key={b.id}
                     block={b}
                     readOnly={readOnly}
-                    onChange={subPage.ephemeralBlocks?.length ? updateSubPageBlock : updateBlock}
-                    onDelete={subPage.ephemeralBlocks?.length ? removeSubPageBlock : removeBlock}
-                    onDuplicate={subPage.ephemeralBlocks?.length ? duplicateSubPageBlock : duplicateBlock}
-                    onEnter={subPage.ephemeralBlocks?.length ? insertParagraphAfterSubPageBlock : insertParagraphAfter}
+                    onChange={currentPage.ephemeralBlocks?.length ? updateCurrentPageBlock : updateBlock}
+                    onDelete={currentPage.ephemeralBlocks?.length ? removeCurrentPageBlock : removeBlock}
+                    onDuplicate={currentPage.ephemeralBlocks?.length ? duplicateCurrentPageBlock : duplicateBlock}
+                    onEnter={currentPage.ephemeralBlocks?.length ? insertParagraphAfterCurrentPageBlock : insertParagraphAfter}
                     onOpenTableRowDetail={openTableRowDetail}
+                    onOpenNestedPage={pushNestedPage}
                   />
                 ))}
               </div>
@@ -820,6 +861,7 @@ export function TemplateEditor({
                           onDuplicate={duplicateBlock}
                           onEnter={insertParagraphAfter}
                           onOpenTableRowDetail={openTableRowDetail}
+                          onOpenNestedPage={pushNestedPage}
                         />
                       </div>
                     ))}

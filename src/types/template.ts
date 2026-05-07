@@ -306,6 +306,7 @@ export type ToDoBlock = BlockBase & {
 export type ChecklistItem = {
   content: string;
   checked: boolean;
+  detailTemplate?: DatabaseTableDetailTemplate;
 };
 
 /** Multi-item checkbox list (e.g. weekly habits). Distinct from single-line to_do. */
@@ -410,6 +411,20 @@ export type DatabaseGalleryBlock = BlockBase & {
   rows: DatabaseRow[];
 };
 
+export type MonthlyCalendarDayState = {
+  checked: boolean;
+  hasContent: boolean;
+};
+
+export type MonthlyCalendarBlock = BlockBase & {
+  type: "monthly_calendar";
+  title: string;
+  year: number;
+  month: number;
+  days: Record<string, MonthlyCalendarDayState>;
+  dayDetailTemplate?: DatabaseTableDetailTemplate;
+};
+
 export type ColumnsBlock = BlockBase & {
   type: "columns";
   layout: "2" | "3";
@@ -442,6 +457,7 @@ export type TemplateBlock =
   | DatabaseBoardBlock
   | DatabaseCalendarBlock
   | DatabaseGalleryBlock
+  | MonthlyCalendarBlock
   | ColumnsBlock
   | EmbedBlock;
 
@@ -493,9 +509,12 @@ function coerceChecklistItems(raw: unknown): ChecklistItem[] {
     }
     if (item && typeof item === "object") {
       const o = item as Record<string, unknown>;
+      const detailTemplate =
+        parseDetailTemplateFromAi(o.detailTemplate) ?? parseDetailTemplateFromAi(o.detail_template);
       out.push({
         content: coerceText(o.content ?? o.text ?? o.label ?? ""),
         checked: Boolean(o.checked ?? o.done),
+        ...(detailTemplate ? { detailTemplate } : {}),
       });
     }
   }
@@ -519,6 +538,27 @@ function resolveAiBlockType(raw: Record<string, unknown>): string | null {
 
 export function remapBlockIds(block: TemplateBlock): TemplateBlock {
   const id = newBlockId();
+  if (block.type === "monthly_calendar") {
+    return {
+      ...block,
+      id,
+      dayDetailTemplate: block.dayDetailTemplate
+        ? { blocks: block.dayDetailTemplate.blocks.map(remapBlockIds) }
+        : undefined,
+    };
+  }
+  if (block.type === "checklist") {
+    return {
+      ...block,
+      id,
+      items: block.items.map((item) => ({
+        ...item,
+        detailTemplate: item.detailTemplate
+          ? { blocks: item.detailTemplate.blocks.map(remapBlockIds) }
+          : undefined,
+      })),
+    };
+  }
   if (block.type === "toggle" || block.type === "sub_page" || block.type === "linked_page") {
     return { ...block, id, children: block.children.map(remapBlockIds) };
   }
@@ -574,7 +614,17 @@ function applyDetailRowTitlePlaceholdersToBlock(block: TemplateBlock, rowTitle: 
     case "checklist":
       return {
         ...block,
-        items: block.items.map((it) => ({ ...it, content: r(it.content) })),
+        items: block.items.map((it) => ({
+          ...it,
+          content: r(it.content),
+          detailTemplate: it.detailTemplate
+            ? {
+                blocks: it.detailTemplate.blocks.map((b) =>
+                  applyDetailRowTitlePlaceholdersToBlock(b, rowTitle)
+                ),
+              }
+            : undefined,
+        })),
       };
     case "toggle":
       return {
@@ -638,6 +688,18 @@ function applyDetailRowTitlePlaceholdersToBlock(block: TemplateBlock, rowTitle: 
         imageColumn: r(block.imageColumn),
         columns: block.columns.map((c) => ({ ...c, name: r(c.name) })),
         rows: block.rows,
+      };
+    case "monthly_calendar":
+      return {
+        ...block,
+        title: r(block.title),
+        dayDetailTemplate: block.dayDetailTemplate
+          ? {
+              blocks: block.dayDetailTemplate.blocks.map((b) =>
+                applyDetailRowTitlePlaceholdersToBlock(b, rowTitle)
+              ),
+            }
+          : undefined,
       };
     case "columns":
       return {
@@ -850,6 +912,31 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         rows,
       };
     }
+    case "monthly_calendar": {
+      const now = new Date();
+      const rawDays = raw.days && typeof raw.days === "object" ? (raw.days as Record<string, unknown>) : {};
+      const days: Record<string, MonthlyCalendarDayState> = {};
+      for (const [key, val] of Object.entries(rawDays)) {
+        if (!val || typeof val !== "object") continue;
+        const d = val as Record<string, unknown>;
+        days[String(key)] = {
+          checked: Boolean(d.checked),
+          hasContent: Boolean(d.hasContent ?? d.has_content),
+        };
+      }
+      const dayDetailTemplate =
+        parseDetailTemplateFromAi(raw.dayDetailTemplate) ??
+        parseDetailTemplateFromAi(raw.day_detail_template);
+      return {
+        id: bid,
+        type: "monthly_calendar",
+        title: String(raw.title ?? "월간 캘린더"),
+        year: Number(raw.year ?? now.getFullYear()),
+        month: Number(raw.month ?? now.getMonth() + 1),
+        days,
+        ...(dayDetailTemplate ? { dayDetailTemplate } : {}),
+      };
+    }
     case "columns": {
       const cols = Array.isArray(raw.children) ? (raw.children as unknown[]) : [];
       const children = cols.map((col) =>
@@ -901,6 +988,28 @@ function padMinRowsOnDatabaseBlocks(block: TemplateBlock): TemplateBlock {
   }
   if (block.type === "database_gallery") {
     return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
+  }
+  if (block.type === "monthly_calendar") {
+    if (!block.dayDetailTemplate?.blocks?.length) return block;
+    return {
+      ...block,
+      dayDetailTemplate: {
+        blocks: block.dayDetailTemplate.blocks.map(padMinRowsOnDatabaseBlocks),
+      },
+    };
+  }
+  if (block.type === "checklist") {
+    return {
+      ...block,
+      items: block.items.map((item) => ({
+        ...item,
+        detailTemplate: item.detailTemplate
+          ? {
+              blocks: item.detailTemplate.blocks.map(padMinRowsOnDatabaseBlocks),
+            }
+          : undefined,
+      })),
+    };
   }
   if (block.type === "toggle" || block.type === "sub_page" || block.type === "linked_page") {
     return { ...block, children: block.children.map(padMinRowsOnDatabaseBlocks) };

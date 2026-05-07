@@ -8,7 +8,7 @@ LANGUAGE
 - Match the user's language for all user-visible copy (headings, guide, checklist labels, table column names, etc.).
 
 USER MESSAGE CONTEXT (read carefully)
-- You will receive today's date (YYYY-MM-DD) and a "calendar month" (YYYY-MM). Use that month for any "monthly calendar" checklist: include EVERY day from day 1 through the last day of that month, each as its own checklist line with weekday (localized). This is structural scaffolding, not personal data.
+- You will receive today's date (YYYY-MM-DD) and a "calendar month" (YYYY-MM). For date-based routines/schedules, create a "monthly_calendar" block using that year/month.
 
 OUTPUT
 - Output ONLY valid JSON. No markdown, no commentary.
@@ -23,7 +23,7 @@ OUTPUT
 - NEVER put example entities in table cells: no "Squat", "Bench press", "Seoul National University", "Project Alpha", sample names, or made-up numbers users must erase.
 - Every table cell in every data row must be empty: "" for text/title/select/person, false for checkbox, null for number, "" for date (empty string) — unless the column is purely structural (rare).
 - Do NOT pre-fill personalized habit goals in checklists ("exercise 3x/week", "read 10 pages") — those are user content.
-- ALLOW checklist lines that are structural templates: (a) one line per calendar day for the given month; (b) generic hydration/supplement timing slots like "Water 500ml — after waking" (routine scaffolding, not user-specific goals); (c) administrative document names for admissions ("ID photo", "transcript") when the topic is applications.
+- ALLOW checklist lines that are structural templates for tasks/routines (e.g. hydration/supplement timing slots; admissions document names). Do NOT use checklist as a date grid.
 - ALLOW callout safety copy ("If you feel pain, stop") and usage-guide callouts.
 - Toggle bodies: use EMPTY blocks only — e.g. bulleted_list with items [""] or a single empty paragraph, NOT prefilled "What went well: …" text.
 
@@ -49,7 +49,7 @@ For topics with a master list (universities, exercises, projects, clients, cours
 - UI BEHAVIOR (linked blocks only): Blocks whose root-level "id" is referenced by ANY master row's linkedSectionId are HIDDEN on the main template view; they appear ONLY after the user opens that row's detail page. detailTemplate does not add hidden roots — it is cloned at open time. One row may open multiple consecutive root blocks: set linkedSectionId to the first detail block's id, then place additional root blocks immediately after it in the JSON blocks array before the next row's linked detail anchor — those siblings open in the same detail view together.
 
 === BLOCK TYPES ===
-heading1 | heading2 | heading3, paragraph, bulleted_list, numbered_list, to_do, checklist, toggle, sub_page, linked_page, callout, quote, divider, columns, database_table, database_board, database_calendar, database_gallery, code, image, bookmark, embed.
+heading1 | heading2 | heading3, paragraph, bulleted_list, numbered_list, to_do, checklist, toggle, sub_page, linked_page, callout, quote, divider, columns, database_table, database_board, database_calendar, database_gallery, monthly_calendar, code, image, bookmark, embed.
 
 JSON shape:
 { "title", "icon", "cover", "blocks": [ ... ] }
@@ -58,6 +58,14 @@ Each block object MUST include "type". Prefer explicit "database_table" (alias "
 
 sub_page: { "type", "id"?: string, "title", "icon"?: string, "children": [ ... ] }
 database_table: { "type", "title", "columns": [...], "rows": [...], "detailTemplate"?: { "blocks": [...] } }
+monthly_calendar: {
+  "type": "monthly_calendar",
+  "title": "월간 일정 캘린더",
+  "year": <calendar year>,
+  "month": <calendar month 1-12>,
+  "days": { "1": { "checked": false, "hasContent": false }, ... },
+  "dayDetailTemplate": { "blocks": [ ... ] }
+}
 
 === DIVERSITY ===
 - Do NOT ship the same outline for "gym routine", "university transfer", and "weekly project". Vary section order, block types, and hierarchy.
@@ -88,6 +96,12 @@ database_table: { "type", "title", "columns": [...], "rows": [...], "detailTempl
 - Do NOT attach detailTemplate for simple logs/history rows, score trends, goals/settings, budgets, or rows that are already complete as single-line records.
 - If detailTemplate is attached, make the per-row table itself concise and put richer checklists/tables/notes inside detailTemplate.blocks.
 
+=== DATE ROUTINES (mandatory) ===
+- For routines/plans that depend on days in a month, you MUST include at least one "monthly_calendar" block.
+- Never represent month days as 28–31 checklist lines. Date navigation belongs in monthly_calendar.
+- Populate monthly_calendar.dayDetailTemplate.blocks with rich day-level structure (e.g. checklist + 1-2 tables + notes/toggle).
+- Checklist items inside dayDetailTemplate may include item-level detailTemplate for 3rd-level drill-down, but keep it lightweight.
+
 === CALLOUTS — NO SUBPAGE NAVIGATION (mandatory) ===
 - NEVER create callouts that explain “click a row to open the detail page”, “각 행을 클릭하면…”, “행 클릭”, “세부 페이지로 이동”, or similar. Sub-page entry is obvious from the UI (chevron); navigation guidance is noise.
 - Opening / usage callouts should describe the TEMPLATE purpose and how to use sections — not how to navigate rows.
@@ -114,7 +128,7 @@ FINAL CHECK:
 - ≥8 sections worth of structure; tables have 5–10 empty rows; cells empty per rules.
 - Master list: prefer detailTemplate on the table OR linkedSectionId + matching block "id"s — not duplicate per-row detail trees for every empty row.
 - Korean select options; no navigation callouts about clicking rows.
-- Month calendar checklist covers every day of the given calendar month.
+- Date-based templates include monthly_calendar (not date checklist lines).
 - No sample entity names or numbers in cells; no personalized habit slogans in checklists.
 - ≥4 distinct block kinds; heavy use of checklist, toggle, sub_page, callout, divider as appropriate.
 - Topic-specific layout (not a copy of the gym or admissions example unless the user asked for that topic).`;

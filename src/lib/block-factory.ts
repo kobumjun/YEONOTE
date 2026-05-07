@@ -106,6 +106,34 @@ export function createBlock(type: InsertableBlockType): TemplateBlock {
         ],
         rows: [{ Thumbnail: "🖼", Title: "Item" }],
       };
+    case "monthly_calendar": {
+      const now = new Date();
+      return {
+        id,
+        type: "monthly_calendar",
+        title: "월간 캘린더",
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        days: {},
+        dayDetailTemplate: {
+          blocks: [
+            {
+              id: newBlockId(),
+              type: "checklist",
+              items: [
+                { content: "오늘의 핵심 작업", checked: false },
+                { content: "회고 작성", checked: false },
+              ],
+            },
+            {
+              id: newBlockId(),
+              type: "paragraph",
+              content: "",
+            },
+          ],
+        },
+      };
+    }
     case "columns":
       return {
         id,

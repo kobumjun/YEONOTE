@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getEffectiveLinkedSectionId,
   getSelectColumnOptions,
+  instantiateDetailTemplate,
   isHiddenMetaDatabaseColumnName,
   isNavigationGuideCalloutContent,
   type DatabaseRow,
@@ -11,7 +12,7 @@ import {
 } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 
 const CONTENT_DEBOUNCE_MS = 1000;
 
@@ -246,6 +247,7 @@ export function BlockRenderer({
   onDuplicate,
   onEnter,
   onOpenTableRowDetail,
+  onOpenNestedPage,
   depth = 0,
 }: {
   block: TemplateBlock;
@@ -261,8 +263,15 @@ export function BlockRenderer({
     rowTitle: string;
     source: "linked" | "template";
   }) => void;
+  onOpenNestedPage?: (ctx: { id: string; title: string; blocks: TemplateBlock[] }) => void;
   depth?: number;
 }) {
+  const [calendarYm, setCalendarYm] = useState<{ year: number; month: number } | null>(null);
+  useEffect(() => {
+    if (block.type !== "monthly_calendar") return;
+    setCalendarYm({ year: block.year, month: block.month });
+  }, [block]);
+
   const stopGlobalHotkeys = (e: React.KeyboardEvent<HTMLElement>) => {
     e.stopPropagation();
   };
@@ -498,7 +507,7 @@ export function BlockRenderer({
       return wrap(
         <ul className="list-none space-y-1.5 text-sm">
           {block.items.map((item, i) => (
-            <li key={i} className="flex items-start gap-2">
+            <li key={i} className="group/item flex items-start gap-2">
               <Checkbox
                 checked={item.checked}
                 disabled={readOnly}
@@ -512,20 +521,39 @@ export function BlockRenderer({
               {readOnly ? (
                 <span className={item.checked ? "text-muted-foreground line-through" : ""}>{item.content}</span>
               ) : (
-                <EditableContent
-                  ariaLabel={`체크리스트 항목 ${i + 1}`}
-                  className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
-                  value={String(item.content ?? "")}
-                  onValueChange={(value) => {
-                    const next = [...block.items];
-                    next[i] = { ...next[i], content: value };
-                    onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
-                    debugInput("checklist", value);
-                  }}
-                  onEnter={() => onEnter?.(block.id)}
-                  onKeyDown={stopGlobalHotkeys}
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <>
+                  <EditableContent
+                    ariaLabel={`체크리스트 항목 ${i + 1}`}
+                    className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
+                    value={String(item.content ?? "")}
+                    onValueChange={(value) => {
+                      const next = [...block.items];
+                      next[i] = { ...next[i], content: value };
+                      onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                      debugInput("checklist", value);
+                    }}
+                    onEnter={() => onEnter?.(block.id)}
+                    onKeyDown={stopGlobalHotkeys}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  {item.detailTemplate?.blocks?.length && onOpenNestedPage ? (
+                    <button
+                      type="button"
+                      className="ml-auto rounded p-1 text-muted-foreground/30 opacity-0 transition-all group-hover/item:bg-muted group-hover/item:text-muted-foreground group-hover/item:opacity-100"
+                      aria-label="체크리스트 상세 페이지"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenNestedPage({
+                          id: `${block.id}-check-${i}`,
+                          title: item.content || "상세",
+                          blocks: instantiateDetailTemplate(item.detailTemplate!, item.content || "상세"),
+                        });
+                      }}
+                    >
+                      <ChevronRight className="size-4" aria-hidden />
+                    </button>
+                  ) : null}
+                </>
               )}
             </li>
           ))}
@@ -566,6 +594,7 @@ export function BlockRenderer({
                 onDuplicate={onDuplicate}
                 onEnter={onEnter}
                 onOpenTableRowDetail={onOpenTableRowDetail}
+                onOpenNestedPage={onOpenNestedPage}
                 depth={depth + 1}
               />
             ))}
@@ -629,6 +658,7 @@ export function BlockRenderer({
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
                   onOpenTableRowDetail={onOpenTableRowDetail}
+                onOpenNestedPage={onOpenNestedPage}
                   depth={depth + 1}
                 />
               ))}
@@ -730,6 +760,7 @@ export function BlockRenderer({
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
                   onOpenTableRowDetail={onOpenTableRowDetail}
+                onOpenNestedPage={onOpenNestedPage}
                   depth={depth + 1}
                 />
               ))}
@@ -1133,6 +1164,111 @@ export function BlockRenderer({
         </div>
       );
     }
+    case "monthly_calendar": {
+      const today = new Date();
+      const y = calendarYm?.year ?? block.year;
+      const m = calendarYm?.month ?? block.month;
+      const firstDow = new Date(y, m - 1, 1).getDay();
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const goMonth = (delta: -1 | 1) => {
+        const d = new Date(y, m - 1 + delta, 1);
+        const next = { year: d.getFullYear(), month: d.getMonth() + 1 };
+        setCalendarYm(next);
+        if (!readOnly) onChange?.(block.id, next as Partial<TemplateBlock>);
+      };
+      const openDay = (day: number) => {
+        if (!onOpenNestedPage || !block.dayDetailTemplate?.blocks?.length) return;
+        const dayName = weekdays[new Date(y, m - 1, day).getDay()];
+        const dayTitle = `${m}월 ${day}일 (${dayName})`;
+        onOpenNestedPage({
+          id: `${block.id}-day-${y}-${m}-${day}`,
+          title: dayTitle,
+          blocks: instantiateDetailTemplate(block.dayDetailTemplate, dayTitle),
+        });
+      };
+      return wrap(
+        <div className="rounded-xl border bg-card p-3 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            {readOnly ? (
+              <p className="text-sm font-medium">{block.title || "월간 캘린더"}</p>
+            ) : (
+              <DebouncedTextField
+                className="w-full rounded border-0 bg-transparent text-sm font-medium outline-none focus:ring-2 focus:ring-yeo-500/30"
+                value={block.title || ""}
+                onCommit={(v) => onChange?.(block.id, { title: v } as Partial<TemplateBlock>)}
+                ariaLabel="캘린더 제목"
+              />
+            )}
+          </div>
+          <div className="mb-3 flex items-center justify-between">
+            <button
+              type="button"
+              className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => goMonth(-1)}
+              aria-label="이전 달"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <h3 className="text-sm font-semibold">
+              {y}년 {m}월
+            </h3>
+            <button
+              type="button"
+              className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={() => goMonth(1)}
+              aria-label="다음 달"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+          <div className="mb-1 grid grid-cols-7">
+            {weekdays.map((wd, idx) => (
+              <div
+                key={wd}
+                className={cn(
+                  "py-1 text-center text-xs font-medium",
+                  idx === 0 ? "text-red-400" : idx === 6 ? "text-blue-400" : "text-muted-foreground"
+                )}
+              >
+                {wd}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: firstDow }).map((_, i) => (
+              <div key={`empty-${i}`} className="aspect-square" />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dayData = block.days?.[String(day)];
+              const dayOfWeek = (firstDow + i) % 7;
+              const isToday =
+                today.getFullYear() === y && today.getMonth() + 1 === m && today.getDate() === day;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  className={cn(
+                    "relative m-0.5 flex aspect-square flex-col items-center justify-center rounded-lg text-sm transition-colors hover:bg-muted",
+                    isToday && "ring-2 ring-yeo-400",
+                    dayData?.checked && "bg-yeo-50 dark:bg-yeo-900/30",
+                    dayOfWeek === 0 && "text-red-500",
+                    dayOfWeek === 6 && "text-blue-500"
+                  )}
+                  onClick={() => openDay(day)}
+                >
+                  <span className="font-medium">{day}</span>
+                  {dayData?.checked || dayData?.hasContent ? (
+                    <span className="mt-0.5 size-1.5 rounded-full bg-yeo-500" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
     case "database_calendar": {
       const dk = block.dateColumn;
       return wrap(
@@ -1192,6 +1328,7 @@ export function BlockRenderer({
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
                   onOpenTableRowDetail={onOpenTableRowDetail}
+                  onOpenNestedPage={onOpenNestedPage}
                   depth={depth}
                 />
               ))}
