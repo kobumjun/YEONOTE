@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { getSelectColumnOptions, type DatabaseRow, type TemplateBlock } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Trash2 } from "lucide-react";
 
 const CONTENT_DEBOUNCE_MS = 1000;
 
@@ -211,7 +211,7 @@ export function BlockRenderer({
   onDelete,
   onDuplicate,
   onEnter,
-  onLinkedSectionNavigate,
+  onOpenLinkedDetail,
   depth = 0,
 }: {
   block: TemplateBlock;
@@ -220,8 +220,12 @@ export function BlockRenderer({
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onEnter?: (id: string) => void;
-  /** Master table row → scroll to detail block with this id (same template). */
-  onLinkedSectionNavigate?: (ctx: { targetBlockId: string; sourceTableBlockId: string }) => void;
+  /** Master database_table row → full-page detail view (TemplateEditor). */
+  onOpenLinkedDetail?: (ctx: {
+    linkedSectionId: string;
+    parentTableBlockId: string;
+    rowTitle: string;
+  }) => void;
   depth?: number;
 }) {
   const stopGlobalHotkeys = (e: React.KeyboardEvent<HTMLElement>) => {
@@ -257,14 +261,24 @@ export function BlockRenderer({
     </div>
   );
 
-  const handleLinkedRowActivate = (
-    e: React.MouseEvent | React.KeyboardEvent,
-    targetBlockId: string | undefined
-  ) => {
-    if (!targetBlockId || !onLinkedSectionNavigate) return;
+  const emitOpenLinkedDetail = (row: DatabaseRow) => {
+    if (block.type !== "database_table") return;
+    const lid = row.linkedSectionId?.trim();
+    if (!lid || !onOpenLinkedDetail) return;
+    const key0 = block.columns[0]?.name;
+    const rowTitle = key0 ? String(row[key0] ?? "").trim() : "";
+    onOpenLinkedDetail({
+      linkedSectionId: lid,
+      parentTableBlockId: block.id,
+      rowTitle: rowTitle || "상세",
+    });
+  };
+
+  const handleLinkedRowActivate = (e: React.MouseEvent | React.KeyboardEvent, row: DatabaseRow) => {
+    if (!row.linkedSectionId?.trim() || !onOpenLinkedDetail) return;
     const el = e.target as HTMLElement | null;
     if (el?.closest("button, input, select, textarea, a, [contenteditable='true']")) return;
-    onLinkedSectionNavigate({ targetBlockId, sourceTableBlockId: block.id });
+    emitOpenLinkedDetail(row);
   };
 
   switch (block.type) {
@@ -500,7 +514,7 @@ export function BlockRenderer({
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onEnter={onEnter}
-                onLinkedSectionNavigate={onLinkedSectionNavigate}
+                onOpenLinkedDetail={onOpenLinkedDetail}
                 depth={depth + 1}
               />
             ))}
@@ -563,7 +577,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
-                  onLinkedSectionNavigate={onLinkedSectionNavigate}
+                  onOpenLinkedDetail={onOpenLinkedDetail}
                   depth={depth + 1}
                 />
               ))}
@@ -664,7 +678,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
-                  onLinkedSectionNavigate={onLinkedSectionNavigate}
+                  onOpenLinkedDetail={onOpenLinkedDetail}
                   depth={depth + 1}
                 />
               ))}
@@ -780,7 +794,10 @@ export function BlockRenderer({
           <span className="truncate text-xs text-muted-foreground">{block.url}</span>
         </a>
       );
-    case "database_table":
+    case "database_table": {
+      const showLinkColumn = block.rows.some((r) => r.linkedSectionId) && Boolean(onOpenLinkedDetail);
+      const colSpanEmpty =
+        block.columns.length + (showLinkColumn ? 1 : 0) + (!readOnly ? 1 : 0);
       return wrap(
         <div className="group/table relative overflow-x-auto rounded-lg border shadow-sm">
           <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">
@@ -810,11 +827,6 @@ export function BlockRenderer({
               </button>
             )}
           </div>
-          {block.rows.some((r) => r.linkedSectionId) && onLinkedSectionNavigate ? (
-            <p className="border-b bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground">
-              행을 누르면 연결된 상세 섹션으로 스크롤 이동합니다.
-            </p>
-          ) : null}
           <table className="w-full min-w-[420px] text-left text-xs">
             <thead>
               <tr className="border-b bg-muted/30">
@@ -846,120 +858,135 @@ export function BlockRenderer({
                     )}
                   </th>
                 ))}
+                {showLinkColumn ? (
+                  <th className="w-10 px-1 py-2 text-center font-normal text-muted-foreground" aria-hidden />
+                ) : null}
                 {!readOnly && <th className="w-8 px-1 py-2" />}
               </tr>
             </thead>
             <tbody>
               {block.rows.map((row, ri) => {
-                const linkId = row.linkedSectionId;
-                const rowNavActive = Boolean(linkId && onLinkedSectionNavigate);
+                const linkId = row.linkedSectionId?.trim();
+                const rowNavActive = Boolean(linkId && onOpenLinkedDetail);
                 return (
-                <tr
-                  key={ri}
-                  className={cn(
-                    "group/row border-b last:border-0",
-                    rowNavActive && "cursor-pointer hover:bg-muted/50"
-                  )}
-                  {...(rowNavActive
-                    ? {
-                        role: "button" as const,
-                        tabIndex: 0,
-                        title: "이 행의 상세 섹션으로 이동",
-                        onClick: (e: React.MouseEvent<HTMLTableRowElement>) =>
-                          handleLinkedRowActivate(e, linkId),
-                        onKeyDown: (e: React.KeyboardEvent<HTMLTableRowElement>) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleLinkedRowActivate(e, linkId);
-                          }
-                        },
-                      }
-                    : {})}
-                >
-                  {block.columns.map((c, ci) => {
-                    const value = row[c.name];
-                    const updateCell = (nextVal: string | number | boolean | null) => {
-                      const nextRows = [...block.rows];
-                      nextRows[ri] = { ...nextRows[ri], [c.name]: nextVal };
-                      onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
-                    };
-                    return (
-                      <td key={`${ri}-col-${ci}`} className="px-2 py-1.5 align-middle">
-                        {readOnly ? (
-                          c.type === "checkbox" ? (
-                            <Checkbox checked={Boolean(value)} disabled />
-                          ) : (
-                            <span>{String(value ?? "")}</span>
-                          )
-                        ) : c.type === "checkbox" ? (
-                          <Checkbox checked={Boolean(value)} onCheckedChange={(v) => updateCell(Boolean(v))} />
-                        ) : c.type === "select" ? (
-                          <select
-                            className="h-7 w-full rounded border bg-background px-2 text-xs"
-                            value={String(value ?? "")}
-                            onChange={(e) => updateCell(e.target.value)}
-                          >
-                            <option value="">선택</option>
-                            {getSelectColumnOptions(c).map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : c.type === "date" ? (
-                          <input
-                            type="date"
-                            className="h-7 w-full rounded border bg-background px-2 text-xs"
-                            value={typeof value === "string" ? value : ""}
-                            onChange={(e) => updateCell(e.target.value)}
-                          />
-                        ) : c.type === "number" ? (
-                          <DebouncedTextField
-                            className="h-7 w-full rounded border bg-background px-2 text-xs"
-                            inputType="number"
-                            value={
-                              typeof value === "number"
-                                ? String(value)
-                                : typeof value === "string"
-                                  ? value
-                                  : ""
+                  <tr
+                    key={ri}
+                    className={cn(
+                      "group/row border-b last:border-0",
+                      rowNavActive && "cursor-pointer hover:bg-muted/60 transition-colors duration-150"
+                    )}
+                    {...(rowNavActive
+                      ? {
+                          role: "button" as const,
+                          tabIndex: 0,
+                          title: "상세 페이지로 이동",
+                          onClick: (e: React.MouseEvent<HTMLTableRowElement>) => handleLinkedRowActivate(e, row),
+                          onKeyDown: (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleLinkedRowActivate(e, row);
                             }
-                            onCommit={(text) => updateCell(text === "" ? null : Number(text))}
-                            aria-label={c.name}
-                          />
-                        ) : (
-                          <DebouncedTextField
-                            className="h-7 w-full rounded border bg-background px-2 text-xs"
-                            value={String(value ?? "")}
-                            onCommit={(text) => updateCell(text)}
-                            aria-label={c.name}
-                          />
-                        )}
+                          },
+                        }
+                      : {})}
+                  >
+                    {block.columns.map((c, ci) => {
+                      const value = row[c.name];
+                      const updateCell = (nextVal: string | number | boolean | null) => {
+                        const nextRows = [...block.rows];
+                        nextRows[ri] = { ...nextRows[ri], [c.name]: nextVal };
+                        onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
+                      };
+                      return (
+                        <td
+                          key={`${ri}-col-${ci}`}
+                          className="px-2 py-1.5 align-middle"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {readOnly ? (
+                            c.type === "checkbox" ? (
+                              <Checkbox checked={Boolean(value)} disabled />
+                            ) : (
+                              <span>{String(value ?? "")}</span>
+                            )
+                          ) : c.type === "checkbox" ? (
+                            <Checkbox checked={Boolean(value)} onCheckedChange={(v) => updateCell(Boolean(v))} />
+                          ) : c.type === "select" ? (
+                            <select
+                              className="h-7 w-full rounded border bg-background px-2 text-xs"
+                              value={String(value ?? "")}
+                              onChange={(e) => updateCell(e.target.value)}
+                            >
+                              <option value="">선택</option>
+                              {getSelectColumnOptions(c).map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : c.type === "date" ? (
+                            <input
+                              type="date"
+                              className="h-7 w-full rounded border bg-background px-2 text-xs"
+                              value={typeof value === "string" ? value : ""}
+                              onChange={(e) => updateCell(e.target.value)}
+                            />
+                          ) : c.type === "number" ? (
+                            <DebouncedTextField
+                              className="h-7 w-full rounded border bg-background px-2 text-xs"
+                              inputType="number"
+                              value={
+                                typeof value === "number"
+                                  ? String(value)
+                                  : typeof value === "string"
+                                    ? value
+                                    : ""
+                              }
+                              onCommit={(text) => updateCell(text === "" ? null : Number(text))}
+                              aria-label={c.name}
+                            />
+                          ) : (
+                            <DebouncedTextField
+                              className="h-7 w-full rounded border bg-background px-2 text-xs"
+                              value={String(value ?? "")}
+                              onCommit={(text) => updateCell(text)}
+                              aria-label={c.name}
+                            />
+                          )}
+                        </td>
+                      );
+                    })}
+                    {showLinkColumn ? (
+                      <td className="px-2 py-1.5 text-center align-middle">
+                        {linkId ? (
+                          <div className="inline-flex rounded-md p-1 text-muted-foreground/40 transition-all duration-150 group-hover/row:bg-muted group-hover/row:text-muted-foreground">
+                            <ChevronRight className="size-4" aria-hidden />
+                          </div>
+                        ) : null}
                       </td>
-                    );
-                  })}
-                  {!readOnly && (
-                    <td className="px-1 py-1.5 align-middle">
-                      <button
-                        type="button"
-                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:text-destructive"
-                        onClick={() => {
-                          const nextRows = block.rows.filter((_, idx) => idx !== ri);
-                          onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
-                        }}
-                        aria-label="행 삭제"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              );
+                    ) : null}
+                    {!readOnly && (
+                      <td className="px-1 py-1.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:text-destructive"
+                          onClick={() => {
+                            const nextRows = block.rows.filter((_, idx) => idx !== ri);
+                            onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
+                          }}
+                          aria-label="행 삭제"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
               })}
               {block.rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={block.columns.length + (readOnly ? 0 : 1)}
+                    colSpan={colSpanEmpty}
                     className="px-2 py-6 text-center text-xs text-muted-foreground"
                   >
                     {readOnly ? "아직 행이 없어요." : "아직 행이 없어요. 아래에서 행을 추가해 보세요."}
@@ -988,6 +1015,7 @@ export function BlockRenderer({
           )}
         </div>
       );
+    }
     case "database_board": {
       const colKey = block.groupBy;
       const groups = new Map<string, typeof block.rows>();
@@ -1081,7 +1109,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
-                  onLinkedSectionNavigate={onLinkedSectionNavigate}
+                  onOpenLinkedDetail={onOpenLinkedDetail}
                   depth={depth}
                 />
               ))}

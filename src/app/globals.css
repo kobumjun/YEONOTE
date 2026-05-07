@@ -8,6 +8,21 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  @keyframes yeo-subpage-enter {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .yeo-subpage-enter {
+    animation: yeo-subpage-enter 0.2s ease-out;
+  }
 }
 
 @layer base {

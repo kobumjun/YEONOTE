@@ -13,7 +13,7 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { Star, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Star, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useEditorStore } from "@/stores/editorStore";
 import type { AITemplatePayload, TemplateBlock } from "@/types/template";
+import {
+  collectHiddenRootIdsForMasterView,
+  collectLinkedSectionTargets,
+  getDetailRootIdsForLinkedSection,
+} from "@/types/template";
 import { cn } from "@/lib/utils";
 
 function gradientClass(cover: string | null) {
@@ -48,6 +53,13 @@ function gradientClass(cover: string | null) {
   return map[cover ?? ""] ?? "from-yeo-200 to-yeo-700";
 }
 
+interface TemplateSubPageState {
+  isOpen: boolean;
+  blockIds: string[];
+  title: string;
+  parentTableBlockId: string;
+}
+
 function SortableBlock({
   block,
   readOnly,
@@ -55,7 +67,7 @@ function SortableBlock({
   onDelete,
   onDuplicate,
   onEnter,
-  onLinkedSectionNavigate,
+  onOpenLinkedDetail,
 }: {
   block: TemplateBlock;
   readOnly?: boolean;
@@ -63,7 +75,11 @@ function SortableBlock({
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onEnter: (id: string) => void;
-  onLinkedSectionNavigate?: (ctx: { targetBlockId: string; sourceTableBlockId: string }) => void;
+  onOpenLinkedDetail?: (ctx: {
+    linkedSectionId: string;
+    parentTableBlockId: string;
+    rowTitle: string;
+  }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -117,7 +133,7 @@ function SortableBlock({
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onEnter={onEnter}
-            onLinkedSectionNavigate={onLinkedSectionNavigate}
+            onOpenLinkedDetail={onOpenLinkedDetail}
           />
         </div>
       </div>
@@ -170,26 +186,91 @@ export function TemplateEditor({
   const [inTrash, setInTrash] = useState(Boolean(initial.is_deleted));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
-  /** Master DB table block id to scroll back to after row → detail navigation. */
-  const [subpageNavFromTableId, setSubpageNavFromTableId] = useState<string | null>(null);
+  const [subPage, setSubPage] = useState<TemplateSubPageState>({
+    isOpen: false,
+    blockIds: [],
+    title: "",
+    parentTableBlockId: "",
+  });
 
-  const onLinkedSectionNavigate = useCallback(
-    ({ targetBlockId, sourceTableBlockId }: { targetBlockId: string; sourceTableBlockId: string }) => {
-      setSubpageNavFromTableId(sourceTableBlockId);
+  const linkedTargets = useMemo(() => collectLinkedSectionTargets(blocks), [blocks]);
+  const hiddenMasterRootIds = useMemo(
+    () => collectHiddenRootIdsForMasterView(blocks, linkedTargets),
+    [blocks, linkedTargets]
+  );
+  const masterBlocks = useMemo(
+    () => blocks.filter((b) => !hiddenMasterRootIds.has(b.id)),
+    [blocks, hiddenMasterRootIds]
+  );
+
+  const openLinkedDetail = useCallback(
+    (ctx: { linkedSectionId: string; parentTableBlockId: string; rowTitle: string }) => {
+      const chain = getDetailRootIdsForLinkedSection(ctx.linkedSectionId, blocks, linkedTargets);
+      if (chain.length === 0) {
+        toast.message("연결된 상세 블록을 찾지 못했어요. 표 행의 연결 ID를 확인해 주세요.");
+        return;
+      }
+      setSubPage({
+        isOpen: true,
+        blockIds: chain,
+        title: ctx.rowTitle || "상세",
+        parentTableBlockId: ctx.parentTableBlockId,
+      });
       requestAnimationFrame(() => {
-        const el = document.getElementById(`yeo-block-${targetBlockId}`);
-        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-        let p: HTMLElement | null = el;
-        while (p) {
-          if (p.tagName === "DETAILS") {
-            (p as HTMLDetailsElement).open = true;
-          }
-          p = p.parentElement;
-        }
+        const viewport = editorRef.current?.closest("[data-radix-scroll-area-viewport]");
+        if (viewport instanceof HTMLElement) viewport.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       });
     },
-    []
+    [blocks, linkedTargets]
   );
+
+  const closeLinkedDetail = useCallback(() => {
+    setSubPage((prev) => {
+      const tableId = prev.parentTableBlockId;
+      requestAnimationFrame(() => {
+        const viewport = editorRef.current?.closest("[data-radix-scroll-area-viewport]");
+        const anchor = document.getElementById(`yeo-block-${tableId}`);
+        if (anchor && viewport instanceof HTMLElement) {
+          const top =
+            anchor.getBoundingClientRect().top -
+            viewport.getBoundingClientRect().top +
+            viewport.scrollTop;
+          viewport.scrollTo({ top: Math.max(0, top - 16), behavior: "smooth" });
+        } else {
+          anchor?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+      return {
+        isOpen: false,
+        blockIds: [],
+        title: "",
+        parentTableBlockId: "",
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    setSubPage({
+      isOpen: false,
+      blockIds: [],
+      title: "",
+      parentTableBlockId: "",
+    });
+  }, [templateId]);
+
+  useEffect(() => {
+    if (!subPage.isOpen || subPage.blockIds.length === 0) return;
+    const ok = subPage.blockIds.every((id) => blocks.some((b) => b.id === id));
+    if (!ok) {
+      setSubPage({
+        isOpen: false,
+        blockIds: [],
+        title: "",
+        parentTableBlockId: "",
+      });
+    }
+  }, [blocks, subPage]);
 
   useEffect(() => {
     setInTrash(Boolean(initial.is_deleted));
@@ -207,23 +288,23 @@ export function TemplateEditor({
   }, [templateId]);
 
   useEffect(() => {
-    if (readOnly) return;
+    if (readOnly || subPage.isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
       if (!el) return;
       if (el.closest("input, textarea, select, [contenteditable='true']")) return;
       e.preventDefault();
-      setInsertIndex(blocks.length);
+      setInsertIndex(masterBlocks.length);
       slashRef.current?.open();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readOnly, blocks.length]);
+  }, [readOnly, masterBlocks.length, subPage.isOpen]);
 
   useEffect(() => {
-    if (!readOnly && insertIndex === null) setInsertIndex(blocks.length);
-  }, [blocks.length, readOnly, insertIndex]);
+    if (!readOnly && insertIndex === null && !subPage.isOpen) setInsertIndex(masterBlocks.length);
+  }, [masterBlocks.length, readOnly, insertIndex, subPage.isOpen]);
 
   useEffect(() => {
     setIsPublic(initial.is_public ?? false);
@@ -257,7 +338,21 @@ export function TemplateEditor({
   }, [readOnly, dirty, title, icon, cover, blocks, save]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-  const ids = useMemo(() => blocks.map((b) => b.id), [blocks]);
+  const ids = useMemo(() => masterBlocks.map((b) => b.id), [masterBlocks]);
+
+  function masterIndexToFullInsertPosition(masterIdx: number): number {
+    if (masterBlocks.length === 0) return blocks.length;
+    if (masterIdx <= 0) {
+      const first = masterBlocks[0];
+      return Math.max(0, blocks.findIndex((b) => b.id === first.id));
+    }
+    if (masterIdx >= masterBlocks.length) {
+      const last = masterBlocks[masterBlocks.length - 1];
+      return blocks.findIndex((b) => b.id === last.id) + 1;
+    }
+    const target = masterBlocks[masterIdx];
+    return Math.max(0, blocks.findIndex((b) => b.id === target.id));
+  }
 
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
@@ -478,52 +573,87 @@ export function TemplateEditor({
       <div className={cn("h-36 w-full bg-gradient-to-br", gradientClass(cover))} />
 
       <ScrollArea className="min-h-0 flex-1">
-        <div ref={editorRef} className="mx-auto max-w-3xl px-6 py-10 pb-32">
-          {subpageNavFromTableId ? (
-            <div className="sticky top-2 z-20 mb-4 flex justify-center">
-              <Button
+        <div ref={editorRef} className={cn("mx-auto px-6 py-10 pb-32", subPage.isOpen ? "max-w-4xl" : "max-w-3xl")}>
+          {subPage.isOpen ? (
+            <div className="yeo-subpage-enter space-y-6">
+              <button
                 type="button"
-                variant="secondary"
-                size="sm"
-                className="rounded-full border bg-background/95 px-4 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80"
-                onClick={() => {
-                  const id = subpageNavFromTableId;
-                  if (id) {
-                    document.getElementById(`yeo-block-${id}`)?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
-                  setSubpageNavFromTableId(null);
-                }}
+                onClick={closeLinkedDetail}
+                className="inline-flex items-center gap-1.5 rounded-md py-1.5 pl-1 pr-3 text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
               >
-                ← 목록으로 돌아가기
-              </Button>
-            </div>
-          ) : null}
-          {!readOnly && (
-            <div className="mb-6">
-              <SlashCommand
-                ref={slashRef}
-                onInsert={(b) => {
-                  const at = insertIndex ?? blocks.length;
-                  insertBlock(at, b);
-                  setInsertIndex(at + 1);
-                }}
-              />
-            </div>
-          )}
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                <ArrowLeft className="size-4 shrink-0" aria-hidden />
+                돌아가기
+              </button>
+              <h2 className="font-heading text-2xl font-bold text-surface-dark dark:text-white">{subPage.title}</h2>
               <div className="space-y-1">
-                {blocks.map((block, i) => (
-                  <div key={block.id}>
+                {subPage.blockIds.map((id) => {
+                  const b = blocks.find((x) => x.id === id);
+                  if (!b) return null;
+                  return (
+                    <BlockRenderer
+                      key={id}
+                      block={b}
+                      readOnly={readOnly}
+                      onChange={updateBlock}
+                      onDelete={removeBlock}
+                      onDuplicate={duplicateBlock}
+                      onEnter={insertParagraphAfter}
+                      onOpenLinkedDetail={openLinkedDetail}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <>
+              {!readOnly && (
+                <div className="mb-6">
+                  <SlashCommand
+                    ref={slashRef}
+                    onInsert={(b) => {
+                      const masterIdx = insertIndex ?? masterBlocks.length;
+                      const fullPos = masterIndexToFullInsertPosition(masterIdx);
+                      insertBlock(fullPos, b);
+                      setInsertIndex(masterIdx + 1);
+                    }}
+                  />
+                </div>
+              )}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-1">
+                    {masterBlocks.map((block, i) => (
+                      <div key={block.id}>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => openInsertAt(i)}
+                            className="group/insert relative my-1 hidden h-4 w-full items-center md:flex"
+                            aria-label={`${i + 1}번째 위에 블록 삽입`}
+                          >
+                            <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
+                            <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
+                              <Plus className="size-3.5" />
+                            </span>
+                          </button>
+                        )}
+                        <SortableBlock
+                          block={block}
+                          readOnly={readOnly}
+                          onChange={updateBlock}
+                          onDelete={removeBlock}
+                          onDuplicate={duplicateBlock}
+                          onEnter={insertParagraphAfter}
+                          onOpenLinkedDetail={openLinkedDetail}
+                        />
+                      </div>
+                    ))}
                     {!readOnly && (
                       <button
                         type="button"
-                        onClick={() => openInsertAt(i)}
-                        className="group/insert relative my-1 hidden h-4 w-full items-center md:flex"
-                        aria-label={`${i + 1}번째 위에 블록 삽입`}
+                        onClick={() => openInsertAt(masterBlocks.length)}
+                        className="group/insert relative mt-1 hidden h-4 w-full items-center md:flex"
+                        aria-label="맨 아래에 블록 삽입"
                       >
                         <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
                         <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
@@ -531,33 +661,11 @@ export function TemplateEditor({
                         </span>
                       </button>
                     )}
-                    <SortableBlock
-                      block={block}
-                      readOnly={readOnly}
-                      onChange={updateBlock}
-                      onDelete={removeBlock}
-                      onDuplicate={duplicateBlock}
-                      onEnter={insertParagraphAfter}
-                      onLinkedSectionNavigate={onLinkedSectionNavigate}
-                    />
                   </div>
-                ))}
-                {!readOnly && (
-                  <button
-                    type="button"
-                    onClick={() => openInsertAt(blocks.length)}
-                    className="group/insert relative mt-1 hidden h-4 w-full items-center md:flex"
-                    aria-label="맨 아래에 블록 삽입"
-                  >
-                    <span className="h-px w-full bg-border/60 opacity-0 transition-all group-hover/insert:opacity-100 group-hover/insert:bg-yeo-400/70" />
-                    <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 transition-opacity group-hover/insert:opacity-100">
-                      <Plus className="size-3.5" />
-                    </span>
-                  </button>
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
+                </SortableContext>
+              </DndContext>
+            </>
+          )}
         </div>
       </ScrollArea>
 

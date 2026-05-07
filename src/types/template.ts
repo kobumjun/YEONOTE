@@ -675,3 +675,68 @@ export function normalizeAiTemplate(payload: AITemplatePayload): {
     blocks,
   };
 }
+
+/** Every linkedSectionId referenced from any database row anywhere in the tree. */
+export function collectLinkedSectionTargets(blocks: TemplateBlock[]): Set<string> {
+  const s = new Set<string>();
+  const walkRows = (rows: DatabaseRow[]) => {
+    for (const r of rows) {
+      const lid = r.linkedSectionId?.trim();
+      if (lid) s.add(lid);
+    }
+  };
+  const walk = (b: TemplateBlock) => {
+    if (
+      b.type === "database_table" ||
+      b.type === "database_board" ||
+      b.type === "database_calendar" ||
+      b.type === "database_gallery"
+    ) {
+      walkRows(b.rows);
+    }
+    if (b.type === "toggle" || b.type === "sub_page" || b.type === "linked_page") {
+      b.children.forEach(walk);
+    }
+    if (b.type === "columns") {
+      b.children.forEach((col) => col.forEach(walk));
+    }
+  };
+  blocks.forEach(walk);
+  return s;
+}
+
+/**
+ * Root blocks shown when opening a master row: starting at linkedSectionId, consecutive roots
+ * until another block that is itself a linked detail anchor (keeps multi-block detail sections together).
+ */
+export function getDetailRootIdsForLinkedSection(
+  linkedSectionId: string,
+  rootBlocks: TemplateBlock[],
+  allLinkedTargets: Set<string>
+): string[] {
+  const id = linkedSectionId.trim();
+  if (!id) return [];
+  const start = rootBlocks.findIndex((r) => r.id === id);
+  if (start < 0) return [];
+  const ids: string[] = [];
+  for (let i = start; i < rootBlocks.length; i++) {
+    const r = rootBlocks[i];
+    if (i > start && allLinkedTargets.has(r.id)) break;
+    ids.push(r.id);
+  }
+  return ids;
+}
+
+/** Root-level block ids omitted from the master canvas (opened only via table row). */
+export function collectHiddenRootIdsForMasterView(
+  rootBlocks: TemplateBlock[],
+  allLinkedTargets: Set<string>
+): Set<string> {
+  const hidden = new Set<string>();
+  for (const lt of Array.from(allLinkedTargets)) {
+    for (const id of getDetailRootIdsForLinkedSection(lt, rootBlocks, allLinkedTargets)) {
+      hidden.add(id);
+    }
+  }
+  return hidden;
+}

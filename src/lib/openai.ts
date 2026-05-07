@@ -33,6 +33,7 @@ OUTPUT
 - On each master row that should open a detail section, set "linkedSectionId" to EXACTLY match the target block's "id". Use 5–10 master rows; link at least the first 3–5 rows to distinct detail sub_pages (remaining rows may omit linkedSectionId until the user links them).
 - Each linked detail target SHOULD be a "sub_page" (or heading2 + children) placed BELOW the master table in the block order, with rich nested content (empty tables, checklists with allowed structural items only).
 - Alternate accepted key: "targetBlockId" on a row (app normalizes to linkedSectionId).
+- UI BEHAVIOR (critical): Blocks whose root-level "id" is referenced by ANY master row's linkedSectionId are HIDDEN on the main template view; they appear ONLY after the user opens that row's detail page (full-page switch, like Notion sub-pages). Detail clusters must be self-contained (instructions, empty tables, checklists, toggles, etc.). One row may open multiple consecutive root blocks: set linkedSectionId to the first detail block's id, then place additional root blocks immediately after it in the JSON blocks array before the next row's linked detail anchor — those siblings open in the same detail view together.
 
 === BLOCK TYPES ===
 heading1 | heading2 | heading3, paragraph, bulleted_list, numbered_list, to_do, checklist, toggle, sub_page, linked_page, callout, quote, divider, columns, database_table, database_board, database_calendar, database_gallery, code, image, bookmark, embed.
@@ -59,7 +60,7 @@ database_table: { "type", "title", "columns": [...], "rows": [ { "colA": "", "li
 - Reusing one generic master outline for every topic.
 
 === MINIMUM ===
-- Opening callout: short usage guide mentioning that master-table rows with links jump to detail sections (word naturally in the user's language).`;
+- Opening callout: short usage guide — linked master rows open a dedicated detail page (word naturally in the user's language).`;
 
 export function buildAiGenerationSystemPrompt(): {
   content: string;
