@@ -7,7 +7,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, ctx: Ctx) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;
   const supabase = await createClient();
@@ -18,9 +18,9 @@ export async function GET(_req: Request, ctx: Ctx) {
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "찾을 수 없어요." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (data.user_id !== user.id && !(data.is_public && !data.is_deleted)) {
-    return NextResponse.json({ error: "접근할 수 없어요." }, { status: 403 });
+    return NextResponse.json({ error: "Access denied." }, { status: 403 });
   }
 
   return NextResponse.json({ template: data });
@@ -28,7 +28,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 
 export async function PATCH(req: Request, ctx: Ctx) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;
   const body = (await req.json().catch(() => ({}))) as {
@@ -57,13 +57,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "찾을 수 없어요." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: "Not found." }, { status: 404 });
   return NextResponse.json({ template: data });
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;
   const supabase = await createClient();
@@ -77,9 +77,9 @@ export async function DELETE(req: Request, ctx: Ctx) {
       .eq("user_id", user.id)
       .maybeSingle();
     if (selErr) return NextResponse.json({ error: selErr.message }, { status: 500 });
-    if (!existing) return NextResponse.json({ error: "찾을 수 없어요." }, { status: 404 });
+    if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
     if (!existing.is_deleted) {
-      return NextResponse.json({ error: "영구 삭제 전에 휴지통으로 먼저 옮겨 주세요." }, { status: 400 });
+      return NextResponse.json({ error: "Move to Trash before deleting permanently." }, { status: 400 });
     }
     const { error: delErr } = await supabase.from("templates").delete().eq("id", id).eq("user_id", user.id);
     if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
@@ -95,6 +95,6 @@ export async function DELETE(req: Request, ctx: Ctx) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "찾을 수 없어요." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: "Not found." }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

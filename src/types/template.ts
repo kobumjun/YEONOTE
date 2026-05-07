@@ -119,7 +119,7 @@ export function isHiddenMetaDatabaseColumnName(name: string): boolean {
   if (compact === "linkedsectionid" || compact === "targetblockid") return true;
   if (compact.includes("linkedsection")) return true;
   if (compact.includes("targetblock")) return true;
-  if (compact.includes("세부페이지")) return true;
+  if (compact.includes("세부page")) return true;
   if (compact.includes("subpage") || compact.includes("sub_page")) return true;
   if (compact.includes("detailpage") || compact.includes("detaillink")) return true;
   return false;
@@ -587,8 +587,8 @@ export function isNavigationGuideCalloutContent(content: string): boolean {
   const patterns = [
     "행을 클릭",
     "행 클릭",
-    "세부 페이지로 이동",
-    "상세 페이지로 이동",
+    "세부 page로 이동",
+    "상세 page로 이동",
     "클릭하면 이동",
     "누르면 이동",
     "클릭하면 세부",
@@ -930,7 +930,7 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
       return {
         id: bid,
         type: "monthly_calendar",
-        title: String(raw.title ?? "월간 캘린더"),
+        title: String(raw.title ?? "Monthly Calendar"),
         year: Number(raw.year ?? now.getFullYear()),
         month: Number(raw.month ?? now.getMonth() + 1),
         days,

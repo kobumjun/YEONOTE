@@ -46,10 +46,10 @@ export function TemplateCard({
     const res = await fetch(`/api/templates/${template.id}`, { method: "DELETE" });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error((j as { error?: string }).error ?? "삭제하지 못했어요");
+      toast.error((j as { error?: string }).error ?? "Failed to delete");
       return;
     }
-    toast.success("휴지통으로 옮겼어요.");
+    toast.success("Moved to Trash.");
     setConfirmTrashOpen(false);
     onMutate?.();
     router.refresh();
@@ -63,10 +63,10 @@ export function TemplateCard({
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error((j as { error?: string }).error ?? "복원하지 못했어요");
+      toast.error((j as { error?: string }).error ?? "Failed to restore");
       return;
     }
-    toast.success("복원했어요.");
+    toast.success("Restored.");
     onMutate?.();
     router.refresh();
   }
@@ -75,10 +75,10 @@ export function TemplateCard({
     const res = await fetch(`/api/templates/${template.id}?permanent=1`, { method: "DELETE" });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error((j as { error?: string }).error ?? "영구 삭제하지 못했어요");
+      toast.error((j as { error?: string }).error ?? "Failed to delete permanently");
       return;
     }
-    toast.success("영구 삭제했어요.");
+    toast.success("Deleted permanently.");
     setConfirmPermanentOpen(false);
     onMutate?.();
     router.refresh();
@@ -94,14 +94,14 @@ export function TemplateCard({
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-medium tracking-[-0.01em] text-foreground">{template.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  삭제일{" "}
-                  {template.deleted_at ? format(new Date(template.deleted_at), "yyyy.MM.dd HH:mm") : "—"}
+                  Deleted on{" "}
+                  {template.deleted_at ? format(new Date(template.deleted_at), "MM/dd/yyyy HH:mm") : "—"}
                 </p>
               </div>
             </Link>
             <div className={cn("mt-3 flex flex-wrap gap-2", layout === "list" && "sm:mt-0 sm:shrink-0")}>
               <Button type="button" size="sm" variant="secondary" className="rounded-xl shadow-sm" onClick={() => void restore()}>
-                복원
+                Restore
               </Button>
               <Button
                 type="button"
@@ -110,7 +110,7 @@ export function TemplateCard({
                 className="rounded-xl"
                 onClick={() => setConfirmPermanentOpen(true)}
               >
-                영구 삭제
+                Delete permanently
               </Button>
             </div>
           </CardContent>
@@ -119,15 +119,15 @@ export function TemplateCard({
         <Dialog open={confirmPermanentOpen} onOpenChange={setConfirmPermanentOpen}>
           <DialogContent className="rounded-xl">
             <DialogHeader>
-              <DialogTitle>영구 삭제할까요?</DialogTitle>
+              <DialogTitle>Delete permanently?</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">되돌릴 수 없어요. 계정에서 이 템플릿이 완전히 사라져요.</p>
+            <p className="text-sm text-muted-foreground">This cannot be undone. The template will be permanently removed from your account.</p>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button type="button" variant="outline" className="rounded-xl" onClick={() => setConfirmPermanentOpen(false)}>
-                취소
+                Cancel
               </Button>
               <Button type="button" variant="destructive" className="rounded-xl" onClick={() => void permanentDelete()}>
-                영구 삭제
+                Delete permanently
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -146,7 +146,7 @@ export function TemplateCard({
               buttonVariants({ variant: "ghost", size: "icon" }),
               "absolute right-2 top-2 z-10 size-8 rounded-lg text-muted-foreground opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100"
             )}
-            aria-label="템플릿 작업"
+            aria-label="Template actions"
             onPointerDown={(e) => e.stopPropagation()}
           >
             <MoreHorizontal className="size-4 stroke-[1.5]" />
@@ -160,7 +160,7 @@ export function TemplateCard({
               }}
             >
               <Trash2 className="mr-2 size-4 stroke-[1.5]" />
-              삭제
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -171,7 +171,7 @@ export function TemplateCard({
             <div className="min-w-0 flex-1">
               <h3 className="truncate font-medium tracking-[-0.01em] text-foreground">{template.title}</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                수정일 {format(new Date(template.updated_at), "yyyy.MM.dd HH:mm")}
+                Updated {format(new Date(template.updated_at), "MM/dd/yyyy HH:mm")}
               </p>
               {template.tags && template.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -190,15 +190,15 @@ export function TemplateCard({
       <Dialog open={confirmTrashOpen} onOpenChange={setConfirmTrashOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
-            <DialogTitle>휴지통으로 옮길까요?</DialogTitle>
+            <DialogTitle>Move to Trash?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">나중에 휴지통에서 다시 복원할 수 있어요.</p>
+          <p className="text-sm text-muted-foreground">You can restore this later from Trash.</p>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" className="rounded-xl" onClick={() => setConfirmTrashOpen(false)}>
-              취소
+              Cancel
             </Button>
             <Button type="button" className="rounded-xl bg-yeo-600 shadow-sm hover:bg-yeo-700" onClick={() => void softDelete()}>
-              휴지통으로 이동
+              Move to Trash
             </Button>
           </DialogFooter>
         </DialogContent>

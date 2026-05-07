@@ -48,7 +48,7 @@ export function useAIGenerate() {
         }
 
         const reader = res.body?.getReader();
-        if (!reader) throw new Error("응답 본문이 없어요");
+        if (!reader) throw new Error("Missing response body");
 
         const decoder = new TextDecoder();
         let buffer = "";
@@ -102,7 +102,7 @@ export function useAIGenerate() {
           }
         }
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "생성에 실패했어요";
+        const msg = e instanceof Error ? e.message : "Generation failed";
         const code = e instanceof Error && "code" in e ? (e as Error & { code?: string }).code : undefined;
         setError(msg);
         setStreaming(false);
@@ -113,7 +113,7 @@ export function useAIGenerate() {
 
       setStreaming(false);
       const payload: AITemplatePayload = {
-        title: meta.title ?? "제목 없음",
+        title: meta.title ?? "Untitled",
         icon: meta.icon,
         cover: meta.cover,
         blocks: rawBlocks,

@@ -1,50 +1,50 @@
 import Link from "next/link";
 
-const updatedAt = "2026.04.30";
+const updatedAt = "2026-04-30";
 
 const sections: { title: string; body: string[] }[] = [
   {
-    title: "1. 서비스 개요",
+    title: "1. Product Overview",
     body: [
-      "서비스명: YEO (https://yeonote.vercel.app)",
-      `최종 수정일: ${updatedAt}`,
+      "Product: YEO (https://yeonote.vercel.app)",
+      `Last updated: ${updatedAt}`,
     ],
   },
   {
-    title: "2. 수집하는 정보",
+    title: "2. Information We Collect",
     body: [
-      "Google 계정 정보(이름, 이메일, 프로필 이미지)",
-      "회원이 생성·저장하는 템플릿 콘텐츠",
-      "AI 생성 관련 기록(프롬프트 및 사용 메타데이터)",
+      "Google account information (name, email, profile image)",
+      "Template content users create and store",
+      "AI generation logs (prompts and usage metadata)",
     ],
   },
   {
-    title: "3. 정보 이용 목적",
+    title: "3. Purpose of Use",
     body: [
-      "본인 확인 및 계정 관리",
-      "AI 템플릿 생성 기능 제공",
-      "서비스 품질·안정성 개선",
+      "Identity verification and account management",
+      "Providing AI template generation features",
+      "Improving product quality and reliability",
     ],
   },
   {
-    title: "4. 보관 및 보안",
-    body: ["데이터는 Supabase에 저장됩니다. 전송 구간은 암호화됩니다."],
+    title: "4. Storage and Security",
+    body: ["Data is stored in Supabase. Data in transit is encrypted."],
   },
   {
-    title: "5. 제3자 서비스",
-    body: ["Google OAuth", "OpenAI API", "Lemon Squeezy(결제)"],
+    title: "5. Third-Party Services",
+    body: ["Google OAuth", "OpenAI API", "Lemon Squeezy(Billing)"],
   },
   {
-    title: "6. 이용자의 권리",
-    body: ["관련 법령이 정하는 바에 따라 계정 삭제·데이터보내기 등을 요청할 수 있습니다."],
+    title: "6. Your Rights",
+    body: ["You may request account deletion or data export as allowed by applicable law."],
   },
   {
-    title: "7. 쿠키",
-    body: ["인증 및 세션 관리에 필요한 최소한의 쿠키를 사용할 수 있습니다."],
+    title: "7. Cookies",
+    body: ["We may use essential cookies required for authentication and session management."],
   },
   {
-    title: "8. 문의",
-    body: ["개인정보 관련 문의는 사이트에 안내된 채널로 연락해 주세요."],
+    title: "8. Contact",
+    body: ["For privacy-related requests, contact us through the support channel listed on the site."],
   },
 ];
 
@@ -54,17 +54,17 @@ export default function PrivacyPage() {
       <header className="border-b bg-card/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-            ← 홈
+            ← Home
           </Link>
           <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground">
-            이용약관
+            Terms of Service
           </Link>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-12">
-        <h1 className="font-heading text-3xl font-semibold tracking-[-0.02em] text-foreground">개인정보 처리방침</h1>
+        <h1 className="font-heading text-3xl font-semibold tracking-[-0.02em] text-foreground">Privacy Policy</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          YEO 서비스 이용 시 개인정보가 어떻게 처리되는지 안내해 드려요.
+          This policy explains how personal information is handled when you use YEO.
         </p>
         <div className="mt-10 space-y-10">
           {sections.map((s) => (

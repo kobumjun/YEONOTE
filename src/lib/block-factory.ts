@@ -111,7 +111,7 @@ export function createBlock(type: InsertableBlockType): TemplateBlock {
       return {
         id,
         type: "monthly_calendar",
-        title: "월간 캘린더",
+        title: "Monthly Calendar",
         year: now.getFullYear(),
         month: now.getMonth() + 1,
         days: {},
@@ -121,8 +121,8 @@ export function createBlock(type: InsertableBlockType): TemplateBlock {
               id: newBlockId(),
               type: "checklist",
               items: [
-                { content: "오늘의 핵심 작업", checked: false },
-                { content: "회고 작성", checked: false },
+                { content: "Complete core task", checked: false },
+                { content: "Write daily review", checked: false },
               ],
             },
             {

@@ -54,10 +54,10 @@ export function ExploreClient() {
     const res = await fetch(`/api/templates/${id}/duplicate`, { method: "POST" });
     const j = await res.json();
     if (!res.ok) {
-      toast.error(j.error ?? "문제가 발생했어요");
+      toast.error(j.error ?? "Something went wrong");
       return;
     }
-    toast.success("내 작업공간에 복제했어요.");
+    toast.success("Duplicated to your workspace.");
     window.location.href = `/template/${j.template.id}`;
   }
 
@@ -65,19 +65,19 @@ export function ExploreClient() {
     const res = await fetch(`/api/templates/${id}/like`, { method: "POST" });
     const j = await res.json();
     if (!res.ok) {
-      toast.error(j.error ?? "좋아요를 반영하지 못했어요");
+      toast.error(j.error ?? "Failed to update like status");
       return;
     }
     if (typeof j.likes_count === "number") {
       setItems((prev) => prev.map((t) => (t.id === id ? { ...t, likes_count: j.likes_count } : t)));
-      toast.success(j.liked ? "좋아요를 눌렀어요." : "좋아요를 취소했어요.");
+      toast.success(j.liked ? "Liked." : "Like removed.");
     }
   }
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">둘러보기</h1>
-      <p className="text-sm text-muted-foreground">공개 템플릿을 구경하고, 마음에 드는 걸 내 대시보드로 가져가 보세요.</p>
+      <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Explore</h1>
+      <p className="text-sm text-muted-foreground">Browse public templates and duplicate what you like into your dashboard.</p>
       {loading ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -85,7 +85,7 @@ export function ExploreClient() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <p className="mt-12 text-center text-sm text-muted-foreground">아직 공개된 템플릿이 없어요.</p>
+        <p className="mt-12 text-center text-sm text-muted-foreground">No public templates yet.</p>
       ) : (
         <>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -107,7 +107,7 @@ export function ExploreClient() {
                           {t.creator?.avatar_url ? <AvatarImage src={t.creator.avatar_url} alt="" /> : null}
                           <AvatarFallback>{(t.creator?.full_name?.[0] ?? "U").toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <span>{t.creator?.full_name ?? "익명"}</span>
+                        <span>{t.creator?.full_name ?? "Anonymous"}</span>
                       </div>
                     </div>
                   </div>
@@ -121,10 +121,10 @@ export function ExploreClient() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="secondary" className="rounded-xl shadow-sm" onClick={() => duplicate(t.id)}>
-                      이 템플릿 쓰기
+                      Use this template
                     </Button>
                     <Button size="sm" variant="outline" className="rounded-xl border-border" onClick={() => like(t.id)}>
-                      좋아요
+                      Like
                     </Button>
                   </div>
                 </CardContent>

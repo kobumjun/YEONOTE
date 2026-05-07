@@ -28,17 +28,17 @@ OUTPUT
 - Toggle bodies: use EMPTY blocks only — e.g. bulleted_list with items [""] or a single empty paragraph, NOT prefilled "What went well: …" text.
 
 === MASTER TABLE → DETAIL NAVIGATION (mandatory when you use a master inventory) ===
-- CRITICAL — NEVER put linkedSectionId / detail routing in a TABLE COLUMN. Do NOT add columns named like "세부 페이지", "linkedSectionId", "targetBlockId", "sub-page", "detail link", etc. Users must NEVER see routing IDs as spreadsheet cells.
+- CRITICAL — NEVER put linkedSectionId / detail routing in a TABLE COLUMN. Do NOT add columns named like "Detail Page", "linkedSectionId", "targetBlockId", "sub-page", "detail link", etc. Users must NEVER see routing IDs as spreadsheet cells.
 - linkedSectionId is ONLY a separate field on each ROW OBJECT alongside column keys (same level as cell keys), never a column definition.
 - Correct shape example:
   "columns": [ { "name": "Exercise", "type": "title" }, { "name": "Muscle", "type": "select", "options": [...] } ],
   "rows": [ { "Exercise": "", "Muscle": "", "linkedSectionId": "detail-1" } ]
-- WRONG (never do this): adding { "name": "세부 페이지", "type": "text" } and putting "detail-1" in that cell.
+- WRONG (never do this): adding { "name": "Detail Page", "type": "text" } and putting "detail-1" in that cell.
 - If using row "cells" arrays: length must equal the number of columns only; put the detail slug in linkedSectionId (or targetBlockId) on the row — never as an extra trailing cells entry.
 
 *** PREFERRED: shared detailTemplate (token-efficient) ***
 - Do NOT give every master row its own linkedSectionId plus duplicate detail block trees (5–10 rows × full detail = huge JSON). Instead, on the primary master database_table add ONE "detailTemplate": { "blocks": [ ... ] } that defines the shared detail-page layout for EVERY row.
-- detailTemplate.blocks can include heading2/3, database_table, checklist, paragraph, toggle, callout, etc. Use "{{행제목}}" in any text/heading/title — the app replaces it with the row’s first column value when the user opens a row.
+- detailTemplate.blocks can include heading2/3, database_table, checklist, paragraph, toggle, callout, etc. Use "{{row_title}}" in any text/heading/title — the app replaces it with the row’s first column value when the user opens a row.
 - Master rows: 5–10 EMPTY rows; omit linkedSectionId on all rows when using detailTemplate only. The UI shows a detail affordance on every row using the same template.
 - Optional advanced: if you truly need distinct per-row detail content in the JSON, use linkedSectionId on specific rows + matching root-level block "id"s below the table — use sparingly.
 
@@ -60,7 +60,7 @@ sub_page: { "type", "id"?: string, "title", "icon"?: string, "children": [ ... ]
 database_table: { "type", "title", "columns": [...], "rows": [...], "detailTemplate"?: { "blocks": [...] } }
 monthly_calendar: {
   "type": "monthly_calendar",
-  "title": "월간 일정 캘린더",
+  "title": "Monthly Schedule Calendar",
   "year": <calendar year>,
   "month": <calendar month 1-12>,
   "days": { "1": { "checked": false, "hasContent": false }, ... },
@@ -76,22 +76,10 @@ monthly_calendar: {
   • University admissions: goal callout + checklist → monthly_calendar → university master with row links → weekly study toggles → past-paper analysis table → application checklist → score trend table → costs table → warnings callout + quote.
   • Weekly project: different again (milestones, risks, kanban-style tables, stakeholders, etc.).
 
-=== SELECT OPTIONS (mandatory for Korean-facing templates) ===
-- Every "select" column "options" array MUST use Korean labels only: e.g. 상태: 시작 전, 진행 중, 완료, 보류; 우선순위: 높음, 중간, 낮음; 강도: 가볍게, 보통, 강하게; 부위: 상체, 하체, 전신, 코어.
-- Never use English option labels (In Progress, High, Low, Medium, Done, etc.) when the user’s language is Korean.
-- [ABSOLUTE RULE] Select/dropdown options MUST be Korean-only across ALL tables and ALL select columns, without exception.
-- Required mapping when an English source concept appears:
-  Not Started → 시작 전
-  In Progress → 진행 중
-  Completed → 완료
-  On Hold → 보류
-  Under Review → 검토 중
-  High → 높음
-  Medium → 보통
-  Low → 낮음
-  To Do → 할 일
-  Done → 완료
-  Cancelled → 취소
+=== SELECT OPTIONS (mandatory) ===
+- Select/dropdown options must be English across all tables and select columns.
+- Preferred status options: Not Started, In Progress, Completed, On Hold, Under Review.
+- Preferred priority options: High, Medium, Low.
 
 === WHEN TO USE detailTemplate (mandatory decision rule) ===
 - Attach detailTemplate when each row is a distinct managed entity that needs deeper per-item management (e.g., exercise catalog per exercise, university list per university, project list per project).
@@ -105,10 +93,10 @@ monthly_calendar: {
 - DAY PAGE RULE (level 2, monthly_calendar.dayDetailTemplate.blocks): include the full daily record-management structure for that date (at least 3 block kinds; recommended checklist + 1-2 tables + callout/toggle/quote mix).
 - Day detail tables should be practical: at least one primary table with 5+ columns.
 - Checklist items inside dayDetailTemplate may include item-level detailTemplate for 3rd-level drill-down, but keep it lightweight.
-- 3rd-level lightweight rule (if used): table 1개(3-4 columns) + checklist 1개(3-4 items) + memo toggle 1개 정도면 충분.
+- 3rd-level lightweight rule (if used): one table (3-4 columns) + one checklist (3-4 items) + one memo toggle is enough.
 
 === CALLOUTS — NO SUBPAGE NAVIGATION (mandatory) ===
-- NEVER create callouts that explain “click a row to open the detail page”, “각 행을 클릭하면…”, “행 클릭”, “세부 페이지로 이동”, or similar. Sub-page entry is obvious from the UI (chevron); navigation guidance is noise.
+- NEVER create callouts that explain “click a row to open the detail page” or similar navigation hints. Sub-page entry is obvious from the UI (chevron); navigation guidance is noise.
 - Opening / usage callouts should describe the TEMPLATE purpose and how to use sections — not how to navigate rows.
 - Callouts must contain meaningful text. Never output empty callout content.
 
@@ -117,7 +105,7 @@ monthly_calendar: {
 - Keep user-entered data empty: table row cells, freeform text field values, and toggle body content.
 
 === FORBIDDEN ===
-- Any column whose purpose is row→detail routing (세부 페이지, linkedSectionId-as-column, etc.).
+- Any column whose purpose is row→detail routing (Detail Page, linkedSectionId-as-column, etc.).
 - Navigation / row-click callouts (see above).
 - Placeholder column names: "Column", "Col", "Field", "Value".
 - Table-only templates with no checklists/toggles/sub_pages.

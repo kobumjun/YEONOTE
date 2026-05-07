@@ -62,10 +62,10 @@ export function GenerateModal() {
     });
     const j = await res.json();
     if (!res.ok) {
-      toast.error(j.error ?? "템플릿을 만들지 못했어요");
+      toast.error(j.error ?? "Failed to create template");
       return;
     }
-    toast.success("빈 템플릿을 만들었어요.");
+    toast.success("Blank template created.");
     setOpen(false);
     router.push(`/template/${j.template.id}`);
     router.refresh();
@@ -73,7 +73,7 @@ export function GenerateModal() {
 
   async function onGenerate() {
     if (!prompt.trim()) {
-      toast.error("어떤 템플릿을 만들까요? 한 줄로 적어 주세요.");
+      toast.error("What template would you like? Please add a short prompt.");
       return;
     }
     setProgress("");
@@ -103,15 +103,15 @@ export function GenerateModal() {
       });
       const j = await res.json();
       if (!res.ok) {
-        toast.error(j.error ?? "템플릿을 저장하지 못했어요");
+        toast.error(j.error ?? "Failed to save template");
         return;
       }
-      toast.success("템플릿을 만들었어요.");
+      toast.success("Template created.");
       if (result.warning) {
         toast.message(result.warning);
       }
       if (result.usedCredit && typeof result.creditsRemaining === "number") {
-        toast.message(`크레딧 1개를 사용했어요. 남은 크레딧: ${result.creditsRemaining}`);
+        toast.message(`Used 1 credit. ${result.creditsRemaining} credits left.`);
       }
       setOpen(false);
       setPrompt("");
@@ -125,7 +125,7 @@ export function GenerateModal() {
         setNoCreditsOpen(true);
         return;
       }
-      toast.error(e instanceof Error ? e.message : "생성에 실패했어요");
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     }
   }
 
@@ -139,13 +139,13 @@ export function GenerateModal() {
       const res = await fetch(`/api/billing/checkout?plan=${pack}`);
       const j = await res.json();
       if (!res.ok) {
-        toast.error(j.error ?? "결제 페이지를 열지 못했어요");
+        toast.error(j.error ?? "Failed to open checkout page");
         return;
       }
       if (j.url) window.location.href = j.url as string;
-      else toast.error("결제 링크가 없어요.");
+      else toast.error("Missing checkout link.");
     } catch {
-      toast.error("결제 요청에 실패했어요.");
+      toast.error("Checkout request failed.");
     }
   }
 
@@ -154,7 +154,7 @@ export function GenerateModal() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg rounded-xl border-border">
           <DialogHeader>
-            <DialogTitle>{step === "choice" ? "새 템플릿" : "새 템플릿 · AI"}</DialogTitle>
+            <DialogTitle>{step === "choice" ? "New Template" : "New Template · AI"}</DialogTitle>
           </DialogHeader>
           {step === "choice" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -164,9 +164,9 @@ export function GenerateModal() {
                 className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all duration-200 hover:border-yeo-300 hover:shadow-md"
               >
                 <Sparkles className="size-8 text-yeo-600 stroke-[1.5]" />
-                <span className="font-medium">AI로 생성하기</span>
+                <span className="font-medium">Generate with AI</span>
                 <span className="text-xs text-muted-foreground">
-                  필요한 내용을 적어 주세요. 생성이 끝나면 AI 크레딧 1개가 사용돼요.
+                  Describe what you need. One AI credit is used after successful generation.
                 </span>
               </button>
               <button
@@ -175,27 +175,27 @@ export function GenerateModal() {
                 className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all duration-200 hover:border-yeo-300 hover:shadow-md"
               >
                 <FilePlus2 className="size-8 text-yeo-600 stroke-[1.5]" />
-                <span className="font-medium">빈 템플릿</span>
+                <span className="font-medium">Blank Template</span>
                 <span className="text-xs text-muted-foreground">
-                  제목과 빈 문단으로 시작해요. / 키나 블록 메뉴로 블록을 추가할 수 있어요.
+                  Start with a title and an empty paragraph. Use `/` to add blocks.
                 </span>
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="prompt">어떤 템플릿을 만들까요?</Label>
+                <Label htmlFor="prompt">What template would you like?</Label>
                 <Textarea
                   id="prompt"
                   rows={5}
-                  placeholder="주간 프로젝트 관리 — 할 일 추적, 회의 메모, 스프린트 계획까지 한 페이지에"
+                  placeholder="Weekly project workspace with task tracking, meeting notes, and sprint planning"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="mt-2 rounded-xl border-border"
                 />
               </div>
               <div>
-                <Label>카테고리 (선택)</Label>
+                <Label>Category (optional)</Label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {tagOptions.map((t) => (
                     <Badge
@@ -210,7 +210,7 @@ export function GenerateModal() {
                 </div>
               </div>
               <div>
-                <Label>스타일 (선택)</Label>
+                <Label>Style (optional)</Label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {styles.map((s) => (
                     <Badge
@@ -228,9 +228,9 @@ export function GenerateModal() {
                 <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Loader2 className="size-4 animate-spin text-yeo-600 stroke-[1.5]" />
-                    <span>{progress || "생성 중…"}</span>
+                    <span>{progress || "Generating..."}</span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">받은 블록: {previewCount}개</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Blocks received: {previewCount}</p>
                 </div>
               )}
             </div>
@@ -238,18 +238,18 @@ export function GenerateModal() {
           <DialogFooter className="gap-2 sm:gap-0">
             {step === "choice" ? (
               <Button type="button" variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-                닫기
+                Close
               </Button>
             ) : (
               <>
                 <Button type="button" variant="outline" className="rounded-xl" onClick={() => setStep("choice")}>
-                  뒤로
+                  Back
                 </Button>
                 <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-                  닫기
+                  Close
                 </Button>
                 <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={() => void onGenerate()} disabled={streaming}>
-                  {streaming ? "생성 중…" : "생성하기"}
+                  {streaming ? "Generating..." : "Generate"}
                 </Button>
               </>
             )}
@@ -260,18 +260,18 @@ export function GenerateModal() {
       <Dialog open={noCreditsOpen} onOpenChange={setNoCreditsOpen}>
         <DialogContent className="max-w-md rounded-xl border-border">
           <DialogHeader>
-            <DialogTitle>AI 크레딧이 부족해요</DialogTitle>
+            <DialogTitle>Not enough credits</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">크레딧을 충전하면 AI로 템플릿을 계속 만들 수 있어요.</p>
+          <p className="text-sm text-muted-foreground">Top up credits to keep generating templates with AI.</p>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button type="button" className="w-full rounded-xl bg-yeo-600 shadow-sm" onClick={() => void goCheckout("pro")}>
-              Pro · ${PRO_CREDIT_PACK_USD} · 크레딧 {PRO_CREDIT_PACK_CREDITS}개 — 구매하기
+              Pro · ${PRO_CREDIT_PACK_USD} · {PRO_CREDIT_PACK_CREDITS} credits — Buy
             </Button>
             <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => void goCheckout("team")}>
-              Team · ${TEAM_CREDIT_PACK_USD} · 크레딧 {TEAM_CREDIT_PACK_CREDITS}개 — 구매하기
+              Team · ${TEAM_CREDIT_PACK_USD} · {TEAM_CREDIT_PACK_CREDITS} credits — Buy
             </Button>
             <Button type="button" variant="ghost" className="w-full rounded-xl" onClick={closeAll}>
-              닫기
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

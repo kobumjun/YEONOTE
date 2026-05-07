@@ -9,25 +9,25 @@ export function Hero() {
       <div className="relative mx-auto max-w-4xl text-center">
         <p className="mb-4 text-xs font-medium uppercase tracking-widest text-muted-foreground">YEO</p>
         <h1 className="font-heading text-4xl font-bold tracking-[-0.02em] text-foreground sm:text-5xl md:text-6xl">
-          설명만 하세요.
+          Describe it.
           <br />
-          <span className="bg-gradient-to-r from-yeo-500 via-yeo-400 to-yeo-700 bg-clip-text text-transparent">YEO가 만들어 드립니다.</span>
+          <span className="bg-gradient-to-r from-yeo-500 via-yeo-400 to-yeo-700 bg-clip-text text-transparent">YEO builds it.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-          AI 템플릿 생성기. 한 줄이면 노션 스타일 페이지가 완성됩니다.
+          AI-powered template generator. Create structured Notion-style pages in seconds.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <GoogleSignInButton
             next="/dashboard"
             size="lg"
-            label="시작하기"
+            label="Get Started"
             className={cn(buttonVariants({ size: "lg" }), "rounded-xl bg-yeo-600 px-8 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700")}
           />
           <GoogleSignInButton
             next="/dashboard"
             size="lg"
             variant="outline"
-            label="로그인"
+            label="Sign In"
             className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-xl border-border bg-background/80 shadow-sm transition-all duration-200 hover:bg-muted/50")}
           />
         </div>

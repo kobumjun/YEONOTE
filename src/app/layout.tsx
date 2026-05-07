@@ -16,7 +16,7 @@ const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "YEO";
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: `${appName} — AI 템플릿 생성기`,
+    default: `${appName} — AI Template Generator`,
     template: `%s | ${appName}`,
   },
   icons: {
@@ -24,13 +24,14 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   description:
-    "노션 스타일 템플릿을 몇 초 만에 만드세요. 필요한 내용을 적으면 AI가 구조를 짜 드려요.",
+    "AI-powered template generator for structured Notion-style pages. Describe what you need and get a ready-to-edit layout in seconds.",
   openGraph: {
-    title: `${appName} — AI 템플릿 생성기`,
-    description: "노션 스타일 템플릿을 몇 초 만에 만드세요. 필요한 내용을 적으면 AI가 구조를 짜 드려요.",
+    title: `${appName} — AI Template Generator`,
+    description:
+      "AI-powered template generator for structured Notion-style pages. Describe what you need and get a ready-to-edit layout in seconds.",
     url: appUrl,
     siteName: appName,
-    locale: "ko_KR",
+    locale: "en_US",
     type: "website",
   },
 };
@@ -41,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
           inter.variable,

@@ -11,10 +11,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <footer className="border-t bg-background px-4 py-4 text-center text-xs text-muted-foreground">
         <div className="mx-auto flex max-w-4xl items-center justify-center gap-4">
           <Link href="/privacy" className="transition-colors duration-200 hover:text-foreground">
-            개인정보 처리방침
+            Privacy Policy
           </Link>
           <Link href="/terms" className="transition-colors duration-200 hover:text-foreground">
-            이용약관
+            Terms of Service
           </Link>
         </div>
       </footer>

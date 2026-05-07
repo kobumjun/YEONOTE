@@ -57,8 +57,8 @@ export function DashboardClient() {
     <div className="p-4 md:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">템플릿</h1>
-          <p className="text-sm text-muted-foreground">템플릿을 만들고 관리하세요.</p>
+          <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Templates</h1>
+          <p className="text-sm text-muted-foreground">Create and manage your templates.</p>
           {showSharedFilter && (
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
@@ -69,7 +69,7 @@ export function DashboardClient() {
                   filter === "shared_with_me" && "border border-border"
                 )}
               >
-                내 템플릿 전체
+                All My Templates
               </Link>
               <Link
                 href="/dashboard?view=my&filter=shared_with_me"
@@ -79,7 +79,7 @@ export function DashboardClient() {
                   filter !== "shared_with_me" && "border border-border"
                 )}
               >
-                나와 공유됨
+                Shared with me
               </Link>
             </div>
           )}
@@ -97,7 +97,7 @@ export function DashboardClient() {
           </Tabs>
           <Button className="rounded-xl bg-yeo-600 shadow-sm transition-all duration-200 hover:bg-yeo-700" onClick={() => setGenerateOpen(true)}>
             <Plus className="mr-1 size-4 stroke-[1.5]" />
-            새로 만들기
+            Create new
           </Button>
         </div>
       </div>
@@ -112,14 +112,14 @@ export function DashboardClient() {
         <div className="mt-16 rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
           <p className="text-muted-foreground">
             {filter === "shared_with_me"
-              ? "아직 나와 공유된 템플릿이 없어요. 누군가 직접 공유하면 여기에 표시돼요."
+              ? "No templates have been shared with you yet. They will appear here once someone shares one."
               : isTrash
-                ? "휴지통이 비어 있어요."
-                : "아직 템플릿이 없어요. AI로 만들거나 빈 템플릿부터 시작해 보세요."}
+                ? "Trash is empty."
+                : "No templates yet. Generate one with AI or start from a blank template."}
           </p>
           {!isTrash && filter !== "shared_with_me" && (
             <Button className="mt-4 rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>
-              만들기
+              Create
             </Button>
           )}
         </div>

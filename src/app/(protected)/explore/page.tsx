@@ -3,7 +3,7 @@ import { ExploreClient } from "@/components/templates/ExploreClient";
 
 export default function ExplorePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">불러오는 중…</div>}>
+    <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}>
       <ExploreClient />
     </Suspense>
   );

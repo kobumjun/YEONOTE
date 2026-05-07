@@ -72,7 +72,7 @@ function SheetContent({
           >
             <XIcon
             />
-            <span className="sr-only">닫기</span>
+            <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>

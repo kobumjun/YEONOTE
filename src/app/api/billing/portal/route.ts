@@ -7,7 +7,7 @@ import { getSessionUser } from "@/lib/auth";
  */
 export async function GET() {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const portal = process.env.LEMONSQUEEZY_BILLING_PORTAL_URL;
   if (!portal) {

@@ -30,12 +30,12 @@ function detailSubPage(id: string, title: string): SubPageBlock {
   b.icon = "📂";
   const intro = createBlock("paragraph") as ParagraphBlock;
   intro.content = "";
-  const log = tableBlock("세부 기록", [
-    { name: "날짜", type: "date" },
-    { name: "항목", type: "title" },
-    { name: "메모", type: "text" },
-    { name: "상태", type: "select", options: ["계획", "진행", "완료", "보류"] },
-    { name: "시간(분)", type: "number" },
+  const log = tableBlock("Detail Log", [
+    { name: "Date", type: "date" },
+    { name: "Item", type: "title" },
+    { name: "Notes", type: "text" },
+    { name: "Status", type: "select", options: ["Planned", "In Progress", "Completed", "On Hold"] },
+    { name: "Duration (min)", type: "number" },
   ]);
   b.children = [intro, log];
   return b;
@@ -49,30 +49,30 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
   const m = now.getMonth();
 
   const h1 = createBlock("heading1") as HeadingBlock;
-  h1.content = "루틴 · 기록 (타임아웃 기본 골격)";
+  h1.content = "Routine · Log (timeout fallback)";
 
   const guide = createBlock("callout") as CalloutBlock;
   guide.icon = "📌";
   guide.content =
-    "캘린더에서 날짜를 열어 해당 일자의 기록을 작성하고, 메인 페이지에서는 목표와 개요를 관리하세요. 표 셀은 비어 있으니 직접 입력해 주세요.";
+    "Open a date from the calendar to record daily activity. Use the main page for goals and overview. Table cells are intentionally empty for manual input.";
 
   const intro = createBlock("paragraph") as ParagraphBlock;
-  intro.content = `생성이 시간 안에 끝나지 않아 최소 연결 예시만 드립니다. 요청: ${preview || "(없음)"}`;
+  intro.content = `Generation timed out. Here is a minimal linked starter structure. Request: ${preview || "(none)"}`;
 
   const hGoals = createBlock("heading2") as HeadingBlock;
-  hGoals.content = "🎯 목표";
-  const goalsTable = tableBlock("목표", [
-    { name: "목표", type: "title" },
-    { name: "목표값", type: "text" },
-    { name: "기한", type: "date" },
-    { name: "달성", type: "checkbox" },
-    { name: "메모", type: "text" },
+  hGoals.content = "🎯 Goals";
+  const goalsTable = tableBlock("Goals", [
+    { name: "Goals", type: "title" },
+    { name: "Goal Value", type: "text" },
+    { name: "Due Date", type: "date" },
+    { name: "Done", type: "checkbox" },
+    { name: "Notes", type: "text" },
   ]);
 
   const hCal = createBlock("heading2") as HeadingBlock;
-  hCal.content = "📅 이번 달 캘린더";
+  hCal.content = "📅 This Month Calendar";
   const cal = createBlock("monthly_calendar") as MonthlyCalendarBlock;
-  cal.title = "월간 루틴 캘린더";
+  cal.title = "Monthly Routine Calendar";
   cal.year = y;
   cal.month = m + 1;
   cal.days = {};
@@ -82,76 +82,76 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
         id: crypto.randomUUID(),
         type: "callout",
         icon: "🗓️",
-        content: "오늘 진행한 내용을 아래에 기록해 주세요.",
+        content: "Record your progress for today below.",
       },
       {
         id: crypto.randomUUID(),
         type: "checklist",
         items: [
-          { content: "핵심 작업 완료", checked: false },
-          { content: "기록 업데이트", checked: false },
-          { content: "리뷰 작성", checked: false },
+          { content: "Core task completed", checked: false },
+          { content: "Log updated", checked: false },
+          { content: "Review written", checked: false },
         ],
       },
-      tableBlock("일일 기록", [
-        { name: "항목", type: "title" },
-        { name: "분류", type: "select", options: ["시작 전", "진행 중", "완료", "보류"] },
-        { name: "소요 시간(분)", type: "number" },
-        { name: "메모", type: "text" },
-        { name: "상태", type: "select", options: ["정상", "주의", "개선 필요"] },
+      tableBlock("Daily Log", [
+        { name: "Item", type: "title" },
+        { name: "Category", type: "select", options: ["Not Started", "In Progress", "Completed", "On Hold"] },
+        { name: "Duration (min)", type: "number" },
+        { name: "Notes", type: "text" },
+        { name: "Status", type: "select", options: ["Normal", "Needs attention", "Needs improvement"] },
       ]),
       {
         id: crypto.randomUUID(),
         type: "toggle",
-        title: "오늘의 메모",
+        title: "Today's Notes",
         children: [{ id: crypto.randomUUID(), type: "paragraph", content: "" }],
       },
     ],
   };
 
   const hMaster = createBlock("heading2") as HeadingBlock;
-  hMaster.content = "🏋️ 마스터 목록 (행 연결 예시)";
-  const master = tableBlock("마스터", [
-    { name: "이름", type: "title" },
-    { name: "분류", type: "select", options: ["A", "B", "C", "D"] },
-    { name: "목표 횟수/주", type: "number" },
-    { name: "최근 일자", type: "date" },
-    { name: "메모", type: "text" },
+  hMaster.content = "🏋️ Master List (row-link example)";
+  const master = tableBlock("Master", [
+    { name: "Name", type: "title" },
+    { name: "Category", type: "select", options: ["A", "B", "C", "D"] },
+    { name: "Target sessions/week", type: "number" },
+    { name: "Last Date", type: "date" },
+    { name: "Notes", type: "text" },
   ]);
   master.rows[0].linkedSectionId = "detail-slot-1";
   master.rows[1].linkedSectionId = "detail-slot-2";
   master.rows[2].linkedSectionId = "detail-slot-3";
 
-  const sp1 = detailSubPage("detail-slot-1", "상세 ①");
-  const sp2 = detailSubPage("detail-slot-2", "상세 ②");
-  const sp3 = detailSubPage("detail-slot-3", "상세 ③");
+  const sp1 = detailSubPage("detail-slot-1", "Detail 1");
+  const sp2 = detailSubPage("detail-slot-2", "Detail 2");
+  const sp3 = detailSubPage("detail-slot-3", "Detail 3");
 
   const hHyd = createBlock("heading2") as HeadingBlock;
-  hHyd.content = "💧 수분 · 보충";
+  hHyd.content = "💧 Hydration · Supplements";
   const hyd = createBlock("checklist") as ChecklistBlock;
   hyd.items = [
-    { content: "물 500ml — 기상 직후", checked: false },
-    { content: "물 500ml — 오전", checked: false },
-    { content: "물 500ml — 점심 후", checked: false },
-    { content: "물 500ml — 운동 전", checked: false },
-    { content: "물 500ml — 운동 후", checked: false },
-    { content: "물 500ml — 저녁", checked: false },
-    { content: "프로틴", checked: false },
-    { content: "비타민", checked: false },
-    { content: "크레아틴", checked: false },
+    { content: "Water 500ml — after waking", checked: false },
+    { content: "Water 500ml — morning", checked: false },
+    { content: "Water 500ml — after lunch", checked: false },
+    { content: "Water 500ml — pre-workout", checked: false },
+    { content: "Water 500ml — post-workout", checked: false },
+    { content: "Water 500ml — evening", checked: false },
+    { content: "Protein", checked: false },
+    { content: "Vitamins", checked: false },
+    { content: "Creatine", checked: false },
   ];
 
   const hRev = createBlock("heading2") as HeadingBlock;
-  hRev.content = "📊 주간 회고";
+  hRev.content = "📊 Weekly review";
   const revToggle = createBlock("toggle") as ToggleBlock;
-  revToggle.title = "▶ 이번 주 회고";
+  revToggle.title = "▶ This Week Review";
   const revBullets = createBlock("bulleted_list") as BulletedListBlock;
   revBullets.items = ["", "", ""];
   revToggle.children = [revBullets];
 
   const warn = createBlock("callout") as CalloutBlock;
   warn.icon = "⚠️";
-  warn.content = "네트워크가 안정적일 때 다시 생성해 보세요.";
+  warn.content = "Try regenerating when your network is stable.";
 
   const blocks: TemplateBlock[] = [
     h1,

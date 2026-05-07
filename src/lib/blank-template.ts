@@ -4,7 +4,7 @@ import type { TemplateBlock } from "@/types/template";
 /** Notion-style starter: title + empty paragraph. */
 export function createBlankTemplateBlocks(): TemplateBlock[] {
   return [
-    { id: newBlockId(), type: "heading1", content: "제목 없음" },
+    { id: newBlockId(), type: "heading1", content: "Untitled" },
     { id: newBlockId(), type: "paragraph", content: "" },
   ];
 }

@@ -23,7 +23,7 @@ export function TopBar({ profile }: { profile: TopBarProfile }) {
       <div className="relative hidden max-w-md flex-1 md:block">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground stroke-[1.5]" />
         <Input
-          placeholder="템플릿 검색…"
+          placeholder="Search templates..."
           className="rounded-xl border-border pl-9 transition-all duration-200"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -36,9 +36,9 @@ export function TopBar({ profile }: { profile: TopBarProfile }) {
       <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2">
         <div
           className="max-w-[160px] truncate rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground"
-          title="남은 AI 크레딧"
+          title="AI credits left"
         >
-          크레딧 {creditsDisplay(aiCredits, aiCreditsCeiling)} 남음
+          {creditsDisplay(aiCredits, aiCreditsCeiling)} credits left
         </div>
         <Button
           type="button"
@@ -46,9 +46,9 @@ export function TopBar({ profile }: { profile: TopBarProfile }) {
           className="hidden rounded-xl bg-yeo-600 shadow-sm transition-all duration-200 hover:bg-yeo-700 md:inline-flex"
           onClick={() => setGenerateOpen(true)}
         >
-          새 템플릿
+          New Template
         </Button>
-        <Button type="button" variant="ghost" size="icon" className="rounded-xl" aria-label="알림">
+        <Button type="button" variant="ghost" size="icon" className="rounded-xl" aria-label="Notifications">
           <Bell className="size-4 stroke-[1.5]" />
         </Button>
         <ProfileAccountMenu profile={profile} />

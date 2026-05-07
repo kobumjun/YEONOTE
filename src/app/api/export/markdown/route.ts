@@ -7,7 +7,7 @@ import type { TemplateContent } from "@/types/template";
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const body = await req.json().catch(() => null) as {
     templateId?: string;
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
-  let title = body?.title ?? "제목 없음";
+  let title = body?.title ?? "Untitled";
   let blocks: TemplateBlock[] = body?.blocks ?? [];
 
   if (body?.templateId) {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       .eq("id", body.templateId)
       .maybeSingle();
     if (!tpl || tpl.user_id !== user.id) {
-      return NextResponse.json({ error: "찾을 수 없어요." }, { status: 404 });
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
     title = tpl.title;
     const c = (tpl.content ?? { blocks: [] }) as TemplateContent;

@@ -53,10 +53,10 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         <footer className="border-t bg-background px-4 py-3 text-xs text-muted-foreground md:px-6">
           <div className="mx-auto flex max-w-6xl items-center gap-4">
             <Link href="/privacy" className="transition-colors duration-200 hover:text-foreground">
-              개인정보 처리방침
+              Privacy Policy
             </Link>
             <Link href="/terms" className="transition-colors duration-200 hover:text-foreground">
-              이용약관
+              Terms of Service
             </Link>
           </div>
         </footer>

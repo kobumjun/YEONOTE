@@ -8,35 +8,35 @@ export function Footer() {
         <div>
           <Logo href="/" className="text-white [&_span:last-child]:text-white" />
           <p className="mt-3 max-w-xs text-sm text-neutral-400">
-            AI로 빠르게 짜고, 직접 다듬어 완성하는 구조화 템플릿 — YEO와 함께하세요.
+            Build quickly with AI, refine manually, and ship polished structured templates with YEO.
           </p>
         </div>
         <div className="flex flex-wrap gap-12 text-sm">
           <div className="space-y-2">
-            <p className="font-medium text-white">서비스</p>
+            <p className="font-medium text-white">Product</p>
             <Link href="/#pricing" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              요금제
+              Pricing
             </Link>
             <Link href="/explore" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              둘러보기
+              Explore
             </Link>
           </div>
           <div className="space-y-2">
-            <p className="font-medium text-white">계정</p>
+            <p className="font-medium text-white">Account</p>
             <Link href="/login" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              로그인
+              Sign In
             </Link>
             <Link href="/login" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              시작하기
+              Get Started
             </Link>
           </div>
           <div className="space-y-2">
-            <p className="font-medium text-white">약관</p>
+            <p className="font-medium text-white">Legal</p>
             <Link href="/privacy" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              개인정보 처리방침
+              Privacy Policy
             </Link>
             <Link href="/terms" className="block text-neutral-400 transition-colors duration-200 hover:text-white">
-              이용약관
+              Terms of Service
             </Link>
           </div>
         </div>
