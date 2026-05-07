@@ -411,6 +411,43 @@ export function BlockRenderer({
           )}
         </div>
       );
+    case "checklist":
+      return wrap(
+        <ul className="list-none space-y-1.5 text-sm">
+          {block.items.map((item, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <Checkbox
+                checked={item.checked}
+                disabled={readOnly}
+                onCheckedChange={(v) => {
+                  const next = [...block.items];
+                  next[i] = { ...next[i], checked: Boolean(v) };
+                  onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                }}
+                className="mt-0.5"
+              />
+              {readOnly ? (
+                <span className={item.checked ? "text-muted-foreground line-through" : ""}>{item.content}</span>
+              ) : (
+                <EditableContent
+                  ariaLabel={`체크리스트 항목 ${i + 1}`}
+                  className="min-w-0 flex-1 rounded bg-transparent p-0.5 text-sm outline-none focus:ring-2 focus:ring-yeo-500/30"
+                  value={String(item.content ?? "")}
+                  onValueChange={(value) => {
+                    const next = [...block.items];
+                    next[i] = { ...next[i], content: value };
+                    onChange?.(block.id, { items: next } as Partial<TemplateBlock>);
+                    debugInput("checklist", value);
+                  }}
+                  onEnter={() => onEnter?.(block.id)}
+                  onKeyDown={stopGlobalHotkeys}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      );
     case "toggle":
       return wrap(
         <details className="rounded-lg border bg-muted/30 px-3 py-2">
@@ -453,6 +490,169 @@ export function BlockRenderer({
             )}
           </div>
         </details>
+      );
+    case "sub_page":
+      return wrap(
+        <details className="rounded-xl border-2 border-yeo-200/90 bg-card shadow-sm dark:border-yeo-800/70">
+          <summary className="cursor-pointer list-none px-3 py-2 [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              {readOnly ? (
+                <>
+                  {block.icon ? <span className="text-lg leading-none">{block.icon}</span> : null}
+                  <span>{block.title}</span>
+                  <span className="text-[10px] font-normal uppercase tracking-wide text-muted-foreground">Sub-page</span>
+                </>
+              ) : (
+                <>
+                  <DebouncedTextField
+                    className="w-10 shrink-0 border-0 bg-transparent text-center text-lg outline-none"
+                    value={String(block.icon ?? "")}
+                    onCommit={(v) => onChange?.(block.id, { icon: v } as Partial<TemplateBlock>)}
+                    ariaLabel="하위 페이지 아이콘"
+                    onKeyDown={stopGlobalHotkeys}
+                  />
+                  <EditableContent
+                    ariaLabel="하위 페이지 제목"
+                    className="inline-block min-w-[12ch] flex-1 rounded px-1 py-0.5 font-medium outline-none focus:ring-2 focus:ring-yeo-500/30"
+                    value={String(block.title ?? "")}
+                    onValueChange={(value) => {
+                      onChange?.(block.id, { title: value } as Partial<TemplateBlock>);
+                      debugInput("title", value);
+                    }}
+                    onEnter={() => onEnter?.(block.id)}
+                    onKeyDown={(e) => {
+                      stopGlobalHotkeys(e);
+                      enterCreatesNewBlock(e);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <span className="hidden text-[10px] font-normal uppercase tracking-wide text-muted-foreground sm:inline">
+                    Sub-page
+                  </span>
+                </>
+              )}
+            </span>
+          </summary>
+          <div className="space-y-1 border-t border-border/60 px-3 py-2">
+            <div className="space-y-1 border-l-2 border-yeo-400/70 pl-3 dark:border-yeo-600">
+              {(Array.isArray(block.children) ? block.children : []).map((c) => (
+                <BlockRenderer
+                  key={c.id}
+                  block={c}
+                  readOnly={readOnly}
+                  onChange={onChange}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                  onEnter={onEnter}
+                  depth={depth + 1}
+                />
+              ))}
+              {(Array.isArray(block.children) ? block.children.length : 0) === 0 && (
+                <p className="text-xs text-muted-foreground">펼치면 이 안에 세부 블록을 넣을 수 있어요.</p>
+              )}
+            </div>
+          </div>
+        </details>
+      );
+    case "linked_page":
+      return wrap(
+        <div className="overflow-hidden rounded-xl border-2 border-dashed border-yeo-300/80 bg-gradient-to-br from-card to-muted/30 dark:border-yeo-700/60">
+          <div className="flex flex-col gap-2 border-b border-border/70 px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-1 items-start gap-2">
+              {readOnly ? (
+                block.icon ? (
+                  <span className="text-lg leading-none">{block.icon}</span>
+                ) : null
+              ) : (
+                <DebouncedTextField
+                  className="w-10 shrink-0 border-0 bg-transparent text-center text-lg outline-none"
+                  value={String(block.icon ?? "")}
+                  onCommit={(v) => onChange?.(block.id, { icon: v } as Partial<TemplateBlock>)}
+                  ariaLabel="링크 페이지 아이콘"
+                  onKeyDown={stopGlobalHotkeys}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                {readOnly ? (
+                  <div className="font-medium">
+                    {block.url ? (
+                      <a
+                        href={block.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-yeo-700 underline-offset-2 hover:underline dark:text-yeo-300"
+                      >
+                        {block.title || block.url}
+                      </a>
+                    ) : (
+                      block.title
+                    )}
+                  </div>
+                ) : (
+                  <EditableContent
+                    ariaLabel="링크 페이지 제목"
+                    className="w-full rounded px-0.5 py-0.5 text-sm font-medium outline-none focus:ring-2 focus:ring-yeo-500/30"
+                    value={String(block.title ?? "")}
+                    onValueChange={(value) => {
+                      onChange?.(block.id, { title: value } as Partial<TemplateBlock>);
+                      debugInput("title", value);
+                    }}
+                    onKeyDown={stopGlobalHotkeys}
+                  />
+                )}
+                {readOnly ? (
+                  block.description ? (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{block.description}</p>
+                  ) : null
+                ) : (
+                  <EditableContent
+                    ariaLabel="짧은 설명"
+                    multiline
+                    className="mt-1 min-h-6 w-full whitespace-pre-wrap rounded p-0.5 text-xs text-muted-foreground outline-none focus:ring-2 focus:ring-yeo-500/30"
+                    value={String(block.description ?? "")}
+                    onValueChange={(value) => {
+                      onChange?.(block.id, { description: value } as Partial<TemplateBlock>);
+                      debugInput("description", value);
+                    }}
+                    onKeyDown={stopGlobalHotkeys}
+                  />
+                )}
+              </div>
+            </div>
+            {!readOnly && (
+              <DebouncedTextField
+                className="w-full shrink-0 rounded border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-yeo-500/30 sm:max-w-[240px]"
+                value={String(block.url ?? "")}
+                onCommit={(v) => onChange?.(block.id, { url: v } as Partial<TemplateBlock>)}
+                ariaLabel="외부 URL (선택, https://…)"
+                onKeyDown={stopGlobalHotkeys}
+              />
+            )}
+            {readOnly && block.url ? (
+              <span className="truncate text-xs text-muted-foreground sm:max-w-[200px]">{block.url}</span>
+            ) : null}
+          </div>
+          <div className="space-y-1 px-3 py-2">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">안쪽 콘텐츠</p>
+            <div className="space-y-1 border-l-2 border-yeo-500/40 pl-3 dark:border-yeo-500/60">
+              {(Array.isArray(block.children) ? block.children : []).map((c) => (
+                <BlockRenderer
+                  key={c.id}
+                  block={c}
+                  readOnly={readOnly}
+                  onChange={onChange}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                  onEnter={onEnter}
+                  depth={depth + 1}
+                />
+              ))}
+              {(Array.isArray(block.children) ? block.children.length : 0) === 0 && (
+                <p className="text-xs text-muted-foreground">상세 표·체크리스트·문단을 여기에 두면 돼요.</p>
+              )}
+            </div>
+          </div>
+        </div>
       );
     case "callout":
       return wrap(

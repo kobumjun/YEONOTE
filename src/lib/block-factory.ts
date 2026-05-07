@@ -19,8 +19,34 @@ export function createBlock(type: InsertableBlockType): TemplateBlock {
       return { id, type: "numbered_list", items: ["Item"] };
     case "to_do":
       return { id, type: "to_do", content: "To-do", checked: false };
+    case "checklist":
+      return {
+        id,
+        type: "checklist",
+        items: [
+          { content: "First item", checked: false },
+          { content: "Second item", checked: false },
+        ],
+      };
     case "toggle":
       return { id, type: "toggle", title: "Toggle", children: [{ id: newBlockId(), type: "paragraph", content: "" }] };
+    case "sub_page":
+      return {
+        id,
+        type: "sub_page",
+        title: "Sub-page",
+        icon: "📄",
+        children: [{ id: newBlockId(), type: "paragraph", content: "" }],
+      };
+    case "linked_page":
+      return {
+        id,
+        type: "linked_page",
+        title: "Linked page",
+        icon: "🔗",
+        description: "",
+        children: [{ id: newBlockId(), type: "paragraph", content: "" }],
+      };
     case "callout":
       return { id, type: "callout", icon: "💡", content: "Callout content" };
     case "quote":

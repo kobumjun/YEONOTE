@@ -88,7 +88,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   updateBlock: (id, patch) => {
     const updateInTree = (node: TemplateBlock): TemplateBlock => {
       if (node.id === id) return { ...node, ...patch } as TemplateBlock;
-      if (node.type === "toggle") {
+      if (node.type === "toggle" || node.type === "sub_page" || node.type === "linked_page") {
         return {
           ...node,
           children: node.children.map(updateInTree),

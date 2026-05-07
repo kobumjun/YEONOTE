@@ -122,9 +122,38 @@ export type ToDoBlock = BlockBase & {
   checked: boolean;
 };
 
+export type ChecklistItem = {
+  content: string;
+  checked: boolean;
+};
+
+/** Multi-item checkbox list (e.g. weekly habits). Distinct from single-line to_do. */
+export type ChecklistBlock = BlockBase & {
+  type: "checklist";
+  items: ChecklistItem[];
+};
+
 export type ToggleBlock = BlockBase & {
   type: "toggle";
   title: string;
+  children: TemplateBlock[];
+};
+
+/** Notion-style sub-page: expandable detail area (hierarchical depth). */
+export type SubPageBlock = BlockBase & {
+  type: "sub_page";
+  title: string;
+  icon?: string;
+  children: TemplateBlock[];
+};
+
+/** Linked detail hub: optional external URL + nested blocks (use when a row/item has a “detail page”). */
+export type LinkedPageBlock = BlockBase & {
+  type: "linked_page";
+  title: string;
+  icon?: string;
+  description?: string;
+  url?: string;
   children: TemplateBlock[];
 };
 
@@ -212,7 +241,10 @@ export type TemplateBlock =
   | BulletedListBlock
   | NumberedListBlock
   | ToDoBlock
+  | ChecklistBlock
   | ToggleBlock
+  | SubPageBlock
+  | LinkedPageBlock
   | CalloutBlock
   | QuoteBlock
   | DividerBlock
@@ -262,9 +294,45 @@ export function newBlockId(): BlockId {
   return crypto.randomUUID();
 }
 
+function coerceChecklistItems(raw: unknown): ChecklistItem[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [{ content: "", checked: false }];
+  }
+  const out: ChecklistItem[] = [];
+  for (const item of raw) {
+    if (typeof item === "string") {
+      out.push({ content: item, checked: false });
+      continue;
+    }
+    if (item && typeof item === "object") {
+      const o = item as Record<string, unknown>;
+      out.push({
+        content: coerceText(o.content ?? o.text ?? o.label ?? ""),
+        checked: Boolean(o.checked ?? o.done),
+      });
+    }
+  }
+  return out.length ? out : [{ content: "", checked: false }];
+}
+
+/** Maps common AI aliases to canonical block types. */
+function resolveAiBlockType(raw: Record<string, unknown>): string | null {
+  let t = String(raw.type ?? "").trim();
+  if (!t) return null;
+  t = t.toLowerCase().replace(/-/g, "_");
+  if (t === "table") return "database_table";
+  if (t === "heading") {
+    const lv = Number(raw.level ?? raw.depth ?? 2);
+    if (lv === 1) return "heading1";
+    if (lv === 3) return "heading3";
+    return "heading2";
+  }
+  return t;
+}
+
 export function remapBlockIds(block: TemplateBlock): TemplateBlock {
   const id = newBlockId();
-  if (block.type === "toggle") {
+  if (block.type === "toggle" || block.type === "sub_page" || block.type === "linked_page") {
     return { ...block, id, children: block.children.map(remapBlockIds) };
   }
   if (block.type === "columns") {
@@ -279,7 +347,8 @@ export function remapBlockIds(block: TemplateBlock): TemplateBlock {
 
 export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): TemplateBlock | null {
   const bid = id ?? newBlockId();
-  const type = raw.type as string;
+  const type = resolveAiBlockType(raw);
+  if (!type) return null;
   switch (type) {
     case "heading1":
     case "heading2":
@@ -306,12 +375,48 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         content: coerceText(raw.content),
         checked: Boolean(raw.checked),
       };
+    case "checklist":
+      return {
+        id: bid,
+        type: "checklist",
+        items: coerceChecklistItems(raw.items),
+      };
     case "toggle": {
       const childrenRaw = Array.isArray(raw.children) ? (raw.children as Record<string, unknown>[]) : [];
       const children = childrenRaw
         .map((c) => normalizeAiBlock(c))
         .filter((b): b is TemplateBlock => b !== null);
       return { id: bid, type: "toggle", title: coerceText(raw.title), children };
+    }
+    case "sub_page": {
+      const childrenRaw = Array.isArray(raw.children) ? (raw.children as Record<string, unknown>[]) : [];
+      const children = childrenRaw
+        .map((c) => normalizeAiBlock(c))
+        .filter((b): b is TemplateBlock => b !== null);
+      return {
+        id: bid,
+        type: "sub_page",
+        title: coerceText(raw.title),
+        ...(raw.icon != null && String(raw.icon).trim() ? { icon: coerceText(raw.icon) } : {}),
+        children,
+      };
+    }
+    case "linked_page": {
+      const childrenRaw = Array.isArray(raw.children) ? (raw.children as Record<string, unknown>[]) : [];
+      const children = childrenRaw
+        .map((c) => normalizeAiBlock(c))
+        .filter((b): b is TemplateBlock => b !== null);
+      return {
+        id: bid,
+        type: "linked_page",
+        title: coerceText(raw.title),
+        ...(raw.icon != null && String(raw.icon).trim() ? { icon: coerceText(raw.icon) } : {}),
+        ...(raw.description != null && String(raw.description).trim()
+          ? { description: coerceText(raw.description) }
+          : {}),
+        ...(raw.url != null && String(raw.url).trim() ? { url: String(raw.url).trim() } : {}),
+        children,
+      };
     }
     case "callout":
       return {
@@ -424,7 +529,7 @@ function padMinRowsOnDatabaseBlocks(block: TemplateBlock): TemplateBlock {
   if (block.type === "database_gallery") {
     return { ...block, rows: padDatabaseRowsToMin(block.columns, block.rows) };
   }
-  if (block.type === "toggle") {
+  if (block.type === "toggle" || block.type === "sub_page" || block.type === "linked_page") {
     return { ...block, children: block.children.map(padMinRowsOnDatabaseBlocks) };
   }
   if (block.type === "columns") {

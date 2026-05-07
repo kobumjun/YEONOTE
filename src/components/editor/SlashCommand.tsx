@@ -25,12 +25,15 @@ const groups: { label: string; items: { type: InsertableBlockType; label: string
     ],
   },
   {
-    label: "목록",
+    label: "목록·구조",
     items: [
       { type: "bulleted_list", label: "글머리 기호 목록" },
       { type: "numbered_list", label: "번호 목록" },
       { type: "to_do", label: "할 일" },
+      { type: "checklist", label: "체크리스트" },
       { type: "toggle", label: "토글" },
+      { type: "sub_page", label: "하위 페이지" },
+      { type: "linked_page", label: "링크·상세 페이지" },
     ],
   },
   {

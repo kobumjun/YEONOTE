@@ -1,12 +1,16 @@
 import { createBlock } from "@/lib/block-factory";
 import type {
   AITemplatePayload,
+  BulletedListBlock,
   CalloutBlock,
+  ChecklistBlock,
   DatabaseColumn,
   DatabaseTableBlock,
   HeadingBlock,
   ParagraphBlock,
+  SubPageBlock,
   TemplateBlock,
+  ToggleBlock,
 } from "@/types/template";
 import { padDatabaseRowsToMin } from "@/types/template";
 
@@ -23,33 +27,75 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
   const preview = userPrompt.trim().slice(0, 240);
 
   const h1 = createBlock("heading1") as HeadingBlock;
-  h1.content = "Routine tracker (starter)";
+  h1.content = "루틴 · 기록 템플릿 (간이)";
+
+  const guide = createBlock("callout") as CalloutBlock;
+  guide.icon = "📌";
+  guide.content =
+    "이 템플릿은 운동·식단·지표를 한곳에서 관리하기 위한 예시예요. 위쪽 체크리스트로 습관을, 하위 페이지·토글 안의 표에 세부 로그를 쌓으면 됩니다. AI가 다시 생성하면 주제에 맞게 구조가 달라져요.";
 
   const intro = createBlock("paragraph") as ParagraphBlock;
-  intro.content = `AI 생성이 시간 제한 안에 완료되지 않아 기본 골격만 드려요. 아래 표는 각각 다른 목적을 가진 예시 구조입니다. 편집해서 채워 넣거나, 다시 생성해 보세요.\n\n요청 요약: ${preview || "(비어 있음)"}`;
+  intro.content = `생성이 시간 안에 끝나지 않아 계층 예시만 드려요. 요청 요약: ${preview || "(비어 있음)"}`;
+
+  const hDash = createBlock("heading2") as HeadingBlock;
+  hDash.content = "🗓️ 이번 주 리듬";
+
+  const habitCheck = createBlock("checklist") as ChecklistBlock;
+  habitCheck.items = [
+    { content: "주 3회 이상 운동 세션 완료", checked: false },
+    { content: "물 섭취 목표 채우기", checked: false },
+    { content: "준비한 식단 기록하기", checked: false },
+    { content: "주간 지표 한 번 갱신", checked: false },
+  ];
+
+  const miniLog = tableBlock("세부 로그 (예시)", [
+    { name: "항목", type: "title" },
+    { name: "유형", type: "select", options: ["🏋 운동", "🍽 식사", "😴 수면", "📝 메모", "⏸ 휴식"] },
+    { name: "시간(분)", type: "number" },
+    { name: "강도", type: "select", options: ["낮음", "중간", "높음", "휴식"] },
+    { name: "날짜", type: "date" },
+    { name: "메모", type: "text" },
+  ]);
+
+  const sub = createBlock("sub_page") as SubPageBlock;
+  sub.title = "일별 · 항목별 상세";
+  sub.icon = "📂";
+  sub.children = [
+    createBlock("paragraph") as ParagraphBlock,
+    miniLog,
+  ];
+  (sub.children[0] as ParagraphBlock).content =
+    "토글이나 하위 페이지 안에 표와 체크리스트를 두면 깊이가 생깁니다. 여기는 그 패턴의 미니 예시예요.";
+
+  const toggle = createBlock("toggle") as ToggleBlock;
+  toggle.title = "💡 빠른 팁 (펼쳐 보기)";
+  const tips = createBlock("bulleted_list") as BulletedListBlock;
+  tips.items = [
+    "같은 열 이름을 여러 표에서 복붙하지 말고 목적별로 나누세요.",
+    "날짜 열은 항상 YYYY-MM-DD로 통일하면 필터·정렬이 쉬워요.",
+    "주제가 바뀌면 표 개수보다 '토글·체크리스트·하위 페이지' 배치를 먼저 바꿔 보세요.",
+  ];
+  toggle.children = [tips];
 
   const warn = createBlock("callout") as CalloutBlock;
   warn.icon = "⚠️";
-  warn.content =
-    "더 풍부한 결과를 원하면 설명을 조금 짧게 하거나, 네트워크 상태가 좋을 때 다시 시도해 보세요. 각 섹션은 '설명 문단 + 전용 표' 형태로 확장하면 좋아요.";
+  warn.content = "더 풍부한 결과를 원하면 네트워크 상태가 좋을 때 다시 생성해 보세요.";
 
   const h2a = createBlock("heading2") as HeadingBlock;
   h2a.content = "🏋️ Exercise log";
   const pa = createBlock("paragraph") as ParagraphBlock;
   pa.content =
-    "여기에 운동 세션을 한 줄씩 적습니다. 운동 이름과 유형을 적고, 소요 시간과 강도를 선택한 뒤 날짜와 메모로 패턴을 추적하세요. 주간으로 복사해 쓰면 주기 비교가 쉬워요.";
+    "운동 세션을 한 줄씩 적습니다. 이름·유형·시간·강도·날짜·메모로 패턴을 추적하세요.";
 
   const h2b = createBlock("heading2") as HeadingBlock;
   h2b.content = "🍽️ Diet log";
   const pb = createBlock("paragraph") as ParagraphBlock;
-  pb.content =
-    "식사 단위로 기록합니다. 끼니 이름과 카테고리를 적고 칼로리·매크로를 숫자로 넣으세요. 같은 날 여러 끼니를 구분하려면 메모 열에 시간대를 적어 두면 됩니다.";
+  pb.content = "끼니 단위로 기록합니다. 칼로리와 매크로를 숫자로 두면 합산하기 좋아요.";
 
   const h2c = createBlock("heading2") as HeadingBlock;
   h2c.content = "📈 Progress metrics";
   const pc = createBlock("paragraph") as ParagraphBlock;
-  pc.content =
-    "측정하고 싶은 지표마다 한 행을 씁니다. 시작값·현재값·목표값을 숫자로 두고 주기마다 날짜를 갱신하세요. 코멘트에는 측정 조건이나 장비를 적어 두면 나중에 해석이 쉬워요.";
+  pc.content = "지표마다 한 행을 쓰고 시작·현재·목표값을 갱신하세요.";
 
   const t1 = tableBlock("Exercise sessions", [
     { name: "Exercise", type: "title" },
@@ -81,7 +127,25 @@ export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayl
     { name: "Comments", type: "text" },
   ]);
 
-  const blocks: TemplateBlock[] = [h1, intro, warn, h2a, pa, t1, h2b, pb, t2, h2c, pc, t3];
+  const blocks: TemplateBlock[] = [
+    h1,
+    guide,
+    intro,
+    hDash,
+    habitCheck,
+    sub,
+    toggle,
+    warn,
+    h2a,
+    pa,
+    t1,
+    h2b,
+    pb,
+    t2,
+    h2c,
+    pc,
+    t3,
+  ];
 
   return {
     title: "Starter (timeout)",

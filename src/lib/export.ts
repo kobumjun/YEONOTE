@@ -16,9 +16,23 @@ function blockToMarkdown(block: TemplateBlock, depth = 0): string {
       return block.items.map((i, n) => `${n + 1}. ${i}`).join("\n") + "\n\n";
     case "to_do":
       return `- [${block.checked ? "x" : " "}] ${block.content}\n`;
+    case "checklist":
+      return (
+        block.items.map((it) => `- [${it.checked ? "x" : " "}] ${it.content}`).join("\n") + "\n\n"
+      );
     case "toggle": {
       const inner = block.children.map((c) => blockToMarkdown(c, depth + 1)).join("");
       return `<details><summary>${block.title}</summary>\n\n${inner}\n</details>\n\n`;
+    }
+    case "sub_page": {
+      const inner = block.children.map((c) => blockToMarkdown(c, depth + 1)).join("");
+      const head = [block.icon, block.title].filter(Boolean).join(" ");
+      return `<details><summary>${head}</summary>\n\n${inner}\n</details>\n\n`;
+    }
+    case "linked_page": {
+      const inner = block.children.map((c) => blockToMarkdown(c, depth + 1)).join("");
+      const meta = [block.icon, block.title, block.description, block.url].filter(Boolean).join(" — ");
+      return `${meta}\n\n${inner}\n\n`;
     }
     case "callout":
       return `> ${block.icon} ${block.content}\n\n`;
