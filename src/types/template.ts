@@ -104,32 +104,105 @@ function extractRowLinkId(rec: Record<string, unknown>): string | undefined {
   return sanitizeBlockIdFromAi(linkRaw.trim());
 }
 
-/** Normalizes one DB row from AI/JSON; preserves linkedSectionId outside column keys. */
-export function normalizeDatabaseRowFromAi(
-  rec: Record<string, unknown>,
-  columns: DatabaseColumn[]
-): DatabaseRow {
-  const link = extractRowLinkId(rec);
+/** Cell value in a leaked "detail link" column → slug for linkedSectionId (never invent UUID). */
+export function migrateLeakyCellToLinkedSectionId(val: unknown): string | undefined {
+  const s = String(val ?? "").trim();
+  if (!s) return undefined;
+  const cleaned = s.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128);
+  if (cleaned.length < 3) return undefined;
+  return cleaned;
+}
+
+/** Column titles that must never appear as user-visible DB columns (detail routing only). */
+export function isHiddenMetaDatabaseColumnName(name: string): boolean {
+  const compact = name.trim().toLowerCase().replace(/\s+/g, "");
+  if (compact === "linkedsectionid" || compact === "targetblockid") return true;
+  if (compact.includes("linkedsection")) return true;
+  if (compact.includes("targetblock")) return true;
+  if (compact.includes("세부페이지")) return true;
+  if (compact.includes("subpage") || compact.includes("sub_page")) return true;
+  if (compact.includes("detailpage") || compact.includes("detaillink")) return true;
+  return false;
+}
+
+/** Removes leaked meta columns and promotes their cell values to row.linkedSectionId when needed. */
+export function stripMetaLinkColumnsFromDatabaseTable(
+  columns: DatabaseColumn[],
+  rows: DatabaseRow[]
+): { columns: DatabaseColumn[]; rows: DatabaseRow[] } {
+  const removeNames = columns.filter((c) => isHiddenMetaDatabaseColumnName(c.name)).map((c) => c.name);
+  if (removeNames.length === 0) return { columns, rows };
+
+  const keepCols = columns.filter((c) => !removeNames.includes(c.name));
+  const newRows = rows.map((row) => {
+    const next: DatabaseRow = { ...row };
+    let link = next.linkedSectionId?.trim();
+    for (const name of removeNames) {
+      const migrated = migrateLeakyCellToLinkedSectionId(next[name]);
+      if (!link && migrated) link = migrated;
+      delete next[name];
+    }
+    if (link) next.linkedSectionId = sanitizeBlockIdFromAi(link);
+    else delete next.linkedSectionId;
+    return next;
+  });
+
+  return { columns: keepCols, rows: newRows };
+}
+
+/** Row link for UI: explicit linkedSectionId or fallback from leaked columns still present in legacy data. */
+export function getEffectiveLinkedSectionId(row: DatabaseRow, columns: DatabaseColumn[]): string | undefined {
+  const direct = row.linkedSectionId?.trim();
+  if (direct) return direct;
+  for (const c of columns) {
+    if (!isHiddenMetaDatabaseColumnName(c.name)) continue;
+    const m = migrateLeakyCellToLinkedSectionId(row[c.name]);
+    if (m) return sanitizeBlockIdFromAi(m);
+  }
+  return undefined;
+}
+
+/** Normalizes one DB row from AI/JSON; supports row objects, { cells, linkedSectionId }, or plain arrays aligned to columns. */
+export function normalizeDatabaseRowFromAi(raw: unknown, columns: DatabaseColumn[]): DatabaseRow {
+  let linkFromMeta: string | undefined;
+  const valuesByColName: Record<string, unknown> = {};
+
+  if (Array.isArray(raw)) {
+    columns.forEach((c, i) => {
+      if (i < raw.length && raw[i] !== undefined && raw[i] !== null) valuesByColName[c.name] = raw[i];
+    });
+  } else if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    linkFromMeta = extractRowLinkId(o);
+    if (Array.isArray(o.cells)) {
+      const cells = o.cells as unknown[];
+      columns.forEach((c, i) => {
+        if (i < cells.length && cells[i] !== undefined && cells[i] !== null) valuesByColName[c.name] = cells[i];
+      });
+    }
+    for (const c of columns) {
+      if (Object.prototype.hasOwnProperty.call(o, c.name)) {
+        valuesByColName[c.name] = o[c.name];
+      }
+    }
+  }
+
   const row: DatabaseRow = {};
   for (const c of columns) {
-    const v = rec[c.name];
+    const v = valuesByColName[c.name];
     if (c.type === "checkbox") row[c.name] = Boolean(v);
     else if (c.type === "number")
       row[c.name] = v === "" || v === undefined || v === null ? null : Number(v);
     else if (c.type === "date") row[c.name] = typeof v === "string" ? v : "";
     else row[c.name] = v == null ? "" : String(v);
   }
-  if (link) row.linkedSectionId = link;
+  if (linkFromMeta) row.linkedSectionId = sanitizeBlockIdFromAi(linkFromMeta.trim());
   return row;
 }
 
 export function normalizeDatabaseRowsFromAi(raw: unknown, columns: DatabaseColumn[]): DatabaseRow[] {
   if (!Array.isArray(raw)) return [];
-  return raw.map((r) =>
-    r && typeof r === "object"
-      ? normalizeDatabaseRowFromAi(r as Record<string, unknown>, columns)
-      : normalizeDatabaseRowFromAi({}, columns)
-  );
+  return raw.map((r) => normalizeDatabaseRowFromAi(r, columns));
 }
 
 /** Ensures AI/imported tables have enough blank starter rows (no prefilled sample data). */
@@ -561,46 +634,54 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         description: raw.description ? String(raw.description) : undefined,
       };
     case "database_table": {
-      const columns = coerceDatabaseColumns(raw.columns);
+      let columns = coerceDatabaseColumns(raw.columns);
+      let rows = normalizeDatabaseRowsFromAi(raw.rows, columns);
+      ({ columns, rows } = stripMetaLinkColumnsFromDatabaseTable(columns, rows));
       return {
         id: bid,
         type: "database_table",
         title: String(raw.title ?? ""),
         columns,
-        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
+        rows,
       };
     }
     case "database_board": {
-      const columns = coerceDatabaseColumns(raw.columns);
+      let columns = coerceDatabaseColumns(raw.columns);
+      let rows = normalizeDatabaseRowsFromAi(raw.rows, columns);
+      ({ columns, rows } = stripMetaLinkColumnsFromDatabaseTable(columns, rows));
       return {
         id: bid,
         type: "database_board",
         title: String(raw.title ?? ""),
         groupBy: String(raw.groupBy ?? "Status"),
         columns,
-        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
+        rows,
       };
     }
     case "database_calendar": {
-      const columns = coerceDatabaseColumns(raw.columns);
+      let columns = coerceDatabaseColumns(raw.columns);
+      let rows = normalizeDatabaseRowsFromAi(raw.rows, columns);
+      ({ columns, rows } = stripMetaLinkColumnsFromDatabaseTable(columns, rows));
       return {
         id: bid,
         type: "database_calendar",
         title: String(raw.title ?? ""),
         dateColumn: String(raw.dateColumn ?? "Date"),
         columns,
-        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
+        rows,
       };
     }
     case "database_gallery": {
-      const columns = coerceDatabaseColumns(raw.columns);
+      let columns = coerceDatabaseColumns(raw.columns);
+      let rows = normalizeDatabaseRowsFromAi(raw.rows, columns);
+      ({ columns, rows } = stripMetaLinkColumnsFromDatabaseTable(columns, rows));
       return {
         id: bid,
         type: "database_gallery",
         title: String(raw.title ?? ""),
         imageColumn: String(raw.imageColumn ?? "Image"),
         columns,
-        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
+        rows,
       };
     }
     case "columns": {

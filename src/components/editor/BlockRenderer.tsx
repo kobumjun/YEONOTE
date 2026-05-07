@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { getSelectColumnOptions, type DatabaseRow, type TemplateBlock } from "@/types/template";
+import {
+  getEffectiveLinkedSectionId,
+  getSelectColumnOptions,
+  isHiddenMetaDatabaseColumnName,
+  type DatabaseRow,
+  type TemplateBlock,
+} from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
@@ -263,9 +269,10 @@ export function BlockRenderer({
 
   const emitOpenLinkedDetail = (row: DatabaseRow) => {
     if (block.type !== "database_table") return;
-    const lid = row.linkedSectionId?.trim();
+    const cols = block.columns;
+    const lid = getEffectiveLinkedSectionId(row, cols)?.trim();
     if (!lid || !onOpenLinkedDetail) return;
-    const key0 = block.columns[0]?.name;
+    const key0 = cols.find((c) => !isHiddenMetaDatabaseColumnName(c.name))?.name;
     const rowTitle = key0 ? String(row[key0] ?? "").trim() : "";
     onOpenLinkedDetail({
       linkedSectionId: lid,
@@ -275,7 +282,8 @@ export function BlockRenderer({
   };
 
   const handleLinkedRowActivate = (e: React.MouseEvent | React.KeyboardEvent, row: DatabaseRow) => {
-    if (!row.linkedSectionId?.trim() || !onOpenLinkedDetail) return;
+    if (block.type !== "database_table") return;
+    if (!getEffectiveLinkedSectionId(row, block.columns)?.trim() || !onOpenLinkedDetail) return;
     const el = e.target as HTMLElement | null;
     if (el?.closest("button, input, select, textarea, a, [contenteditable='true']")) return;
     emitOpenLinkedDetail(row);
@@ -795,9 +803,10 @@ export function BlockRenderer({
         </a>
       );
     case "database_table": {
-      const showLinkColumn = block.rows.some((r) => r.linkedSectionId) && Boolean(onOpenLinkedDetail);
-      const colSpanEmpty =
-        block.columns.length + (showLinkColumn ? 1 : 0) + (!readOnly ? 1 : 0);
+      const visibleColCount = block.columns.filter((c) => !isHiddenMetaDatabaseColumnName(c.name)).length;
+      const showLinkColumn =
+        block.rows.some((r) => getEffectiveLinkedSectionId(r, block.columns)) && Boolean(onOpenLinkedDetail);
+      const colSpanEmpty = visibleColCount + (showLinkColumn ? 1 : 0) + (!readOnly ? 1 : 0);
       return wrap(
         <div className="group/table relative overflow-x-auto rounded-lg border shadow-sm">
           <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-2">
@@ -830,7 +839,8 @@ export function BlockRenderer({
           <table className="w-full min-w-[420px] text-left text-xs">
             <thead>
               <tr className="border-b bg-muted/30">
-                {block.columns.map((c, ci) => (
+                {block.columns.map((c, ci) =>
+                  isHiddenMetaDatabaseColumnName(c.name) ? null : (
                   <th key={`col-h-${ci}`} className="px-2 py-2 font-medium">
                     {readOnly ? (
                       c.name
@@ -857,7 +867,8 @@ export function BlockRenderer({
                       />
                     )}
                   </th>
-                ))}
+                  )
+                )}
                 {showLinkColumn ? (
                   <th className="w-10 px-1 py-2 text-center font-normal text-muted-foreground" aria-hidden />
                 ) : null}
@@ -866,7 +877,7 @@ export function BlockRenderer({
             </thead>
             <tbody>
               {block.rows.map((row, ri) => {
-                const linkId = row.linkedSectionId?.trim();
+                const linkId = getEffectiveLinkedSectionId(row, block.columns)?.trim();
                 const rowNavActive = Boolean(linkId && onOpenLinkedDetail);
                 return (
                   <tr
@@ -891,6 +902,7 @@ export function BlockRenderer({
                       : {})}
                   >
                     {block.columns.map((c, ci) => {
+                      if (isHiddenMetaDatabaseColumnName(c.name)) return null;
                       const value = row[c.name];
                       const updateCell = (nextVal: string | number | boolean | null) => {
                         const nextRows = [...block.rows];

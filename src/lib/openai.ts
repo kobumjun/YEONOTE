@@ -28,9 +28,16 @@ OUTPUT
 - Toggle bodies: use EMPTY blocks only — e.g. bulleted_list with items [""] or a single empty paragraph, NOT prefilled "What went well: …" text.
 
 === MASTER TABLE → DETAIL NAVIGATION (mandatory when you use a master inventory) ===
+- CRITICAL — NEVER put linkedSectionId / detail routing in a TABLE COLUMN. Do NOT add columns named like "세부 페이지", "linkedSectionId", "targetBlockId", "sub-page", "detail link", etc. Users must NEVER see routing IDs as spreadsheet cells.
+- linkedSectionId is ONLY a separate field on each ROW OBJECT alongside column keys (same level as cell keys), never a column definition.
+- Correct shape example:
+  "columns": [ { "name": "Exercise", "type": "title" }, { "name": "Muscle", "type": "select", "options": [...] } ],
+  "rows": [ { "Exercise": "", "Muscle": "", "linkedSectionId": "detail-1" } ]
+- WRONG (never do this): adding { "name": "세부 페이지", "type": "text" } and putting "detail-1" in that cell.
+- If using row "cells" arrays: length must equal the number of columns only; put the detail slug in linkedSectionId (or targetBlockId) on the row — never as an extra trailing cells entry.
 - For topics with a master list (universities, exercises, projects, clients, courses), include ONE primary master database_table where each row can link to a detail area.
 - Give EVERY block that is a link target a stable string "id" field (slug style: letters, digits, hyphen, underscore only). Example: "detail-univ-snu", "detail-exercise-squat-slot-1".
-- On each master row that should open a detail section, set "linkedSectionId" to EXACTLY match the target block's "id". Use 5–10 master rows; link at least the first 3–5 rows to distinct detail sub_pages (remaining rows may omit linkedSectionId until the user links them).
+- On each master row that should open a detail section, set "linkedSectionId" on that ROW OBJECT to EXACTLY match the target block's "id". Use 5–10 master rows; link at least the first 3–5 rows to distinct detail sub_pages (remaining rows may omit linkedSectionId until the user links them).
 - Each linked detail target SHOULD be a "sub_page" (or heading2 + children) placed BELOW the master table in the block order, with rich nested content (empty tables, checklists with allowed structural items only).
 - Alternate accepted key: "targetBlockId" on a row (app normalizes to linkedSectionId).
 - UI BEHAVIOR (critical): Blocks whose root-level "id" is referenced by ANY master row's linkedSectionId are HIDDEN on the main template view; they appear ONLY after the user opens that row's detail page (full-page switch, like Notion sub-pages). Detail clusters must be self-contained (instructions, empty tables, checklists, toggles, etc.). One row may open multiple consecutive root blocks: set linkedSectionId to the first detail block's id, then place additional root blocks immediately after it in the JSON blocks array before the next row's linked detail anchor — those siblings open in the same detail view together.
@@ -54,6 +61,7 @@ database_table: { "type", "title", "columns": [...], "rows": [ { "colA": "", "li
   • Weekly project: different again (milestones, risks, kanban-style tables, stakeholders, etc.).
 
 === FORBIDDEN ===
+- Any column whose purpose is row→detail routing (세부 페이지, linkedSectionId-as-column, etc.).
 - Placeholder column names: "Column", "Col", "Field", "Value".
 - Table-only templates with no checklists/toggles/sub_pages.
 - Decorative KPI/stat tiles with fake numbers.

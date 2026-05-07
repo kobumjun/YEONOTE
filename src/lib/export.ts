@@ -1,4 +1,4 @@
-import type { TemplateBlock } from "@/types/template";
+import { isHiddenMetaDatabaseColumnName, type TemplateBlock } from "@/types/template";
 
 function blockToMarkdown(block: TemplateBlock, depth = 0): string {
   switch (block.type) {
@@ -50,7 +50,7 @@ function blockToMarkdown(block: TemplateBlock, depth = 0): string {
     case "database_board":
     case "database_calendar":
     case "database_gallery": {
-      const cols = block.columns.map((c) => c.name);
+      const cols = block.columns.filter((c) => !isHiddenMetaDatabaseColumnName(c.name)).map((c) => c.name);
       const header = `| ${cols.join(" | ")} |`;
       const sep = `| ${cols.map(() => "---").join(" | ")} |`;
       const rows = block.rows
