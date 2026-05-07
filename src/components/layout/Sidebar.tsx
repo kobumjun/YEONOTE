@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -12,12 +13,15 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeft,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/dashboard", label: "All Templates", icon: LayoutDashboard, dashboardView: "all" as const },
@@ -88,12 +92,32 @@ function SidebarNavFallback({ collapsed }: { collapsed: boolean }) {
 export function Sidebar({
   aiCredits,
   aiCreditsCeiling,
+  displayName,
+  email,
+  avatarUrl,
 }: {
   aiCredits: number;
   aiCreditsCeiling: number;
+  displayName: string;
+  email: string;
+  avatarUrl: string | null;
 }) {
+  const router = useRouter();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+
+  const initials = (displayName || email || "U").slice(0, 2).toUpperCase();
+
+  async function handleSignOut() {
+    if (!window.confirm("Are you sure you want to sign out?")) return;
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } finally {
+      router.push("/");
+      router.refresh();
+    }
+  }
 
   return (
     <aside
@@ -133,6 +157,31 @@ export function Sidebar({
         </div>
       )}
       <div className="border-t border-sidebar-border p-2">
+        {!collapsed ? (
+          <div className="mb-2 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/20 p-2">
+            <div className="flex items-center gap-2">
+              <Avatar className="size-8">
+                {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{displayName || "User"}</p>
+                <p className="truncate text-xs text-sidebar-foreground/70">{email || "—"}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                onClick={() => void handleSignOut()}
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut className="size-4 stroke-[1.5]" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
         <Button
           type="button"
           variant="ghost"

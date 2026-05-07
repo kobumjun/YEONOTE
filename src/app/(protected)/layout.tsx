@@ -40,7 +40,13 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar aiCredits={aiCredits} aiCreditsCeiling={aiCreditsCeiling} />
+      <Sidebar
+        aiCredits={aiCredits}
+        aiCreditsCeiling={aiCreditsCeiling}
+        displayName={displayName}
+        email={email}
+        avatarUrl={avatarUrl}
+      />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <TopBar profile={topProfile} />
         <MobileNav
