@@ -69,6 +69,24 @@ database_table: { "type", "title", "columns": [...], "rows": [...], "detailTempl
 === SELECT OPTIONS (mandatory for Korean-facing templates) ===
 - Every "select" column "options" array MUST use Korean labels only: e.g. 상태: 시작 전, 진행 중, 완료, 보류; 우선순위: 높음, 중간, 낮음; 강도: 가볍게, 보통, 강하게; 부위: 상체, 하체, 전신, 코어.
 - Never use English option labels (In Progress, High, Low, Medium, Done, etc.) when the user’s language is Korean.
+- [ABSOLUTE RULE] Select/dropdown options MUST be Korean-only across ALL tables and ALL select columns, without exception.
+- Required mapping when an English source concept appears:
+  Not Started → 시작 전
+  In Progress → 진행 중
+  Completed → 완료
+  On Hold → 보류
+  Under Review → 검토 중
+  High → 높음
+  Medium → 보통
+  Low → 낮음
+  To Do → 할 일
+  Done → 완료
+  Cancelled → 취소
+
+=== WHEN TO USE detailTemplate (mandatory decision rule) ===
+- Attach detailTemplate when each row is a distinct managed entity that needs deeper per-item management (e.g., exercise catalog per exercise, university list per university, project list per project).
+- Do NOT attach detailTemplate for simple logs/history rows, score trends, goals/settings, budgets, or rows that are already complete as single-line records.
+- If detailTemplate is attached, make the per-row table itself concise and put richer checklists/tables/notes inside detailTemplate.blocks.
 
 === CALLOUTS — NO SUBPAGE NAVIGATION (mandatory) ===
 - NEVER create callouts that explain “click a row to open the detail page”, “각 행을 클릭하면…”, “행 클릭”, “세부 페이지로 이동”, or similar. Sub-page entry is obvious from the UI (chevron); navigation guidance is noise.

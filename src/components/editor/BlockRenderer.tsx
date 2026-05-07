@@ -15,6 +15,33 @@ import { ChevronRight, Plus, Trash2 } from "lucide-react";
 
 const CONTENT_DEBOUNCE_MS = 1000;
 
+const OPTION_KO_MAP: Record<string, string> = {
+  "not started": "시작 전",
+  "in progress": "진행 중",
+  completed: "완료",
+  "on hold": "보류",
+  "under review": "검토 중",
+  high: "높음",
+  medium: "보통",
+  low: "낮음",
+  "to do": "할 일",
+  done: "완료",
+  cancelled: "취소",
+  active: "진행 중",
+  pending: "대기 중",
+  archived: "보관됨",
+};
+
+function toKoreanOption(value: string): string {
+  const normalized = value.toLowerCase().trim();
+  return OPTION_KO_MAP[normalized] ?? value;
+}
+
+function normalizeSelectOptions(options: string[]): string[] {
+  const mapped = options.map((opt) => toKoreanOption(opt).trim()).filter(Boolean);
+  return Array.from(new Set(mapped));
+}
+
 /** contentEditable: never sync DOM from props while focused; debounce store updates so parent re-renders do not steal focus. */
 function EditableContent({
   value,
@@ -928,6 +955,7 @@ export function BlockRenderer({
                     {block.columns.map((c, ci) => {
                       if (isHiddenMetaDatabaseColumnName(c.name)) return null;
                       const value = row[c.name];
+                      const koValue = typeof value === "string" ? toKoreanOption(value) : value;
                       const updateCell = (nextVal: string | number | boolean | null) => {
                         const nextRows = [...block.rows];
                         nextRows[ri] = { ...nextRows[ri], [c.name]: nextVal };
@@ -943,23 +971,33 @@ export function BlockRenderer({
                             c.type === "checkbox" ? (
                               <Checkbox checked={Boolean(value)} disabled />
                             ) : (
-                              <span>{String(value ?? "")}</span>
+                              <span>{String(koValue ?? "")}</span>
                             )
                           ) : c.type === "checkbox" ? (
                             <Checkbox checked={Boolean(value)} onCheckedChange={(v) => updateCell(Boolean(v))} />
                           ) : c.type === "select" ? (
+                            (() => {
+                              const normalizedOptions = normalizeSelectOptions(getSelectColumnOptions(c));
+                              const currentValue = typeof koValue === "string" ? koValue : "";
+                              const renderOptions =
+                                currentValue && !normalizedOptions.includes(currentValue)
+                                  ? [currentValue, ...normalizedOptions]
+                                  : normalizedOptions;
+                              return (
                             <select
                               className="h-7 w-full rounded border bg-background px-2 text-xs"
-                              value={String(value ?? "")}
-                              onChange={(e) => updateCell(e.target.value)}
+                                  value={currentValue}
+                                  onChange={(e) => updateCell(toKoreanOption(e.target.value))}
                             >
                               <option value="">선택</option>
-                              {getSelectColumnOptions(c).map((opt) => (
+                                  {renderOptions.map((opt) => (
                                 <option key={opt} value={opt}>
                                   {opt}
                                 </option>
                               ))}
                             </select>
+                              );
+                            })()
                           ) : c.type === "date" ? (
                             <input
                               type="date"

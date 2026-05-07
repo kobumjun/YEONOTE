@@ -64,6 +64,115 @@ interface TemplateSubPageState {
   parentTableBlockId: string;
 }
 
+function mapBlocksDeep(blocks: TemplateBlock[], mapper: (b: TemplateBlock) => TemplateBlock): TemplateBlock[] {
+  const walk = (b: TemplateBlock): TemplateBlock => {
+    const next = mapper(b);
+    switch (next.type) {
+      case "toggle":
+      case "sub_page":
+      case "linked_page":
+        return { ...next, children: next.children.map(walk) };
+      case "columns":
+        return { ...next, children: next.children.map((col) => col.map(walk)) };
+      case "database_table":
+        if (!next.detailTemplate?.blocks?.length) return next;
+        return {
+          ...next,
+          detailTemplate: { blocks: next.detailTemplate.blocks.map(walk) },
+        };
+      default:
+        return next;
+    }
+  };
+  return blocks.map(walk);
+}
+
+function removeBlockDeep(blocks: TemplateBlock[], id: string): TemplateBlock[] {
+  const walk = (list: TemplateBlock[]): TemplateBlock[] =>
+    list
+      .filter((b) => b.id !== id)
+      .map((b) => {
+        switch (b.type) {
+          case "toggle":
+          case "sub_page":
+          case "linked_page":
+            return { ...b, children: walk(b.children) };
+          case "columns":
+            return { ...b, children: b.children.map((col) => walk(col)) };
+          case "database_table":
+            if (!b.detailTemplate?.blocks?.length) return b;
+            return {
+              ...b,
+              detailTemplate: { blocks: walk(b.detailTemplate.blocks) },
+            };
+          default:
+            return b;
+        }
+      });
+  return walk(blocks);
+}
+
+function duplicateBlockDeep(blocks: TemplateBlock[], id: string): TemplateBlock[] {
+  const walk = (list: TemplateBlock[]): TemplateBlock[] => {
+    const out: TemplateBlock[] = [];
+    for (const b of list) {
+      let next: TemplateBlock = b;
+      switch (b.type) {
+        case "toggle":
+        case "sub_page":
+        case "linked_page":
+          next = { ...b, children: walk(b.children) };
+          break;
+        case "columns":
+          next = { ...b, children: b.children.map((col) => walk(col)) };
+          break;
+        case "database_table":
+          next = b.detailTemplate?.blocks?.length
+            ? { ...b, detailTemplate: { blocks: walk(b.detailTemplate.blocks) } }
+            : b;
+          break;
+      }
+      out.push(next);
+      if (next.id === id) {
+        // Keep duplicate editable in-memory by giving a fresh deterministic-ish id.
+        out.push({ ...next, id: `${next.id}-${Date.now()}` });
+      }
+    }
+    return out;
+  };
+  return walk(blocks);
+}
+
+function insertParagraphAfterDeep(blocks: TemplateBlock[], id: string): TemplateBlock[] {
+  const walk = (list: TemplateBlock[]): TemplateBlock[] => {
+    const out: TemplateBlock[] = [];
+    for (const b of list) {
+      let next: TemplateBlock = b;
+      switch (b.type) {
+        case "toggle":
+        case "sub_page":
+        case "linked_page":
+          next = { ...b, children: walk(b.children) };
+          break;
+        case "columns":
+          next = { ...b, children: b.children.map((col) => walk(col)) };
+          break;
+        case "database_table":
+          next = b.detailTemplate?.blocks?.length
+            ? { ...b, detailTemplate: { blocks: walk(b.detailTemplate.blocks) } }
+            : b;
+          break;
+      }
+      out.push(next);
+      if (next.id === id) {
+        out.push(createBlock("paragraph"));
+      }
+    }
+    return out;
+  };
+  return walk(blocks);
+}
+
 function SortableBlock({
   block,
   readOnly,
@@ -254,6 +363,37 @@ export function TemplateEditor({
     },
     [blocks, linkedTargets]
   );
+
+  const updateSubPageBlock = useCallback((id: string, patch: Partial<TemplateBlock>) => {
+    setSubPage((prev) => {
+      if (!prev.ephemeralBlocks?.length) return prev;
+      return {
+        ...prev,
+        ephemeralBlocks: mapBlocksDeep(prev.ephemeralBlocks, (b) => (b.id === id ? ({ ...b, ...patch } as TemplateBlock) : b)),
+      };
+    });
+  }, []);
+
+  const removeSubPageBlock = useCallback((id: string) => {
+    setSubPage((prev) => {
+      if (!prev.ephemeralBlocks?.length) return prev;
+      return { ...prev, ephemeralBlocks: removeBlockDeep(prev.ephemeralBlocks, id) };
+    });
+  }, []);
+
+  const duplicateSubPageBlock = useCallback((id: string) => {
+    setSubPage((prev) => {
+      if (!prev.ephemeralBlocks?.length) return prev;
+      return { ...prev, ephemeralBlocks: duplicateBlockDeep(prev.ephemeralBlocks, id) };
+    });
+  }, []);
+
+  const insertParagraphAfterSubPageBlock = useCallback((id: string) => {
+    setSubPage((prev) => {
+      if (!prev.ephemeralBlocks?.length) return prev;
+      return { ...prev, ephemeralBlocks: insertParagraphAfterDeep(prev.ephemeralBlocks, id) };
+    });
+  }, []);
 
   const closeLinkedDetail = useCallback(() => {
     setSubPage((prev) => {
@@ -629,11 +769,11 @@ export function TemplateEditor({
                   <BlockRenderer
                     key={b.id}
                     block={b}
-                    readOnly={readOnly || Boolean(subPage.ephemeralBlocks?.length)}
-                    onChange={updateBlock}
-                    onDelete={removeBlock}
-                    onDuplicate={duplicateBlock}
-                    onEnter={insertParagraphAfter}
+                    readOnly={readOnly}
+                    onChange={subPage.ephemeralBlocks?.length ? updateSubPageBlock : updateBlock}
+                    onDelete={subPage.ephemeralBlocks?.length ? removeSubPageBlock : removeBlock}
+                    onDuplicate={subPage.ephemeralBlocks?.length ? duplicateSubPageBlock : duplicateBlock}
+                    onEnter={subPage.ephemeralBlocks?.length ? insertParagraphAfterSubPageBlock : insertParagraphAfter}
                     onOpenTableRowDetail={openTableRowDetail}
                   />
                 ))}
