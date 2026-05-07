@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { getSelectColumnOptions, type TemplateBlock } from "@/types/template";
+import { getSelectColumnOptions, type DatabaseRow, type TemplateBlock } from "@/types/template";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
@@ -211,6 +211,7 @@ export function BlockRenderer({
   onDelete,
   onDuplicate,
   onEnter,
+  onLinkedSectionNavigate,
   depth = 0,
 }: {
   block: TemplateBlock;
@@ -219,6 +220,8 @@ export function BlockRenderer({
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onEnter?: (id: string) => void;
+  /** Master table row → scroll to detail block with this id (same template). */
+  onLinkedSectionNavigate?: (ctx: { targetBlockId: string; sourceTableBlockId: string }) => void;
   depth?: number;
 }) {
   const stopGlobalHotkeys = (e: React.KeyboardEvent<HTMLElement>) => {
@@ -244,10 +247,25 @@ export function BlockRenderer({
   };
 
   const wrap = (child: React.ReactNode) => (
-    <div className="relative py-1 pl-1" style={{ marginLeft: depth * 12 }}>
+    <div
+      id={`yeo-block-${block.id}`}
+      data-yeo-block-id={block.id}
+      className="relative scroll-mt-28 py-1 pl-1"
+      style={{ marginLeft: depth * 12 }}
+    >
       {child}
     </div>
   );
+
+  const handleLinkedRowActivate = (
+    e: React.MouseEvent | React.KeyboardEvent,
+    targetBlockId: string | undefined
+  ) => {
+    if (!targetBlockId || !onLinkedSectionNavigate) return;
+    const el = e.target as HTMLElement | null;
+    if (el?.closest("button, input, select, textarea, a, [contenteditable='true']")) return;
+    onLinkedSectionNavigate({ targetBlockId, sourceTableBlockId: block.id });
+  };
 
   switch (block.type) {
     case "heading1":
@@ -482,6 +500,7 @@ export function BlockRenderer({
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onEnter={onEnter}
+                onLinkedSectionNavigate={onLinkedSectionNavigate}
                 depth={depth + 1}
               />
             ))}
@@ -544,6 +563,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
+                  onLinkedSectionNavigate={onLinkedSectionNavigate}
                   depth={depth + 1}
                 />
               ))}
@@ -644,6 +664,7 @@ export function BlockRenderer({
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
                   onEnter={onEnter}
+                  onLinkedSectionNavigate={onLinkedSectionNavigate}
                   depth={depth + 1}
                 />
               ))}
@@ -789,6 +810,11 @@ export function BlockRenderer({
               </button>
             )}
           </div>
+          {block.rows.some((r) => r.linkedSectionId) && onLinkedSectionNavigate ? (
+            <p className="border-b bg-muted/30 px-3 py-1 text-[10px] text-muted-foreground">
+              행을 누르면 연결된 상세 섹션으로 스크롤 이동합니다.
+            </p>
+          ) : null}
           <table className="w-full min-w-[420px] text-left text-xs">
             <thead>
               <tr className="border-b bg-muted/30">
@@ -824,8 +850,32 @@ export function BlockRenderer({
               </tr>
             </thead>
             <tbody>
-              {block.rows.map((row, ri) => (
-                <tr key={ri} className="group/row border-b last:border-0">
+              {block.rows.map((row, ri) => {
+                const linkId = row.linkedSectionId;
+                const rowNavActive = Boolean(linkId && onLinkedSectionNavigate);
+                return (
+                <tr
+                  key={ri}
+                  className={cn(
+                    "group/row border-b last:border-0",
+                    rowNavActive && "cursor-pointer hover:bg-muted/50"
+                  )}
+                  {...(rowNavActive
+                    ? {
+                        role: "button" as const,
+                        tabIndex: 0,
+                        title: "이 행의 상세 섹션으로 이동",
+                        onClick: (e: React.MouseEvent<HTMLTableRowElement>) =>
+                          handleLinkedRowActivate(e, linkId),
+                        onKeyDown: (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleLinkedRowActivate(e, linkId);
+                          }
+                        },
+                      }
+                    : {})}
+                >
                   {block.columns.map((c, ci) => {
                     const value = row[c.name];
                     const updateCell = (nextVal: string | number | boolean | null) => {
@@ -904,7 +954,8 @@ export function BlockRenderer({
                     </td>
                   )}
                 </tr>
-              ))}
+              );
+              })}
               {block.rows.length === 0 && (
                 <tr>
                   <td
@@ -925,7 +976,7 @@ export function BlockRenderer({
                 onClick={() => {
                   const nextRow = Object.fromEntries(
                     block.columns.map((c) => [c.name, c.type === "checkbox" ? false : c.type === "number" ? null : ""])
-                  );
+                  ) as DatabaseRow;
                   const nextRows = [...block.rows, nextRow];
                   onChange?.(block.id, { rows: nextRows } as Partial<TemplateBlock>);
                 }}
@@ -1029,6 +1080,8 @@ export function BlockRenderer({
                   onChange={onChange}
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
+                  onEnter={onEnter}
+                  onLinkedSectionNavigate={onLinkedSectionNavigate}
                   depth={depth}
                 />
               ))}

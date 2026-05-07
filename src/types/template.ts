@@ -17,7 +17,10 @@ export type DatabaseColumn = {
   options?: string[];
 };
 
-export type DatabaseRow = Record<string, string | number | boolean | null | undefined>;
+/** Row cells + optional jump target for master→detail navigation (same template). */
+export type DatabaseRow = Record<string, string | number | boolean | null | undefined> & {
+  linkedSectionId?: string;
+};
 
 const DATABASE_COLUMN_TYPES: DatabaseColumnType[] = [
   "title",
@@ -73,25 +76,130 @@ export function coerceDatabaseColumns(raw: unknown): DatabaseColumn[] {
   return (raw as Record<string, unknown>[]).map((c) => coerceDatabaseColumn(c));
 }
 
-const MIN_AI_DATABASE_ROWS = 3;
+/** AI templates: enough blank rows for logging (user fills in; no sample entity names). */
+const MIN_AI_DATABASE_ROWS = 10;
 
-/** Ensures AI/imported tables have enough starter rows (date cells default to today in ISO). */
+/** Safe id for block anchors / row links (AI slugs or UUID fragments). */
+export function sanitizeBlockIdFromAi(raw: string): string {
+  const t = raw
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return t.slice(0, 128) || newBlockId();
+}
+
+function pickBlockId(raw: Record<string, unknown>, explicit?: BlockId): BlockId {
+  const fromRaw = raw.id;
+  if (typeof fromRaw === "string" && fromRaw.trim() !== "") {
+    return sanitizeBlockIdFromAi(fromRaw.trim());
+  }
+  return explicit ?? newBlockId();
+}
+
+function extractRowLinkId(rec: Record<string, unknown>): string | undefined {
+  const linkRaw =
+    rec.linkedSectionId ?? rec.linked_section_id ?? rec.targetBlockId ?? rec.target_block_id;
+  if (typeof linkRaw !== "string" || !linkRaw.trim()) return undefined;
+  return sanitizeBlockIdFromAi(linkRaw.trim());
+}
+
+/** Normalizes one DB row from AI/JSON; preserves linkedSectionId outside column keys. */
+export function normalizeDatabaseRowFromAi(
+  rec: Record<string, unknown>,
+  columns: DatabaseColumn[]
+): DatabaseRow {
+  const link = extractRowLinkId(rec);
+  const row: DatabaseRow = {};
+  for (const c of columns) {
+    const v = rec[c.name];
+    if (c.type === "checkbox") row[c.name] = Boolean(v);
+    else if (c.type === "number")
+      row[c.name] = v === "" || v === undefined || v === null ? null : Number(v);
+    else if (c.type === "date") row[c.name] = typeof v === "string" ? v : "";
+    else row[c.name] = v == null ? "" : String(v);
+  }
+  if (link) row.linkedSectionId = link;
+  return row;
+}
+
+export function normalizeDatabaseRowsFromAi(raw: unknown, columns: DatabaseColumn[]): DatabaseRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((r) =>
+    r && typeof r === "object"
+      ? normalizeDatabaseRowFromAi(r as Record<string, unknown>, columns)
+      : normalizeDatabaseRowFromAi({}, columns)
+  );
+}
+
+/** Ensures AI/imported tables have enough blank starter rows (no prefilled sample data). */
 export function padDatabaseRowsToMin(columns: DatabaseColumn[], rows: DatabaseRow[]): DatabaseRow[] {
   if (columns.length === 0) return rows;
-  const today = new Date().toISOString().slice(0, 10);
   const out = [...rows];
   const makeRow = (): DatabaseRow => {
     const r: DatabaseRow = {};
     for (const c of columns) {
       if (c.type === "checkbox") r[c.name] = false;
       else if (c.type === "number") r[c.name] = null;
-      else if (c.type === "date") r[c.name] = today;
+      else if (c.type === "date") r[c.name] = "";
       else r[c.name] = "";
     }
     return r;
   };
   while (out.length < MIN_AI_DATABASE_ROWS) out.push(makeRow());
   return out;
+}
+
+export function collectTemplateBlockIds(blocks: TemplateBlock[]): Set<string> {
+  const s = new Set<string>();
+  const walk = (b: TemplateBlock) => {
+    s.add(b.id);
+    if (b.type === "toggle" || b.type === "sub_page" || b.type === "linked_page") {
+      b.children.forEach(walk);
+    }
+    if (b.type === "columns") {
+      b.children.forEach((col) => col.forEach(walk));
+    }
+  };
+  blocks.forEach(walk);
+  return s;
+}
+
+function fixBlockLinkedRows(b: TemplateBlock, validIds: Set<string>): TemplateBlock {
+  if (
+    b.type === "database_table" ||
+    b.type === "database_board" ||
+    b.type === "database_calendar" ||
+    b.type === "database_gallery"
+  ) {
+    return {
+      ...b,
+      rows: b.rows.map((r) => {
+        const lid = r.linkedSectionId;
+        if (lid && !validIds.has(lid)) {
+          const next = { ...r };
+          delete next.linkedSectionId;
+          return next;
+        }
+        return r;
+      }),
+    } as TemplateBlock;
+  }
+  if (b.type === "toggle" || b.type === "sub_page" || b.type === "linked_page") {
+    return { ...b, children: b.children.map((c) => fixBlockLinkedRows(c, validIds)) };
+  }
+  if (b.type === "columns") {
+    return {
+      ...b,
+      children: b.children.map((col) => col.map((c) => fixBlockLinkedRows(c, validIds))),
+    };
+  }
+  return b;
+}
+
+export function stripInvalidLinkedSectionIds(blocks: TemplateBlock[]): TemplateBlock[] {
+  const valid = collectTemplateBlockIds(blocks);
+  return blocks.map((b) => fixBlockLinkedRows(b, valid));
 }
 
 type BlockBase = { id: BlockId };
@@ -346,7 +454,7 @@ export function remapBlockIds(block: TemplateBlock): TemplateBlock {
 }
 
 export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): TemplateBlock | null {
-  const bid = id ?? newBlockId();
+  const bid = pickBlockId(raw, id);
   const type = resolveAiBlockType(raw);
   if (!type) return null;
   switch (type) {
@@ -452,41 +560,49 @@ export function normalizeAiBlock(raw: Record<string, unknown>, id?: BlockId): Te
         title: raw.title ? String(raw.title) : undefined,
         description: raw.description ? String(raw.description) : undefined,
       };
-    case "database_table":
+    case "database_table": {
+      const columns = coerceDatabaseColumns(raw.columns);
       return {
         id: bid,
         type: "database_table",
         title: String(raw.title ?? ""),
-        columns: coerceDatabaseColumns(raw.columns),
-        rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
+        columns,
+        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
       };
-    case "database_board":
+    }
+    case "database_board": {
+      const columns = coerceDatabaseColumns(raw.columns);
       return {
         id: bid,
         type: "database_board",
         title: String(raw.title ?? ""),
         groupBy: String(raw.groupBy ?? "Status"),
-        columns: coerceDatabaseColumns(raw.columns),
-        rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
+        columns,
+        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
       };
-    case "database_calendar":
+    }
+    case "database_calendar": {
+      const columns = coerceDatabaseColumns(raw.columns);
       return {
         id: bid,
         type: "database_calendar",
         title: String(raw.title ?? ""),
         dateColumn: String(raw.dateColumn ?? "Date"),
-        columns: coerceDatabaseColumns(raw.columns),
-        rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
+        columns,
+        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
       };
-    case "database_gallery":
+    }
+    case "database_gallery": {
+      const columns = coerceDatabaseColumns(raw.columns);
       return {
         id: bid,
         type: "database_gallery",
         title: String(raw.title ?? ""),
         imageColumn: String(raw.imageColumn ?? "Image"),
-        columns: coerceDatabaseColumns(raw.columns),
-        rows: Array.isArray(raw.rows) ? (raw.rows as DatabaseRow[]) : [],
+        columns,
+        rows: normalizeDatabaseRowsFromAi(raw.rows, columns),
       };
+    }
     case "columns": {
       const cols = Array.isArray(raw.children) ? (raw.children as unknown[]) : [];
       const children = cols.map((col) =>
@@ -547,10 +663,11 @@ export function normalizeAiTemplate(payload: AITemplatePayload): {
   cover: string | null;
   blocks: TemplateBlock[];
 } {
-  const blocks = (payload.blocks ?? [])
+  let blocks = (payload.blocks ?? [])
     .map((b) => normalizeAiBlock(b as Record<string, unknown>))
     .filter((b): b is TemplateBlock => b !== null)
     .map(padMinRowsOnDatabaseBlocks);
+  blocks = stripInvalidLinkedSectionIds(blocks);
   return {
     title: payload.title || "제목 없음",
     icon: payload.icon || "📄",

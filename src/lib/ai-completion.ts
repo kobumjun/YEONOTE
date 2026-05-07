@@ -1,10 +1,10 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-/** Hierarchical templates need long JSON; keep ≥4000 — 8192 avoids mid-JSON truncation. */
-export const AI_GENERATION_MAX_TOKENS = 8192;
-/** Streaming completion; allow enough wall time for nested structures (Vercel route maxDuration is separate). */
-export const AI_GENERATION_TIMEOUT_MS = 90_000;
+/** Large hierarchical templates + many empty rows; 12k reduces JSON truncation (gpt-4o allows high completion limits). */
+export const AI_GENERATION_MAX_TOKENS = 12_800;
+/** Streaming completion; wall-clock guard while tokens stream. */
+export const AI_GENERATION_TIMEOUT_MS = 120_000;
 
 export type StreamJsonResult = {
   raw: string;

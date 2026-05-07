@@ -59,8 +59,15 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   const { content: systemPrompt } = buildAiGenerationSystemPrompt();
   const today = new Date().toISOString().slice(0, 10);
+  const cal = new Date();
+  const y = cal.getFullYear();
+  const mo = cal.getMonth();
+  const lastDay = new Date(y, mo + 1, 0).getDate();
+  const ym = `${y}-${String(mo + 1).padStart(2, "0")}`;
   const userMessage = [
-    `Today's date (YYYY-MM-DD) for defaulting date cells in tables: ${today}`,
+    `Today's date (YYYY-MM-DD): ${today}`,
+    `Calendar month for day-by-day checklists: ${ym} (include every calendar day 1–${lastDay} in this month, each as its own checklist line with weekday label in the user's language).`,
+    "Table date columns: leave every cell value as empty string \"\" in all rows (no prefilled dates).",
     body.tags?.length ? `Tags: ${body.tags.join(", ")}` : "",
     body.style ? `Style: ${body.style}` : "",
     `Request:\n${prompt}`,

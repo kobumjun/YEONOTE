@@ -4,6 +4,7 @@ import type {
   BulletedListBlock,
   CalloutBlock,
   ChecklistBlock,
+  ChecklistItem,
   DatabaseColumn,
   DatabaseTableBlock,
   HeadingBlock,
@@ -22,129 +23,145 @@ function tableBlock(title: string, columns: DatabaseColumn[]): DatabaseTableBloc
   return b;
 }
 
+function monthDayChecklistItems(year: number, monthIndexZeroBased: number): ChecklistItem[] {
+  const last = new Date(year, monthIndexZeroBased + 1, 0).getDate();
+  const wdays = ["일", "월", "화", "수", "목", "금", "토"];
+  const items: ChecklistItem[] = [];
+  for (let d = 1; d <= last; d++) {
+    const dt = new Date(year, monthIndexZeroBased, d);
+    const wk = wdays[dt.getDay()];
+    items.push({ content: `${monthIndexZeroBased + 1}/${d} (${wk})`, checked: false });
+  }
+  return items;
+}
+
+function detailSubPage(id: string, title: string): SubPageBlock {
+  const b = createBlock("sub_page") as SubPageBlock;
+  b.id = id;
+  b.title = title;
+  b.icon = "📂";
+  const intro = createBlock("paragraph") as ParagraphBlock;
+  intro.content = "";
+  const log = tableBlock("세부 기록", [
+    { name: "날짜", type: "date" },
+    { name: "항목", type: "title" },
+    { name: "메모", type: "text" },
+    { name: "상태", type: "select", options: ["계획", "진행", "완료", "보류"] },
+    { name: "시간(분)", type: "number" },
+  ]);
+  b.children = [intro, log];
+  return b;
+}
+
 /** Starter when generation hits the timeout (no credit charged for this path). */
 export function buildTimeoutFallbackTemplate(userPrompt: string): AITemplatePayload {
   const preview = userPrompt.trim().slice(0, 240);
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
 
   const h1 = createBlock("heading1") as HeadingBlock;
-  h1.content = "루틴 · 기록 템플릿 (간이)";
+  h1.content = "루틴 · 기록 (타임아웃 기본 골격)";
 
   const guide = createBlock("callout") as CalloutBlock;
   guide.icon = "📌";
   guide.content =
-    "이 템플릿은 운동·식단·지표를 한곳에서 관리하기 위한 예시예요. 위쪽 체크리스트로 습관을, 하위 페이지·토글 안의 표에 세부 로그를 쌓으면 됩니다. AI가 다시 생성하면 주제에 맞게 구조가 달라져요.";
+    "마스터 표에서 연결된 행을 누르면 아래 상세 영역으로 이동합니다. 표 칸은 비어 있으니 직접 채워 주세요. AI로 다시 생성하면 주제에 맞게 규모와 구조가 달라집니다.";
 
   const intro = createBlock("paragraph") as ParagraphBlock;
-  intro.content = `생성이 시간 안에 끝나지 않아 계층 예시만 드려요. 요청 요약: ${preview || "(비어 있음)"}`;
+  intro.content = `생성이 시간 안에 끝나지 않아 최소 연결 예시만 드립니다. 요청: ${preview || "(없음)"}`;
 
-  const hDash = createBlock("heading2") as HeadingBlock;
-  hDash.content = "🗓️ 이번 주 리듬";
-
-  const habitCheck = createBlock("checklist") as ChecklistBlock;
-  habitCheck.items = [
-    { content: "주 3회 이상 운동 세션 완료", checked: false },
-    { content: "물 섭취 목표 채우기", checked: false },
-    { content: "준비한 식단 기록하기", checked: false },
-    { content: "주간 지표 한 번 갱신", checked: false },
-  ];
-
-  const miniLog = tableBlock("세부 로그 (예시)", [
-    { name: "항목", type: "title" },
-    { name: "유형", type: "select", options: ["🏋 운동", "🍽 식사", "😴 수면", "📝 메모", "⏸ 휴식"] },
-    { name: "시간(분)", type: "number" },
-    { name: "강도", type: "select", options: ["낮음", "중간", "높음", "휴식"] },
-    { name: "날짜", type: "date" },
+  const hGoals = createBlock("heading2") as HeadingBlock;
+  hGoals.content = "🎯 목표";
+  const goalsTable = tableBlock("목표", [
+    { name: "목표", type: "title" },
+    { name: "목표값", type: "text" },
+    { name: "기한", type: "date" },
+    { name: "달성", type: "checkbox" },
     { name: "메모", type: "text" },
   ]);
 
-  const sub = createBlock("sub_page") as SubPageBlock;
-  sub.title = "일별 · 항목별 상세";
-  sub.icon = "📂";
-  sub.children = [
-    createBlock("paragraph") as ParagraphBlock,
-    miniLog,
-  ];
-  (sub.children[0] as ParagraphBlock).content =
-    "토글이나 하위 페이지 안에 표와 체크리스트를 두면 깊이가 생깁니다. 여기는 그 패턴의 미니 예시예요.";
+  const hCal = createBlock("heading2") as HeadingBlock;
+  hCal.content = "📅 이번 달 캘린더";
+  const calCheck = createBlock("checklist") as ChecklistBlock;
+  calCheck.items = monthDayChecklistItems(y, m);
 
-  const toggle = createBlock("toggle") as ToggleBlock;
-  toggle.title = "💡 빠른 팁 (펼쳐 보기)";
-  const tips = createBlock("bulleted_list") as BulletedListBlock;
-  tips.items = [
-    "같은 열 이름을 여러 표에서 복붙하지 말고 목적별로 나누세요.",
-    "날짜 열은 항상 YYYY-MM-DD로 통일하면 필터·정렬이 쉬워요.",
-    "주제가 바뀌면 표 개수보다 '토글·체크리스트·하위 페이지' 배치를 먼저 바꿔 보세요.",
+  const hMaster = createBlock("heading2") as HeadingBlock;
+  hMaster.content = "🏋️ 마스터 목록 (행 연결 예시)";
+  const master = tableBlock("마스터", [
+    { name: "이름", type: "title" },
+    { name: "분류", type: "select", options: ["A", "B", "C", "D"] },
+    { name: "목표 횟수/주", type: "number" },
+    { name: "최근 일자", type: "date" },
+    { name: "메모", type: "text" },
+  ]);
+  master.rows[0].linkedSectionId = "detail-slot-1";
+  master.rows[1].linkedSectionId = "detail-slot-2";
+  master.rows[2].linkedSectionId = "detail-slot-3";
+
+  const sp1 = detailSubPage("detail-slot-1", "상세 ①");
+  const sp2 = detailSubPage("detail-slot-2", "상세 ②");
+  const sp3 = detailSubPage("detail-slot-3", "상세 ③");
+
+  const hLog = createBlock("heading2") as HeadingBlock;
+  hLog.content = "📝 일별 로그";
+  const daily = tableBlock("일별 기록", [
+    { name: "날짜", type: "date" },
+    { name: "항목", type: "title" },
+    { name: "세트", type: "number" },
+    { name: "반복", type: "number" },
+    { name: "중량(kg)", type: "number" },
+    { name: "휴식(초)", type: "number" },
+    { name: "메모", type: "text" },
+  ]);
+
+  const hHyd = createBlock("heading2") as HeadingBlock;
+  hHyd.content = "💧 수분 · 보충";
+  const hyd = createBlock("checklist") as ChecklistBlock;
+  hyd.items = [
+    { content: "물 500ml — 기상 직후", checked: false },
+    { content: "물 500ml — 오전", checked: false },
+    { content: "물 500ml — 점심 후", checked: false },
+    { content: "물 500ml — 운동 전", checked: false },
+    { content: "물 500ml — 운동 후", checked: false },
+    { content: "물 500ml — 저녁", checked: false },
+    { content: "프로틴", checked: false },
+    { content: "비타민", checked: false },
+    { content: "크레아틴", checked: false },
   ];
-  toggle.children = [tips];
+
+  const hRev = createBlock("heading2") as HeadingBlock;
+  hRev.content = "📊 주간 회고";
+  const revToggle = createBlock("toggle") as ToggleBlock;
+  revToggle.title = "▶ 이번 주 회고";
+  const revBullets = createBlock("bulleted_list") as BulletedListBlock;
+  revBullets.items = ["", "", ""];
+  revToggle.children = [revBullets];
 
   const warn = createBlock("callout") as CalloutBlock;
   warn.icon = "⚠️";
-  warn.content = "더 풍부한 결과를 원하면 네트워크 상태가 좋을 때 다시 생성해 보세요.";
-
-  const h2a = createBlock("heading2") as HeadingBlock;
-  h2a.content = "🏋️ Exercise log";
-  const pa = createBlock("paragraph") as ParagraphBlock;
-  pa.content =
-    "운동 세션을 한 줄씩 적습니다. 이름·유형·시간·강도·날짜·메모로 패턴을 추적하세요.";
-
-  const h2b = createBlock("heading2") as HeadingBlock;
-  h2b.content = "🍽️ Diet log";
-  const pb = createBlock("paragraph") as ParagraphBlock;
-  pb.content = "끼니 단위로 기록합니다. 칼로리와 매크로를 숫자로 두면 합산하기 좋아요.";
-
-  const h2c = createBlock("heading2") as HeadingBlock;
-  h2c.content = "📈 Progress metrics";
-  const pc = createBlock("paragraph") as ParagraphBlock;
-  pc.content = "지표마다 한 행을 쓰고 시작·현재·목표값을 갱신하세요.";
-
-  const t1 = tableBlock("Exercise sessions", [
-    { name: "Exercise", type: "title" },
-    { name: "Type", type: "select", options: ["🏋 Strength", "🏃 Cardio", "🧘 Mobility", "🚶 Walk", "⏸ Rest"] },
-    { name: "Duration (mins)", type: "number" },
-    { name: "Intensity", type: "select", options: ["⚡ High", "🔋 Medium", "🪫 Low"] },
-    { name: "Date", type: "date" },
-    { name: "Notes", type: "text" },
-  ]);
-
-  const t2 = tableBlock("Meals", [
-    { name: "Meal", type: "title" },
-    { name: "Category", type: "select", options: ["🍳 Breakfast", "🥗 Lunch", "🍜 Dinner", "🍎 Snack", "☕ Drink"] },
-    { name: "Calories", type: "number" },
-    { name: "Proteins (g)", type: "number" },
-    { name: "Carbs (g)", type: "number" },
-    { name: "Fats (g)", type: "number" },
-    { name: "Date", type: "date" },
-    { name: "Notes", type: "text" },
-  ]);
-
-  const t3 = tableBlock("Metrics", [
-    { name: "Metric", type: "title" },
-    { name: "Starting value", type: "number" },
-    { name: "Current value", type: "number" },
-    { name: "Target value", type: "number" },
-    { name: "Unit", type: "text" },
-    { name: "Date", type: "date" },
-    { name: "Comments", type: "text" },
-  ]);
+  warn.content = "네트워크가 안정적일 때 다시 생성해 보세요.";
 
   const blocks: TemplateBlock[] = [
     h1,
     guide,
     intro,
-    hDash,
-    habitCheck,
-    sub,
-    toggle,
+    hGoals,
+    goalsTable,
+    hCal,
+    calCheck,
+    hMaster,
+    master,
+    sp1,
+    sp2,
+    sp3,
+    hLog,
+    daily,
+    hHyd,
+    hyd,
+    hRev,
+    revToggle,
     warn,
-    h2a,
-    pa,
-    t1,
-    h2b,
-    pb,
-    t2,
-    h2c,
-    pc,
-    t3,
   ];
 
   return {

@@ -55,6 +55,7 @@ function SortableBlock({
   onDelete,
   onDuplicate,
   onEnter,
+  onLinkedSectionNavigate,
 }: {
   block: TemplateBlock;
   readOnly?: boolean;
@@ -62,6 +63,7 @@ function SortableBlock({
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onEnter: (id: string) => void;
+  onLinkedSectionNavigate?: (ctx: { targetBlockId: string; sourceTableBlockId: string }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: block.id,
@@ -115,6 +117,7 @@ function SortableBlock({
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onEnter={onEnter}
+            onLinkedSectionNavigate={onLinkedSectionNavigate}
           />
         </div>
       </div>
@@ -167,6 +170,26 @@ export function TemplateEditor({
   const [inTrash, setInTrash] = useState(Boolean(initial.is_deleted));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  /** Master DB table block id to scroll back to after row → detail navigation. */
+  const [subpageNavFromTableId, setSubpageNavFromTableId] = useState<string | null>(null);
+
+  const onLinkedSectionNavigate = useCallback(
+    ({ targetBlockId, sourceTableBlockId }: { targetBlockId: string; sourceTableBlockId: string }) => {
+      setSubpageNavFromTableId(sourceTableBlockId);
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`yeo-block-${targetBlockId}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        let p: HTMLElement | null = el;
+        while (p) {
+          if (p.tagName === "DETAILS") {
+            (p as HTMLDetailsElement).open = true;
+          }
+          p = p.parentElement;
+        }
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     setInTrash(Boolean(initial.is_deleted));
@@ -456,6 +479,28 @@ export function TemplateEditor({
 
       <ScrollArea className="min-h-0 flex-1">
         <div ref={editorRef} className="mx-auto max-w-3xl px-6 py-10 pb-32">
+          {subpageNavFromTableId ? (
+            <div className="sticky top-2 z-20 mb-4 flex justify-center">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="rounded-full border bg-background/95 px-4 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/80"
+                onClick={() => {
+                  const id = subpageNavFromTableId;
+                  if (id) {
+                    document.getElementById(`yeo-block-${id}`)?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }
+                  setSubpageNavFromTableId(null);
+                }}
+              >
+                ← 목록으로 돌아가기
+              </Button>
+            </div>
+          ) : null}
           {!readOnly && (
             <div className="mb-6">
               <SlashCommand
@@ -493,6 +538,7 @@ export function TemplateEditor({
                       onDelete={removeBlock}
                       onDuplicate={duplicateBlock}
                       onEnter={insertParagraphAfter}
+                      onLinkedSectionNavigate={onLinkedSectionNavigate}
                     />
                   </div>
                 ))}

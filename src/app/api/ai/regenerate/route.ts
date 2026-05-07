@@ -44,6 +44,11 @@ export async function POST(req: Request) {
   const openai = getOpenAI();
   const { content: systemPrompt } = buildAiGenerationSystemPrompt();
   const today = new Date().toISOString().slice(0, 10);
+  const cal = new Date();
+  const y = cal.getFullYear();
+  const mo = cal.getMonth();
+  const lastDay = new Date(y, mo + 1, 0).getDate();
+  const ym = `${y}-${String(mo + 1).padStart(2, "0")}`;
 
   let parsed: AITemplatePayload;
   let usedCredit = true;
@@ -56,7 +61,7 @@ export async function POST(req: Request) {
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Today's date (YYYY-MM-DD) for defaulting date cells in tables: ${today}\n\nRegenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,
+          content: `Today's date (YYYY-MM-DD): ${today}\nCalendar month for day-by-day checklists: ${ym} (every day 1–${lastDay}; weekday labels in the user's language).\nTable date columns: use empty string \"\" for all row cells — do not prefill dates.\n\nRegenerate the full template incorporating this feedback. Current title: ${body.currentTitle ?? ""}\nSummary of blocks: ${body.currentBlocksSummary ?? ""}\n\nFeedback:\n${body.prompt}`,
         },
       ],
       temperature: 0.7,
