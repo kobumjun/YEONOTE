@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { STRIPE_PRICE_CONFIG } from "@/types/billing";
+import { LEMON_CHECKOUT_VARIANT_DEFS } from "@/lib/lemon-billing";
+import { getLemonStoreId } from "@/lib/lemonsqueezy";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -8,20 +9,23 @@ export async function GET() {
     return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   }
 
-  const secretConfigured = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
-  const webhookConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim());
-  const prices = STRIPE_PRICE_CONFIG.map((conf) => ({
-    mode: conf.mode,
-    pack: conf.pack,
-    envKey: conf.envKey,
-    configured: Boolean(process.env[conf.envKey]?.trim()),
+  const apiConfigured = Boolean(process.env.LEMONSQUEEZY_API_KEY?.trim());
+  const storeConfigured = Boolean(getLemonStoreId());
+  const webhookConfigured = Boolean(process.env.LEMONSQUEEZY_WEBHOOK_SECRET?.trim());
+
+  const variants = LEMON_CHECKOUT_VARIANT_DEFS.map((def) => ({
+    mode: def.mode,
+    pack: def.pack,
+    envKey: def.envKey,
+    configured: Boolean(process.env[def.envKey]?.trim()),
   }));
 
   return NextResponse.json({
-    stripe: {
-      secretConfigured,
+    lemonSqueezy: {
+      apiConfigured,
+      storeConfigured,
       webhookConfigured,
-      prices,
+      variants,
     },
   });
 }

@@ -1,3 +1,5 @@
+import { packForLemonVariant as packFromLemonVariantId } from "@/lib/lemon-billing";
+
 type LegacyCreditPack = "pro" | "team";
 const LEMONSQUEEZY_VARIANT_ENV_BY_PACK: Record<LegacyCreditPack, string> = {
   pro: "LEMONSQUEEZY_VARIANT_ID_PRO",
@@ -23,15 +25,9 @@ export function getVariantIdForPack(pack: LegacyCreditPack): string | null {
   return id || null;
 }
 
-/** Resolve Pro / Team pack from Lemon variant id. */
-export function planFromVariantId(variantId: string | undefined | null): LegacyCreditPack | null {
-  if (variantId == null || variantId === "") return null;
-  const v = String(variantId);
-  for (const pack of ["pro", "team"] as const) {
-    const configured = getVariantIdForPack(pack);
-    if (configured && configured === v) return pack;
-  }
-  return null;
+/** Resolve starter / growth / bulk tier from Lemon variant id (includes legacy Pro / Team). */
+export function planFromVariantId(variantId: string | undefined | null) {
+  return packFromLemonVariantId(variantId);
 }
 
 /** When webhook includes product id, ensure it matches our single product (if configured). */
@@ -60,6 +56,8 @@ export async function createLemonCheckout(params: {
   email: string;
   userId: string;
   variantId: string;
+  /** Success redirect after checkout (Lemon `product_options.redirect_url`). */
+  redirectUrl?: string;
 }): Promise<{ ok: true; url: string; checkoutId: string } | { ok: false; error: string; status: number }> {
   const apiKey = process.env.LEMONSQUEEZY_API_KEY?.trim();
   const storeId = getLemonStoreId();
@@ -78,6 +76,9 @@ export async function createLemonCheckout(params: {
           email: params.email,
           custom: { user_id: params.userId },
         },
+        ...(params.redirectUrl
+          ? { product_options: { redirect_url: params.redirectUrl } }
+          : {}),
       },
       relationships: {
         store: { data: { type: "stores", id: String(storeId) } },

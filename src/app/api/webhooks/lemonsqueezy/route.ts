@@ -1,10 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isWebhookProductAllowed, planFromVariantId } from "@/lib/lemonsqueezy";
-
-type BillingPlan = "free" | "pro" | "team";
-type CreditPack = "pro" | "team";
+import { creditsForLemonVariant, packForLemonVariant } from "@/lib/lemon-billing";
+import { isWebhookProductAllowed } from "@/lib/lemonsqueezy";
+import type { BillingPlan, CreditPack } from "@/types/billing";
 
 function verifySignature(rawBody: string, signature: string | null, secret: string) {
   if (!signature) return false;
@@ -79,13 +78,14 @@ function variantIdFromOrderAttributes(attrs: Record<string, unknown>): string | 
   return String(foi.variant_id);
 }
 
-function creditsFromVariantId(variantId: string | undefined): number {
-  const proVariantId = process.env.LEMONSQUEEZY_VARIANT_ID_PRO;
-  const teamVariantId = process.env.LEMONSQUEEZY_VARIANT_ID_TEAM;
-  if (!variantId) return 0;
-  if (proVariantId && variantId === proVariantId) return 100;
-  if (teamVariantId && variantId === teamVariantId) return 300;
-  return 0;
+function inferPlanFromName(variantId: string | undefined, attrs: Record<string, unknown>): BillingPlan {
+  const pack = packForLemonVariant(variantId);
+  if (pack) return pack;
+  const name = String(attrs.variant_name ?? attrs.product_name ?? "").toLowerCase();
+  if (name.includes("team") || name.includes("bulk")) return "bulk";
+  if (name.includes("growth") || name.includes("pro")) return "growth";
+  if (name.includes("starter")) return "starter";
+  return "starter";
 }
 
 export async function POST(req: Request) {
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
 
     const variantId = variantIdFromOrderAttributes(attrs);
     const userId = extractUserId(payload);
-    const creditsToAdd = creditsFromVariantId(variantId);
+    const creditsToAdd = creditsForLemonVariant(variantId);
     console.log("[lemonsqueezy webhook] order_created", {
       variant_id: variantId ?? null,
       user_id: userId || null,
@@ -169,9 +169,9 @@ export async function POST(req: Request) {
     const nextCredits = (row?.ai_credits ?? 0) + creditsToAdd;
     const nextCeiling = (row?.ai_credits_ceiling ?? 0) + creditsToAdd;
 
-    let pack: CreditPack | null = planFromVariantId(variantId);
+    let pack: CreditPack | null = packForLemonVariant(variantId);
     if (!pack) {
-      pack = creditsToAdd === 300 ? "team" : "pro";
+      pack = creditsToAdd >= 250 ? "bulk" : creditsToAdd >= 100 ? "growth" : "starter";
     }
 
     const { error: upErr } = await admin
@@ -202,21 +202,9 @@ export async function POST(req: Request) {
   }
 
   const variantId = extractVariantId(payload);
-  let plan: BillingPlan | null = planFromVariantId(variantId);
-
-  if (!plan) {
-    const attrs = payload.data?.attributes ?? {};
-    const name = String(attrs.variant_name ?? attrs.product_name ?? "").toLowerCase();
-    if (name.includes("team")) plan = "team";
-    else if (name.includes("pro")) plan = "pro";
-  }
-
-  if (!plan) {
-    plan = "pro";
-  }
-
-  const userId = extractUserId(payload);
   const attrs = payload.data?.attributes ?? {};
+  const plan: BillingPlan = inferPlanFromName(variantId, attrs);
+  const userId = extractUserId(payload);
   const status = subscriptionStatus(attrs);
 
   if (!userId) {

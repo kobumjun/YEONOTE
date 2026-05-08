@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CREDIT_PACKS, type CreditPackKey, type PricingMode } from "@/lib/credits";
+import { getLemonVariantIdForCheckout } from "@/lib/lemon-checkout-client";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -41,13 +42,22 @@ export function PricingClient() {
     const key = `${mode}:${pack}`;
     setBusyKey(key);
     try {
-      const res = await fetch(`/api/billing/checkout?mode=${mode}&pack=${pack}`);
-      const j = await res.json();
+      const variantId = getLemonVariantIdForCheckout(mode, pack);
+      if (!variantId) {
+        toast.error("Checkout is not configured for this plan. Set Lemon variant env vars.");
+        return;
+      }
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId }),
+      });
+      const j = (await res.json()) as { url?: string; error?: string };
       if (!res.ok) {
         toast.error(j.error ?? "Failed to open checkout page");
         return;
       }
-      if (j.url) window.location.href = j.url as string;
+      if (j.url) window.location.href = j.url;
     } finally {
       setBusyKey(null);
     }
