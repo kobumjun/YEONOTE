@@ -10,10 +10,11 @@ import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
 
 const links = [
-  { href: "/dashboard", label: "All Templates" },
-  { href: "/dashboard?view=my", label: "My Templates" },
+  { href: "/dashboard", label: "All Creations" },
+  { href: "/dashboard?view=my", label: "My Work" },
   { href: "/dashboard?view=favorites", label: "Favorites" },
   { href: "/dashboard?view=trash", label: "Trash" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/explore", label: "Explore" },
   { href: "/settings", label: "Settings" },
 ];
@@ -57,24 +58,31 @@ export function MobileNav({
             <div className="mt-6 rounded-xl border border-border bg-muted/30 p-3 text-sm">
               <p className="font-medium text-foreground">{displayName || "User"}</p>
               <p className="truncate text-xs text-muted-foreground">{email || "—"}</p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {creditsDisplay(aiCredits, aiCreditsCeiling)} credits left
-              </p>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Credits</span>
+                <span>{creditsDisplay(aiCredits, aiCreditsCeiling)}</span>
+              </div>
+              <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
+                <div
+                  className="h-1.5 rounded-full bg-yeo-600 transition-all"
+                  style={{ width: `${Math.max(0, Math.min(100, (aiCreditsCeiling > 0 ? (aiCredits / aiCreditsCeiling) * 100 : 0)))}%` }}
+                />
+              </div>
               <Link
-                href="/settings/billing"
+                href="/pricing"
                 className={cn(
                   buttonVariants({ size: "sm" }),
                   "mt-2 flex w-full justify-center rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
                 )}
               >
-                Top Up
+                Get More Credits
               </Link>
             </div>
           </SheetContent>
         </Sheet>
         <Logo href="/dashboard" />
         <Button type="button" size="sm" className="ml-auto rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>
-          New Template
+          New Creation
         </Button>
       </div>
     </div>

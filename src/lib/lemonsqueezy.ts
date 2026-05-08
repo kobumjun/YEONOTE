@@ -1,4 +1,8 @@
-import { LEMONSQUEEZY_VARIANT_ENV_BY_PACK, type CreditPack } from "@/types/billing";
+type LegacyCreditPack = "pro" | "team";
+const LEMONSQUEEZY_VARIANT_ENV_BY_PACK: Record<LegacyCreditPack, string> = {
+  pro: "LEMONSQUEEZY_VARIANT_ID_PRO",
+  team: "LEMONSQUEEZY_VARIANT_ID_TEAM",
+};
 
 const LEMON_API_BASE = "https://api.lemonsqueezy.com/v1";
 
@@ -13,14 +17,14 @@ export function getLemonStoreId(): string | undefined {
   return id || undefined;
 }
 
-export function getVariantIdForPack(pack: CreditPack): string | null {
+export function getVariantIdForPack(pack: LegacyCreditPack): string | null {
   const key = LEMONSQUEEZY_VARIANT_ENV_BY_PACK[pack];
   const id = process.env[key]?.trim();
   return id || null;
 }
 
 /** Resolve Pro / Team pack from Lemon variant id. */
-export function planFromVariantId(variantId: string | undefined | null): CreditPack | null {
+export function planFromVariantId(variantId: string | undefined | null): LegacyCreditPack | null {
   if (variantId == null || variantId === "") return null;
   const v = String(variantId);
   for (const pack of ["pro", "team"] as const) {
@@ -117,7 +121,7 @@ export async function createLemonCheckout(params: {
 }
 
 export async function createLemonCheckoutForPack(
-  pack: CreditPack,
+  pack: LegacyCreditPack,
   email: string,
   userId: string
 ): Promise<

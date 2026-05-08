@@ -3,10 +3,15 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FREE_MAX_TEMPLATES, effectivePlan } from "@/lib/plan";
 import { createBlankTemplateBlocks } from "@/lib/blank-template";
-import type { TemplateContent } from "@/types/template";
+import type { CreationContent, CreationType, TemplateContent } from "@/types/template";
 
 function emptyContent(): TemplateContent {
   return { blocks: [] };
+}
+
+function normalizeCreationType(raw: unknown): CreationType {
+  if (raw === "document" || raw === "presentation" || raw === "image" || raw === "template") return raw;
+  return "template";
 }
 
 const PAGE_SIZE = 12;
@@ -52,8 +57,9 @@ export async function GET(req: Request) {
 
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const templates = (data ?? []).map((t) => ({ ...t, creationType: t.creation_type ?? "template" }));
   return NextResponse.json({
-    templates: data ?? [],
+    templates,
     total: count ?? 0,
     page,
     pageSize: PAGE_SIZE,
@@ -86,15 +92,18 @@ export async function POST(req: Request) {
     title?: string;
     icon?: string;
     cover?: string | null;
-    content?: TemplateContent;
+    content?: CreationContent;
     tags?: string[];
     category?: string | null;
     ai_prompt?: string | null;
     blank?: boolean;
+    creation_type?: CreationType;
+    creationType?: CreationType;
   };
 
   const blank = Boolean(body.blank);
-  const content: TemplateContent = blank
+  const creationType = normalizeCreationType(body.creation_type ?? body.creationType);
+  const content: CreationContent = blank
     ? { blocks: createBlankTemplateBlocks() }
     : (body.content ?? emptyContent());
   const title = blank ? (body.title?.trim() || "Untitled") : (body.title ?? "Untitled");
@@ -106,6 +115,7 @@ export async function POST(req: Request) {
       user_id: user.id,
       title,
       icon,
+      creation_type: creationType,
       cover: body.cover ?? null,
       content,
       tags: body.tags ?? [],
@@ -117,5 +127,5 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ template: data });
+  return NextResponse.json({ template: { ...data, creationType: data.creation_type ?? "template" } });
 }

@@ -47,6 +47,7 @@ export async function POST(_req: Request, ctx: Ctx) {
       user_id: user.id,
       title: `${src.title} (Copy)`,
       icon: src.icon,
+      creation_type: src.creation_type ?? "template",
       cover: src.cover,
       content,
       tags: src.tags ?? [],
@@ -71,5 +72,5 @@ export async function POST(_req: Request, ctx: Ctx) {
     }
   }
 
-  return NextResponse.json({ template: created });
+  return NextResponse.json({ template: { ...created, creationType: created.creation_type ?? "template" } });
 }

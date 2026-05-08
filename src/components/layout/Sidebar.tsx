@@ -9,6 +9,7 @@ import {
   FileText,
   Star,
   Trash2,
+  CreditCard,
   Settings,
   Sparkles,
   PanelLeftClose,
@@ -22,10 +23,11 @@ import { creditsDisplay } from "@/lib/credits";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const links = [
-  { href: "/dashboard", label: "All Templates", icon: LayoutDashboard, dashboardView: "all" as const },
-  { href: "/dashboard?view=my", label: "My Templates", icon: FileText, dashboardView: "my" as const },
+  { href: "/dashboard", label: "All Creations", icon: LayoutDashboard, dashboardView: "all" as const },
+  { href: "/dashboard?view=my", label: "My Work", icon: FileText, dashboardView: "my" as const },
   { href: "/dashboard?view=favorites", label: "Favorites", icon: Star, dashboardView: "favorites" as const },
   { href: "/dashboard?view=trash", label: "Trash", icon: Trash2, dashboardView: "trash" as const },
+  { href: "/pricing", label: "Pricing", icon: CreditCard, dashboardView: null },
   { href: "/explore", label: "Explore", icon: Sparkles, dashboardView: null },
   { href: "/settings", label: "Settings", icon: Settings, dashboardView: null },
 ];
@@ -39,6 +41,7 @@ function SidebarNavLinks({ collapsed }: { collapsed: boolean }) {
     if (dashboardView != null) {
       return pathname === "/dashboard" && currentDashView === dashboardView;
     }
+    if (href === "/pricing") return pathname === "/pricing" || pathname.startsWith("/pricing/");
     if (href === "/explore") return pathname === "/explore" || pathname.startsWith("/explore/");
     if (href === "/settings") return pathname === "/settings" || pathname.startsWith("/settings/");
     return false;
@@ -129,17 +132,24 @@ export function Sidebar({
       </Suspense>
       {!collapsed && (
         <div className="border-t border-sidebar-border p-3">
-          <p className="text-xs font-medium text-sidebar-foreground/80">
-            AI credits {creditsDisplay(aiCredits, aiCreditsCeiling)} left
-          </p>
+          <div className="flex items-center justify-between text-xs text-sidebar-foreground/80">
+            <span>Credits</span>
+            <span>{creditsDisplay(aiCredits, aiCreditsCeiling)}</span>
+          </div>
+          <div className="mt-1 h-1.5 w-full rounded-full bg-sidebar-accent/50">
+            <div
+              className="h-1.5 rounded-full bg-yeo-600 transition-all"
+              style={{ width: `${Math.max(0, Math.min(100, (aiCreditsCeiling > 0 ? (aiCredits / aiCreditsCeiling) * 100 : 0)))}%` }}
+            />
+          </div>
           <Link
-            href="/settings/billing"
+            href="/pricing"
             className={cn(
               buttonVariants({ size: "sm" }),
               "mt-2 flex w-full justify-center rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
             )}
           >
-            Top Up
+            Get More Credits
           </Link>
         </div>
       )}

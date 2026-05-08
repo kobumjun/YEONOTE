@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { TemplateContent } from "@/types/template";
+import type { CreationContent, CreationType } from "@/types/template";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -23,7 +23,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Access denied." }, { status: 403 });
   }
 
-  return NextResponse.json({ template: data });
+  return NextResponse.json({ template: { ...data, creationType: data.creation_type ?? "template" } });
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
@@ -35,7 +35,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     title?: string;
     icon?: string;
     cover?: string | null;
-    content?: TemplateContent;
+    content?: CreationContent;
+    creation_type?: CreationType;
+    creationType?: CreationType;
     tags?: string[];
     category?: string | null;
     is_public?: boolean;
@@ -45,6 +47,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const supabase = await createClient();
   const patch: Record<string, unknown> = { ...body, updated_at: new Date().toISOString() };
+  if (body.creationType && !body.creation_type) patch.creation_type = body.creationType;
   if (body.is_deleted === true) patch.deleted_at = new Date().toISOString();
   if (body.is_deleted === false) patch.deleted_at = null;
 
@@ -58,7 +61,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  return NextResponse.json({ template: data });
+  return NextResponse.json({ template: { ...data, creationType: data.creation_type ?? "template" } });
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 
-const steps = ["Analyzing request...", "Designing block structure...", "Building database views...", "Finalizing layout..."];
+const steps = ["Classifying prompt...", "Routing generation type...", "Building creation...", "Finalizing output..."];
 
 export function Demo() {
   const [i, setI] = useState(0);
   const [lines, setLines] = useState<string[]>([]);
   const sample =
-    "I need a weekly project workspace with task tracking, meeting notes, and sprint planning in one page.";
+    "Create a 7-slide pitch deck for a mobile fitness app with market, product, business model, and roadmap slides.";
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -36,7 +36,7 @@ export function Demo() {
         Live Preview
       </h2>
       <p className="mt-2 text-center text-sm text-muted-foreground">
-        See how a short brief transforms into structured blocks.
+        See how one prompt becomes the right output type automatically.
       </p>
       <Card className="mt-10 overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200">
         <div className="grid gap-0 md:grid-cols-2">
@@ -57,14 +57,14 @@ export function Demo() {
           <div className="p-6">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
             <div className="mt-3 space-y-2 text-sm">
-              <div className="rounded-lg border border-border bg-card p-3 shadow-sm">📋 Weekly Project Hub</div>
+              <div className="rounded-lg border border-border bg-card p-3 shadow-sm">📊 Mobile Fitness Pitch Deck</div>
               <div className="rounded-lg border border-yeo-200/60 bg-yeo-50/50 p-3 dark:border-yeo-900 dark:bg-yeo-950/30">
-                💡 Plan your sprint on Monday and keep notes right next to it.
+                💡 Type detected: Presentation · 7 slides generated
               </div>
-              <div className="rounded-lg border border-border bg-card p-3 text-muted-foreground shadow-sm">▸ This week (3)</div>
+              <div className="rounded-lg border border-border bg-card p-3 text-muted-foreground shadow-sm">▸ Problem & Opportunity</div>
               <div className="h-2 rounded bg-muted" />
               <div className="rounded-lg border border-border bg-card p-2 text-xs text-muted-foreground shadow-sm">
-                Table · Task tracking
+                Export ready · PPTX
               </div>
             </div>
           </div>

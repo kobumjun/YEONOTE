@@ -2,7 +2,9 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isWebhookProductAllowed, planFromVariantId } from "@/lib/lemonsqueezy";
-import type { BillingPlan, CreditPack } from "@/types/billing";
+
+type BillingPlan = "free" | "pro" | "team";
+type CreditPack = "pro" | "team";
 
 function verifySignature(rawBody: string, signature: string | null, secret: string) {
   if (!signature) return false;

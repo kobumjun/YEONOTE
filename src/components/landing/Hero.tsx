@@ -14,7 +14,10 @@ export function Hero() {
           <span className="bg-gradient-to-r from-yeo-500 via-yeo-400 to-yeo-700 bg-clip-text text-transparent">YEO builds it.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-          AI-powered template generator. Create structured Notion-style pages in seconds.
+          Describe anything. YEO creates it. Documents, presentations, images, and templates.
+        </p>
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
+          From one prompt to polished output in the right format, ready to edit and export.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <GoogleSignInButton

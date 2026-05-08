@@ -4,9 +4,9 @@ import { getOpenAI, buildAiGenerationSystemPrompt } from "@/lib/openai";
 import { streamChatCompletionJson } from "@/lib/ai-completion";
 import { buildTimeoutFallbackTemplate } from "@/lib/ai-fallback-template";
 import { createClient } from "@/lib/supabase/server";
-import { canGenerateAI } from "@/lib/plan";
 import { limitAiGeneration } from "@/lib/ratelimit";
 import type { AITemplatePayload } from "@/types/template";
+import { deductAiCreditsAtomic } from "@/lib/ai-credits";
 
 export const runtime = "nodejs";
 
@@ -25,20 +25,21 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 400 });
 
   const creditsBefore = profile.ai_credits ?? 0;
-  if (!canGenerateAI(creditsBefore)) {
-    return NextResponse.json(
-      { error: "No AI credits left. Please top up and try again.", code: "NO_CREDITS" },
-      { status: 403 }
-    );
+  if (creditsBefore < 1) {
+    return NextResponse.json({ error: "No AI credits left. Please top up and try again.", code: "NO_CREDITS" }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null) as {
     prompt?: string;
     currentTitle?: string;
     currentBlocksSummary?: string;
+    creationType?: string;
   } | null;
   if (!body?.prompt?.trim()) {
     return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
+  }
+  if (body.creationType && body.creationType !== "template") {
+    return NextResponse.json({ error: "Regenerate currently supports template creations only." }, { status: 400 });
   }
 
   const openai = getOpenAI();
@@ -87,28 +88,20 @@ export async function POST(req: Request) {
   let creditsRemaining = creditsBefore;
 
   if (usedCredit) {
-    const { data: updatedProfile, error: creditErr } = await supabase
-      .from("profiles")
-      .update({ ai_credits: creditsBefore - 1 })
-      .eq("id", user.id)
-      .eq("ai_credits", creditsBefore)
-      .select("ai_credits")
-      .single();
-
-    if (creditErr || updatedProfile == null) {
-      return NextResponse.json(
-        { error: "Failed to deduct credits. Please try again shortly.", code: "CREDIT_RACE" },
-        { status: 409 }
-      );
+    const creditResult = await deductAiCreditsAtomic(supabase, user.id, creditsBefore, 1);
+    if ("error" in creditResult) {
+      return NextResponse.json({ error: creditResult.error, code: creditResult.code }, { status: creditResult.code === "NO_CREDITS" ? 403 : 409 });
     }
-
-    creditsRemaining = updatedProfile.ai_credits ?? 0;
+    creditsRemaining = creditResult.creditsRemaining;
 
     await supabase.from("ai_logs").insert({
       user_id: user.id,
       prompt: body.prompt,
       model: "gpt-4o",
       tokens_used: completionTokens,
+      classified_type: "template",
+      generation_type: "template",
+      charged_credits: 1,
     });
   } else {
     await supabase.from("ai_logs").insert({
@@ -116,6 +109,9 @@ export async function POST(req: Request) {
       prompt: `[timeout fallback regenerate] ${body.prompt}`,
       model: "gpt-4o",
       tokens_used: completionTokens,
+      classified_type: "template",
+      generation_type: "template",
+      charged_credits: 0,
     });
   }
 

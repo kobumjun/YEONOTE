@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { createLemonCheckoutForPack, getLemonProductId, getVariantIdForPack } from "@/lib/lemonsqueezy";
-import type { CreditPack } from "@/types/billing";
+import { getStripeClient, resolvePriceId } from "@/lib/stripe";
+import type { CreditPack, PricingMode } from "@/types/billing";
 
-const PACKS: CreditPack[] = ["pro", "team"];
+const PACKS: CreditPack[] = ["starter", "growth", "bulk"];
+const MODES: PricingMode[] = ["one_time", "subscription"];
 
 export async function GET(req: Request) {
   const user = await getSessionUser();
@@ -12,34 +13,58 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const planParam = (searchParams.get("plan") ?? "pro").toLowerCase();
-  if (!PACKS.includes(planParam as CreditPack)) {
+  const packParam = (searchParams.get("pack") ?? "starter").toLowerCase();
+  const modeParam = (searchParams.get("mode") ?? "one_time").toLowerCase();
+  if (!PACKS.includes(packParam as CreditPack)) {
+    return NextResponse.json({ error: "Invalid pack." }, { status: 400 });
+  }
+  if (!MODES.includes(modeParam as PricingMode)) {
     return NextResponse.json({ error: "Invalid plan." }, { status: 400 });
   }
-  const pack = planParam as CreditPack;
+  const pack = packParam as CreditPack;
+  const mode = modeParam as PricingMode;
 
-  const variantId = getVariantIdForPack(pack);
-  if (!variantId) {
+  const priceId = resolvePriceId(mode, pack);
+  if (!priceId) {
     return NextResponse.json(
       {
-        error: "Lemon Squeezy variant IDs are not configured. Check your .env values.",
+        error: "Stripe price IDs are not configured. Check your .env values.",
       },
       { status: 500 }
     );
   }
 
-  const created = await createLemonCheckoutForPack(pack, user.email, user.id);
-  if (!created.ok) {
-    return NextResponse.json({ error: created.error }, { status: created.status });
-  }
-
-  const productId = getLemonProductId() ?? null;
+  const stripe = getStripeClient();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const session = await stripe.checkout.sessions.create({
+    mode: mode === "subscription" ? "subscription" : "payment",
+    line_items: [{ price: priceId, quantity: 1 }],
+    customer_email: user.email,
+    metadata: {
+      userId: user.id,
+      mode,
+      pack,
+    },
+    success_url: `${appUrl}/pricing?success=1`,
+    cancel_url: `${appUrl}/pricing?canceled=1`,
+    allow_promotion_codes: true,
+    ...(mode === "subscription"
+      ? {
+          subscription_data: {
+            metadata: {
+              userId: user.id,
+              pack,
+            },
+          },
+        }
+      : {}),
+  });
 
   return NextResponse.json({
-    url: created.url,
-    plan: pack,
-    variantId: created.variantId,
-    checkoutId: created.checkoutId,
-    productId,
+    url: session.url,
+    mode,
+    pack,
+    priceId,
+    checkoutId: session.id,
   });
 }

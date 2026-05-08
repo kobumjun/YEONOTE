@@ -3,13 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import {
-  PRO_CREDIT_PACK_CREDITS,
-  PRO_CREDIT_PACK_USD,
-  TEAM_CREDIT_PACK_CREDITS,
-  TEAM_CREDIT_PACK_USD,
-  TUTORIAL_SIGNUP_CREDITS,
-} from "@/lib/credits";
+import { CREDIT_PACKS, TUTORIAL_SIGNUP_CREDITS } from "@/lib/credits";
 
 const tiers = [
   {
@@ -27,31 +21,31 @@ const tiers = [
     badge: null as string | null,
   },
   {
-    name: "Pro",
-    price: `$${PRO_CREDIT_PACK_USD}`,
+    name: "Growth",
+    price: `$${CREDIT_PACKS.one_time.growth.usd}`,
     desc: "Best for people who generate templates frequently with AI.",
     features: [
-      `${PRO_CREDIT_PACK_CREDITS} AI credits`,
+      `${CREDIT_PACKS.one_time.growth.credits} AI credits`,
       "All block types",
       "PDF/PNG export",
       "Version history",
     ],
-    href: "/login?next=/settings/billing",
+    href: "/login?next=/pricing",
     cta: "Buy credits",
     highlight: true,
     badge: "Most popular",
   },
   {
-    name: "Team",
-    price: `$${TEAM_CREDIT_PACK_USD}`,
+    name: "Bulk",
+    price: `$${CREDIT_PACKS.one_time.bulk.usd}`,
     desc: "For teams that need more credits.",
     features: [
-      `${TEAM_CREDIT_PACK_CREDITS} AI credits`,
-      "Everything in Pro",
-      "Team workspace",
-      "Share Templates",
+      `${CREDIT_PACKS.one_time.bulk.credits} AI credits`,
+      "Everything in Growth",
+      "Best value pack",
+      "No expiration",
     ],
-    href: "/login?next=/settings/billing",
+    href: "/login?next=/pricing",
     cta: "Buy credits",
     highlight: false,
     badge: null as string | null,

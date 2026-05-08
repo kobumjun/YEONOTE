@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TemplateEditor } from "@/components/editor/TemplateEditor";
-import type { TemplateBlock, TemplateContent } from "@/types/template";
+import { CreationViewer } from "@/components/creation/CreationViewer";
+import { asTemplateContent, type TemplateBlock } from "@/types/template";
 
 export default async function SharedTemplatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,7 +17,11 @@ export default async function SharedTemplatePage({ params }: { params: Promise<{
 
   if (!tpl) notFound();
 
-  const content = (tpl.content ?? { blocks: [] }) as TemplateContent;
+  if (tpl.creation_type && tpl.creation_type !== "template") {
+    return <CreationViewer title={tpl.title} type={tpl.creation_type} content={tpl.content} />;
+  }
+
+  const content = asTemplateContent(tpl.content);
   const blocks = (content.blocks ?? []) as TemplateBlock[];
 
   return (

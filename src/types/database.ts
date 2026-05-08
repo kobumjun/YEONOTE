@@ -1,4 +1,4 @@
-import type { TemplateContent } from "@/types/template";
+import type { CreationContent, CreationType } from "@/types/template";
 
 export type Profile = {
   id: string;
@@ -8,7 +8,7 @@ export type Profile = {
   bio: string | null;
   language: string | null;
   theme: string | null;
-  plan: "free" | "pro" | "team";
+  plan: "free" | "starter" | "growth" | "bulk";
   ai_generations_used: number;
   ai_generations_reset_at: string | null;
   ai_credits: number;
@@ -23,7 +23,8 @@ export type TemplateRow = {
   title: string;
   icon: string;
   cover: string | null;
-  content: TemplateContent;
+  creation_type: CreationType;
+  content: CreationContent;
   tags: string[] | null;
   category: string | null;
   is_public: boolean;

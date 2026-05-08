@@ -1,18 +1,23 @@
-export type BillingPlan = "free" | "pro" | "team";
+export type BillingPlan = "free" | "starter" | "growth" | "bulk";
 
-/** One Lemon Squeezy product; paid packs map to variants via env (see `LEMONSQUEEZY_PRODUCT_ID`). */
-export const LEMONSQUEEZY_PRODUCT_ENV_KEY = "LEMONSQUEEZY_PRODUCT_ID" as const;
+export type PricingMode = "one_time" | "subscription";
+export type CreditPack = "starter" | "growth" | "bulk";
 
-/** Checkout host: `https://{slug}.lemonsqueezy.com/buy/...` — not the numeric store id. */
-export const LEMONSQUEEZY_STORE_SLUG_ENV_KEY = "LEMONSQUEEZY_STORE_SLUG" as const;
-
-/** One-time credit packs only (no Free checkout variant). */
-export type CreditPack = "pro" | "team";
-
-export const LEMONSQUEEZY_VARIANT_ENV_BY_PACK: Record<CreditPack, string> = {
-  pro: "LEMONSQUEEZY_VARIANT_ID_PRO",
-  team: "LEMONSQUEEZY_VARIANT_ID_TEAM",
+export type PriceConfig = {
+  mode: PricingMode;
+  pack: CreditPack;
+  envKey: string;
+  credits: number;
 };
+
+export const STRIPE_PRICE_CONFIG: PriceConfig[] = [
+  { mode: "one_time", pack: "starter", envKey: "NEXT_PUBLIC_STRIPE_PRICE_STARTER", credits: 30 },
+  { mode: "one_time", pack: "growth", envKey: "NEXT_PUBLIC_STRIPE_PRICE_GROWTH", credits: 100 },
+  { mode: "one_time", pack: "bulk", envKey: "NEXT_PUBLIC_STRIPE_PRICE_BULK", credits: 250 },
+  { mode: "subscription", pack: "starter", envKey: "NEXT_PUBLIC_STRIPE_PRICE_SUB_STARTER", credits: 50 },
+  { mode: "subscription", pack: "growth", envKey: "NEXT_PUBLIC_STRIPE_PRICE_SUB_GROWTH", credits: 150 },
+  { mode: "subscription", pack: "bulk", envKey: "NEXT_PUBLIC_STRIPE_PRICE_SUB_BULK", credits: 400 },
+];
 
 export type SubscriptionStatus =
   | "active"

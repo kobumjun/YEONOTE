@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { AITemplatePayload } from "@/types/template";
+import type { AIGeneratePayload } from "@/types/template";
 
 type ProgressCb = (message: string) => void;
 
 export type AIGenerateResult = {
-  payload: AITemplatePayload;
+  payload: AIGeneratePayload;
   creditsRemaining: number | null;
   usedCredit: boolean;
+  chargedCredits: number;
   warning?: string;
 };
 
@@ -19,7 +20,7 @@ export function useAIGenerate() {
   const generateStream = useCallback(
     async (
       prompt: string,
-      opts: { tags?: string[]; style?: string; onProgress?: ProgressCb; onBlock?: (raw: unknown) => void }
+      opts: { onProgress?: ProgressCb; onBlock?: (raw: unknown) => void }
     ): Promise<AIGenerateResult | null> => {
       setStreaming(true);
       setError(null);
@@ -30,14 +31,16 @@ export function useAIGenerate() {
         cover?: string;
         creditsRemaining?: number;
         usedCredit?: boolean;
+        chargedCredits?: number;
         warning?: string;
+        payload?: AIGeneratePayload;
       } = {};
 
       try {
         const res = await fetch("/api/ai/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, tags: opts.tags, style: opts.style }),
+          body: JSON.stringify({ prompt }),
         });
 
         if (!res.ok) {
@@ -72,6 +75,8 @@ export function useAIGenerate() {
                 icon?: string;
                 cover?: string;
                 creditsRemaining?: number;
+                chargedCredits?: number;
+                payload?: AIGeneratePayload;
               };
               if (data.type === "progress" && data.message) opts.onProgress?.(data.message);
               if (data.type === "block" && data.block !== undefined) {
@@ -80,20 +85,18 @@ export function useAIGenerate() {
               }
               if (data.type === "done") {
                 const done = data as unknown as {
-                  title?: string;
-                  icon?: string;
-                  cover?: string;
                   creditsRemaining?: number;
                   usedCredit?: boolean;
+                  chargedCredits?: number;
                   warning?: string;
+                  payload?: AIGeneratePayload;
                 };
                 meta = {
-                  title: done.title,
-                  icon: done.icon,
-                  cover: done.cover,
                   creditsRemaining: typeof done.creditsRemaining === "number" ? done.creditsRemaining : undefined,
                   usedCredit: typeof done.usedCredit === "boolean" ? done.usedCredit : true,
+                  chargedCredits: typeof done.chargedCredits === "number" ? done.chargedCredits : 1,
                   warning: done.warning,
+                  payload: done.payload,
                 };
               }
             } catch {
@@ -112,16 +115,16 @@ export function useAIGenerate() {
       }
 
       setStreaming(false);
-      const payload: AITemplatePayload = {
-        title: meta.title ?? "Untitled",
-        icon: meta.icon,
-        cover: meta.cover,
+      const payload: AIGeneratePayload = meta.payload ?? {
+        creationType: "template",
+        title: "Untitled",
         blocks: rawBlocks,
       };
       return {
         payload,
         creditsRemaining: meta.creditsRemaining ?? null,
         usedCredit: meta.usedCredit !== false,
+        chargedCredits: meta.chargedCredits ?? 1,
         warning: meta.warning,
       };
     },

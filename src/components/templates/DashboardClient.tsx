@@ -57,8 +57,8 @@ export function DashboardClient() {
     <div className="p-4 md:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">Templates</h1>
-          <p className="text-sm text-muted-foreground">Create and manage your templates.</p>
+          <h1 className="font-heading text-2xl font-semibold tracking-[-0.02em] text-foreground">All Creations</h1>
+          <p className="text-sm text-muted-foreground">Create and manage your documents, presentations, images, and templates.</p>
           {showSharedFilter && (
             <div className="mt-3 flex flex-wrap gap-2">
               <Link
@@ -69,7 +69,7 @@ export function DashboardClient() {
                   filter === "shared_with_me" && "border border-border"
                 )}
               >
-                All My Templates
+                My Work
               </Link>
               <Link
                 href="/dashboard?view=my&filter=shared_with_me"
@@ -115,7 +115,7 @@ export function DashboardClient() {
               ? "No templates have been shared with you yet. They will appear here once someone shares one."
               : isTrash
                 ? "Trash is empty."
-                : "No templates yet. Generate one with AI or start from a blank template."}
+              : "No creations yet. Generate one with AI or start from a blank template."}
           </p>
           {!isTrash && filter !== "shared_with_me" && (
             <Button className="mt-4 rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>

@@ -16,7 +16,7 @@ const appName = process.env.NEXT_PUBLIC_APP_NAME ?? "YEO";
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: `${appName} — AI Template Generator`,
+    default: `${appName} — AI Content Creator`,
     template: `%s | ${appName}`,
   },
   icons: {
@@ -24,11 +24,11 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   description:
-    "AI-powered template generator for structured Notion-style pages. Describe what you need and get a ready-to-edit layout in seconds.",
+    "Describe anything. YEO creates it. Documents, presentations, images, templates — built instantly with AI.",
   openGraph: {
-    title: `${appName} — AI Template Generator`,
+    title: `${appName} — AI Content Creator`,
     description:
-      "AI-powered template generator for structured Notion-style pages. Describe what you need and get a ready-to-edit layout in seconds.",
+      "Describe anything. YEO creates it. Documents, presentations, images, templates — built instantly with AI.",
     url: appUrl,
     siteName: appName,
     locale: "en_US",

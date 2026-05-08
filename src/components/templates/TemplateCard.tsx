@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { FileText, Image as ImageIcon, LayoutTemplate, MoreHorizontal, Presentation, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,8 @@ export function TemplateCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmTrashOpen, setConfirmTrashOpen] = useState(false);
   const [confirmPermanentOpen, setConfirmPermanentOpen] = useState(false);
+  const creationType = template.creation_type ?? "template";
+  const TypeIcon = creationType === "document" ? FileText : creationType === "presentation" ? Presentation : creationType === "image" ? ImageIcon : LayoutTemplate;
 
   async function softDelete() {
     const res = await fetch(`/api/templates/${template.id}`, { method: "DELETE" });
@@ -173,6 +175,12 @@ export function TemplateCard({
               <p className="mt-1 text-xs text-muted-foreground">
                 Updated {format(new Date(template.updated_at), "MM/dd/yyyy HH:mm")}
               </p>
+              <div className="mt-2 flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] capitalize">
+                  <TypeIcon className="mr-1 size-3" />
+                  {creationType}
+                </Badge>
+              </div>
               {template.tags && template.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {template.tags.slice(0, 3).map((t) => (

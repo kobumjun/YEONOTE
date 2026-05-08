@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const supabase = await createClient();
   let query = supabase
     .from("templates")
-    .select("id,title,icon,cover,tags,category,likes_count,duplicates_count,created_at,user_id", { count: "exact" })
+    .select("id,title,icon,cover,tags,category,creation_type,likes_count,duplicates_count,created_at,user_id", { count: "exact" })
     .eq("is_public", true)
     .eq("is_deleted", false)
     .order("likes_count", { ascending: false });

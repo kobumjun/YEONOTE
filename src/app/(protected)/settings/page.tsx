@@ -4,7 +4,7 @@ import { SignOutSection } from "@/components/settings/SignOutSection";
 
 const links = [
   { href: "/settings/profile", title: "Profile", desc: "Name, avatar, and bio" },
-  { href: "/settings/billing", title: "Billing & Credits", desc: "Top-ups and receipts" },
+  { href: "/pricing", title: "Pricing", desc: "One-time and subscription credits" },
 ];
 
 export default function SettingsPage() {

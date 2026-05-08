@@ -1,4 +1,5 @@
 export type BlockId = string;
+export type CreationType = "document" | "presentation" | "image" | "template";
 
 export type TemplateStyle = "minimal" | "colorful" | "corporate" | "playful";
 
@@ -465,12 +466,67 @@ export type TemplateContent = {
   blocks: TemplateBlock[];
 };
 
+export type DocumentContent = {
+  html: string;
+};
+
+export type PresentationSlide = {
+  title: string;
+  bullets: string[];
+  notes?: string;
+};
+
+export type PresentationContent = {
+  title: string;
+  slides: PresentationSlide[];
+};
+
+export type ImageContent = {
+  imageUrl: string;
+  prompt?: string;
+};
+
+export type CreationContent = TemplateContent | DocumentContent | PresentationContent | ImageContent;
+
+export function isTemplateContent(content: unknown): content is TemplateContent {
+  return Boolean(content && typeof content === "object" && Array.isArray((content as { blocks?: unknown[] }).blocks));
+}
+
+export function asTemplateContent(content: unknown): TemplateContent {
+  if (isTemplateContent(content)) return content;
+  return { blocks: [] };
+}
+
 export type AITemplatePayload = {
   title: string;
   icon?: string;
   cover?: string;
   blocks: unknown[];
 };
+
+export type AIGeneratePayload =
+  | (AITemplatePayload & { creationType: "template" })
+  | {
+      creationType: "document";
+      title: string;
+      icon?: string;
+      cover?: string;
+      html: string;
+    }
+  | {
+      creationType: "presentation";
+      title: string;
+      icon?: string;
+      cover?: string;
+      slides: PresentationSlide[];
+    }
+  | {
+      creationType: "image";
+      title: string;
+      icon?: string;
+      cover?: string;
+      imageUrl: string;
+    };
 
 function coerceText(value: unknown): string {
   if (typeof value === "string") return value;

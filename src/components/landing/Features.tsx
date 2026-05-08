@@ -1,4 +1,4 @@
-import { Sparkles, LayoutGrid, Share2 } from "lucide-react";
+import { Sparkles, Wand2, Share2 } from "lucide-react";
 
 const items = [
   {
@@ -7,14 +7,14 @@ const items = [
     body: "Describe your needs naturally and YEO assembles rich structured blocks automatically.",
   },
   {
-    icon: LayoutGrid,
-    title: "Block Editor",
-    body: "Reorder headings, toggles, to-dos, and databases with drag and drop.",
+    icon: Wand2,
+    title: "Automatic Routing",
+    body: "YEO classifies your prompt and generates the right format: doc, slides, image, or template.",
   },
   {
     icon: Share2,
     title: "Explore & Share",
-    body: "Publish templates to Explore, duplicate favorites into your workspace, and share read-only links.",
+    body: "Publish creations, duplicate favorites, and share read-only links from one unified workspace.",
   },
 ];
 
@@ -25,7 +25,7 @@ export function Features() {
         Why teams choose YEO
       </h2>
       <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground">
-        From one sentence to a polished workspace layout, all essential tools in one place.
+        One prompt in, polished output out - across every creation type.
       </p>
       <div className="mt-10 grid gap-6 sm:grid-cols-3">
         {items.map(({ icon: Icon, title, body }) => (

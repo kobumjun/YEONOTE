@@ -14,19 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useUiStore } from "@/stores/uiStore";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
-import { normalizeAiTemplate } from "@/types/template";
-import {
-  PRO_CREDIT_PACK_CREDITS,
-  PRO_CREDIT_PACK_USD,
-  TEAM_CREDIT_PACK_CREDITS,
-  TEAM_CREDIT_PACK_USD,
-} from "@/lib/credits";
-
-const tagOptions = ["Productivity", "Personal", "Business", "Education", "Health", "Finance"];
-const styles = ["minimal", "colorful", "corporate", "playful"] as const;
+import { normalizeAiTemplate, type CreationType } from "@/types/template";
 
 type Step = "choice" | "ai";
 
@@ -37,11 +27,12 @@ export function GenerateModal() {
   const { generateStream, streaming } = useAIGenerate();
   const [step, setStep] = useState<Step>("choice");
   const [prompt, setPrompt] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [style, setStyle] = useState<string>("minimal");
   const [progress, setProgress] = useState("");
   const [previewCount, setPreviewCount] = useState(0);
   const [noCreditsOpen, setNoCreditsOpen] = useState(false);
+  const [classifiedType, setClassifiedType] = useState<CreationType | null>(null);
+  const [estimatedCredits, setEstimatedCredits] = useState<number>(1);
+  const [classifying, setClassifying] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -50,9 +41,32 @@ export function GenerateModal() {
     }
   }, [open]);
 
-  function toggleTag(t: string) {
-    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-  }
+  useEffect(() => {
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      setClassifiedType(null);
+      setEstimatedCredits(1);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setClassifying(true);
+      try {
+        const res = await fetch("/api/ai/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: trimmed }),
+        });
+        const j = await res.json();
+        if (res.ok) {
+          setClassifiedType(j.creationType ?? null);
+          setEstimatedCredits(typeof j.credits === "number" ? j.credits : 1);
+        }
+      } finally {
+        setClassifying(false);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [prompt]);
 
   async function startBlankTemplate() {
     const res = await fetch("/api/templates", {
@@ -73,49 +87,55 @@ export function GenerateModal() {
 
   async function onGenerate() {
     if (!prompt.trim()) {
-      toast.error("What template would you like? Please add a short prompt.");
+      toast.error("Describe what you want to create.");
       return;
     }
     setProgress("");
     setPreviewCount(0);
     try {
       const result = await generateStream(prompt, {
-        tags,
-        style,
         onProgress: (m) => setProgress(m),
         onBlock: () => setPreviewCount((c) => c + 1),
       });
       if (!result) return;
+      const payload = result.payload;
+      const saveBody: Record<string, unknown> = {
+        title: payload.title,
+        icon: payload.icon,
+        cover: payload.cover,
+        ai_prompt: prompt,
+        creation_type: payload.creationType,
+      };
 
-      const normalized = normalizeAiTemplate(result.payload);
+      if (payload.creationType === "template") {
+        const normalized = normalizeAiTemplate(payload);
+        saveBody.content = { blocks: normalized.blocks };
+      } else if (payload.creationType === "document") {
+        saveBody.content = { html: payload.html };
+      } else if (payload.creationType === "presentation") {
+        saveBody.content = { title: payload.title, slides: payload.slides };
+      } else {
+        saveBody.content = { imageUrl: payload.imageUrl, prompt };
+      }
       const res = await fetch("/api/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: normalized.title,
-          icon: normalized.icon,
-          cover: normalized.cover,
-          content: { blocks: normalized.blocks },
-          tags,
-          category: tags[0] ?? null,
-          ai_prompt: prompt,
-        }),
+        body: JSON.stringify(saveBody),
       });
       const j = await res.json();
       if (!res.ok) {
         toast.error(j.error ?? "Failed to save template");
         return;
       }
-      toast.success("Template created.");
+      toast.success("Creation saved.");
       if (result.warning) {
         toast.message(result.warning);
       }
       if (result.usedCredit && typeof result.creditsRemaining === "number") {
-        toast.message(`Used 1 credit. ${result.creditsRemaining} credits left.`);
+        toast.message(`Used ${result.chargedCredits} credit(s). ${result.creditsRemaining} credits left.`);
       }
       setOpen(false);
       setPrompt("");
-      setTags([]);
       setStep("choice");
       router.push(`/template/${j.template.id}`);
       router.refresh();
@@ -134,19 +154,8 @@ export function GenerateModal() {
     setOpen(false);
   }
 
-  async function goCheckout(pack: "pro" | "team") {
-    try {
-      const res = await fetch(`/api/billing/checkout?plan=${pack}`);
-      const j = await res.json();
-      if (!res.ok) {
-        toast.error(j.error ?? "Failed to open checkout page");
-        return;
-      }
-      if (j.url) window.location.href = j.url as string;
-      else toast.error("Missing checkout link.");
-    } catch {
-      toast.error("Checkout request failed.");
-    }
+  function goCheckout() {
+    router.push("/pricing");
   }
 
   return (
@@ -154,7 +163,7 @@ export function GenerateModal() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg rounded-xl border-border">
           <DialogHeader>
-            <DialogTitle>{step === "choice" ? "New Template" : "New Template · AI"}</DialogTitle>
+            <DialogTitle>{step === "choice" ? "New Creation" : "New Creation · AI"}</DialogTitle>
           </DialogHeader>
           {step === "choice" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -166,7 +175,7 @@ export function GenerateModal() {
                 <Sparkles className="size-8 text-yeo-600 stroke-[1.5]" />
                 <span className="font-medium">Generate with AI</span>
                 <span className="text-xs text-muted-foreground">
-                  Describe what you need. One AI credit is used after successful generation.
+                  Describe anything. YEO automatically decides whether to create a document, presentation, image, or template.
                 </span>
               </button>
               <button
@@ -184,45 +193,22 @@ export function GenerateModal() {
           ) : (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="prompt">What template would you like?</Label>
+                <Label htmlFor="prompt">What do you want to create?</Label>
                 <Textarea
                   id="prompt"
                   rows={5}
-                  placeholder="Weekly project workspace with task tracking, meeting notes, and sprint planning"
+                  placeholder="e.g., Weekly workout tracker with daily meal logging"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="mt-2 rounded-xl border-border"
                 />
-              </div>
-              <div>
-                <Label>Category (optional)</Label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {tagOptions.map((t) => (
-                    <Badge
-                      key={t}
-                      variant={tags.includes(t) ? "default" : "outline"}
-                      className="cursor-pointer rounded-lg transition-all duration-200"
-                      onClick={() => toggleTag(t)}
-                    >
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label>Style (optional)</Label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {styles.map((s) => (
-                    <Badge
-                      key={s}
-                      variant={style === s ? "default" : "outline"}
-                      className="cursor-pointer rounded-lg capitalize transition-all duration-200"
-                      onClick={() => setStyle(s)}
-                    >
-                      {s}
-                    </Badge>
-                  ))}
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {classifying
+                    ? "Classifying prompt..."
+                    : classifiedType
+                      ? `Detected type: ${classifiedType} · This will use ${estimatedCredits} credit(s).`
+                      : "Type and cost will be detected automatically before generation."}
+                </p>
               </div>
               {streaming && (
                 <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
@@ -249,7 +235,7 @@ export function GenerateModal() {
                   Close
                 </Button>
                 <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={() => void onGenerate()} disabled={streaming}>
-                  {streaming ? "Generating..." : "Generate"}
+                  {streaming ? "Generating..." : `Generate (${estimatedCredits} credit${estimatedCredits > 1 ? "s" : ""})`}
                 </Button>
               </>
             )}
@@ -262,13 +248,10 @@ export function GenerateModal() {
           <DialogHeader>
             <DialogTitle>Not enough credits</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Top up credits to keep generating templates with AI.</p>
+          <p className="text-sm text-muted-foreground">Buy credits to create documents, presentations, images, and templates.</p>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button type="button" className="w-full rounded-xl bg-yeo-600 shadow-sm" onClick={() => void goCheckout("pro")}>
-              Pro · ${PRO_CREDIT_PACK_USD} · {PRO_CREDIT_PACK_CREDITS} credits — Buy
-            </Button>
-            <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => void goCheckout("team")}>
-              Team · ${TEAM_CREDIT_PACK_USD} · {TEAM_CREDIT_PACK_CREDITS} credits — Buy
+            <Button type="button" className="w-full rounded-xl bg-yeo-600 shadow-sm" onClick={goCheckout}>
+              Get More Credits
             </Button>
             <Button type="button" variant="ghost" className="w-full rounded-xl" onClick={closeAll}>
               Close
