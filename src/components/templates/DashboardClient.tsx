@@ -115,7 +115,7 @@ export function DashboardClient() {
               ? "No templates have been shared with you yet. They will appear here once someone shares one."
               : isTrash
                 ? "Trash is empty."
-              : "No creations yet. Generate one with AI or start from a blank template."}
+              : "No creations yet. Generate one with AI."}
           </p>
           {!isTrash && filter !== "shared_with_me" && (
             <Button className="mt-4 rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, FilePlus2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -18,14 +18,11 @@ import { useUiStore } from "@/stores/uiStore";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
 import { normalizeAiTemplate, type CreationType } from "@/types/template";
 
-type Step = "choice" | "ai";
-
 export function GenerateModal() {
   const router = useRouter();
   const open = useUiStore((s) => s.generateOpen);
   const setOpen = useUiStore((s) => s.setGenerateOpen);
   const { generateStream, streaming } = useAIGenerate();
-  const [step, setStep] = useState<Step>("choice");
   const [prompt, setPrompt] = useState("");
   const [progress, setProgress] = useState("");
   const [previewCount, setPreviewCount] = useState(0);
@@ -36,7 +33,6 @@ export function GenerateModal() {
 
   useEffect(() => {
     if (open) {
-      setStep("choice");
       setNoCreditsOpen(false);
     }
   }, [open]);
@@ -67,23 +63,6 @@ export function GenerateModal() {
     }, 450);
     return () => clearTimeout(timer);
   }, [prompt]);
-
-  async function startBlankTemplate() {
-    const res = await fetch("/api/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ blank: true }),
-    });
-    const j = await res.json();
-    if (!res.ok) {
-      toast.error(j.error ?? "Failed to create template");
-      return;
-    }
-    toast.success("Blank template created.");
-    setOpen(false);
-    router.push(`/template/${j.template.id}`);
-    router.refresh();
-  }
 
   async function onGenerate() {
     if (!prompt.trim()) {
@@ -136,7 +115,6 @@ export function GenerateModal() {
       }
       setOpen(false);
       setPrompt("");
-      setStep("choice");
       router.push(`/template/${j.template.id}`);
       router.refresh();
     } catch (e) {
@@ -163,82 +141,44 @@ export function GenerateModal() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg rounded-xl border-border">
           <DialogHeader>
-            <DialogTitle>{step === "choice" ? "New Creation" : "New Creation · AI"}</DialogTitle>
+            <DialogTitle>New Creation · AI</DialogTitle>
           </DialogHeader>
-          {step === "choice" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setStep("ai")}
-                className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all duration-200 hover:border-yeo-300 hover:shadow-md"
-              >
-                <Sparkles className="size-8 text-yeo-600 stroke-[1.5]" />
-                <span className="font-medium">Generate with AI</span>
-                <span className="text-xs text-muted-foreground">
-                  Describe anything. YEO automatically decides whether to create a document, presentation, image, or template.
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => void startBlankTemplate()}
-                className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all duration-200 hover:border-yeo-300 hover:shadow-md"
-              >
-                <FilePlus2 className="size-8 text-yeo-600 stroke-[1.5]" />
-                <span className="font-medium">Blank Template</span>
-                <span className="text-xs text-muted-foreground">
-                  Start with a title and an empty paragraph. Use `/` to add blocks.
-                </span>
-              </button>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="prompt">What do you want to create?</Label>
+              <Textarea
+                id="prompt"
+                rows={5}
+                placeholder="e.g., Weekly workout tracker with daily meal logging"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="mt-2 rounded-xl border-border"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                {classifying
+                  ? "Classifying prompt..."
+                  : classifiedType
+                    ? `Detected type: ${classifiedType} · This will use ${estimatedCredits} credit(s).`
+                    : "Type and cost will be detected automatically before generation."}
+              </p>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="prompt">What do you want to create?</Label>
-                <Textarea
-                  id="prompt"
-                  rows={5}
-                  placeholder="e.g., Weekly workout tracker with daily meal logging"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="mt-2 rounded-xl border-border"
-                />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {classifying
-                    ? "Classifying prompt..."
-                    : classifiedType
-                      ? `Detected type: ${classifiedType} · This will use ${estimatedCredits} credit(s).`
-                      : "Type and cost will be detected automatically before generation."}
-                </p>
-              </div>
-              {streaming && (
-                <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="size-4 animate-spin text-yeo-600 stroke-[1.5]" />
-                    <span>{progress || "Generating..."}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Blocks received: {previewCount}</p>
+            {streaming && (
+              <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin text-yeo-600 stroke-[1.5]" />
+                  <span>{progress || "Generating..."}</span>
                 </div>
-              )}
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:gap-0">
-            {step === "choice" ? (
-              <Button type="button" variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-                Close
-              </Button>
-            ) : (
-              <>
-                <Button type="button" variant="outline" className="rounded-xl" onClick={() => setStep("choice")}>
-                  Back
-                </Button>
-                <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-                  Close
-                </Button>
-                <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={() => void onGenerate()} disabled={streaming}>
-                  {streaming ? "Generating..." : `Generate (${estimatedCredits} credit${estimatedCredits > 1 ? "s" : ""})`}
-                </Button>
-              </>
+                <p className="mt-1 text-xs text-muted-foreground">Blocks received: {previewCount}</p>
+              </div>
             )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+            <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={() => void onGenerate()} disabled={streaming}>
+              {streaming ? "Generating..." : `Generate (${estimatedCredits} credit${estimatedCredits > 1 ? "s" : ""})`}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -23,7 +23,7 @@ export function TopBar({ profile }: { profile: TopBarProfile }) {
       <div className="relative hidden max-w-md flex-1 md:block">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground stroke-[1.5]" />
         <Input
-          placeholder="Search templates..."
+          placeholder="Search..."
           className="rounded-xl border-border pl-9 transition-all duration-200"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -46,7 +46,7 @@ export function TopBar({ profile }: { profile: TopBarProfile }) {
           className="hidden rounded-xl bg-yeo-600 shadow-sm transition-all duration-200 hover:bg-yeo-700 md:inline-flex"
           onClick={() => setGenerateOpen(true)}
         >
-          New Template
+          Create new
         </Button>
         <Button type="button" variant="ghost" size="icon" className="rounded-xl" aria-label="Notifications">
           <Bell className="size-4 stroke-[1.5]" />

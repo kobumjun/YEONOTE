@@ -36,7 +36,6 @@ export default async function SharedTemplatePage({ params }: { params: Promise<{
           icon: tpl.icon,
           cover: tpl.cover,
           blocks,
-          is_favorited: false,
           is_public: true,
         }}
         readOnly

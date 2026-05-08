@@ -7,11 +7,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
-  Star,
   Trash2,
   CreditCard,
   Settings,
-  Sparkles,
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
@@ -25,10 +23,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const links = [
   { href: "/dashboard", label: "All Creations", icon: LayoutDashboard, dashboardView: "all" as const },
   { href: "/dashboard?view=my", label: "My Work", icon: FileText, dashboardView: "my" as const },
-  { href: "/dashboard?view=favorites", label: "Favorites", icon: Star, dashboardView: "favorites" as const },
   { href: "/dashboard?view=trash", label: "Trash", icon: Trash2, dashboardView: "trash" as const },
   { href: "/pricing", label: "Pricing", icon: CreditCard, dashboardView: null },
-  { href: "/explore", label: "Explore", icon: Sparkles, dashboardView: null },
   { href: "/settings", label: "Settings", icon: Settings, dashboardView: null },
 ];
 
@@ -42,7 +38,6 @@ function SidebarNavLinks({ collapsed }: { collapsed: boolean }) {
       return pathname === "/dashboard" && currentDashView === dashboardView;
     }
     if (href === "/pricing") return pathname === "/pricing" || pathname.startsWith("/pricing/");
-    if (href === "/explore") return pathname === "/explore" || pathname.startsWith("/explore/");
     if (href === "/settings") return pathname === "/settings" || pathname.startsWith("/settings/");
     return false;
   }

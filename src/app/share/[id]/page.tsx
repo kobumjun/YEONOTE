@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TemplateEditor } from "@/components/editor/TemplateEditor";
 import type { TemplateBlock } from "@/types/template";
-import type { TemplateContent } from "@/types/template";
+import { asTemplateContent } from "@/types/template";
 
 export default async function ShareTemplatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,7 +17,7 @@ export default async function ShareTemplatePage({ params }: { params: Promise<{ 
 
   if (!tpl) notFound();
 
-  const content = (tpl.content ?? { blocks: [] }) as TemplateContent;
+  const content = asTemplateContent(tpl.content);
   const blocks = (content.blocks ?? []) as TemplateBlock[];
 
   return (
@@ -32,7 +32,7 @@ export default async function ShareTemplatePage({ params }: { params: Promise<{ 
           icon: tpl.icon,
           cover: tpl.cover,
           blocks,
-          is_favorited: false,
+          is_public: true,
         }}
         readOnly
       />

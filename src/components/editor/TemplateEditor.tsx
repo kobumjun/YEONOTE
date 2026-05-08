@@ -13,7 +13,7 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Star, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { useEditorStore } from "@/stores/editorStore";
 import type { AITemplatePayload, DatabaseRow, TemplateBlock } from "@/types/template";
 import {
@@ -269,7 +268,6 @@ export function TemplateEditor({
     icon: string;
     cover: string | null;
     blocks: TemplateBlock[];
-    is_favorited?: boolean;
     is_public?: boolean;
     is_deleted?: boolean;
   };
@@ -292,8 +290,6 @@ export function TemplateEditor({
   const insertBlock = useEditorStore((s) => s.insertBlock);
   const markClean = useEditorStore((s) => s.markClean);
 
-  const [fav, setFav] = useState(initial.is_favorited ?? false);
-  const [isPublic, setIsPublic] = useState(initial.is_public ?? false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -501,10 +497,6 @@ export function TemplateEditor({
     if (!readOnly && insertIndex === null && !currentPage) setInsertIndex(masterBlocks.length);
   }, [masterBlocks.length, readOnly, insertIndex, currentPage]);
 
-  useEffect(() => {
-    setIsPublic(initial.is_public ?? false);
-  }, [templateId, initial.is_public]);
-
   const save = useCallback(async () => {
     const st = useEditorStore.getState();
     const res = await fetch(`/api/templates/${templateId}`, {
@@ -570,47 +562,26 @@ export function TemplateEditor({
     setInsertIndex(idx + 2);
   }
 
-  async function toggleFav() {
-    const next = !fav;
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_favorited: next }),
-    });
-    if (!res.ok) return;
-    setFav(next);
-    toast.success(next ? "Added to favorites." : "Removed from favorites.");
-  }
-
   async function sharePublic() {
     setShareOpen(true);
   }
 
-  async function setPublic(next: boolean) {
+  async function copyShareLink() {
     setShareBusy(true);
     try {
-      const res = await fetch(`/api/templates/${templateId}`, {
+      const publishRes = await fetch(`/api/templates/${templateId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_public: next }),
+        body: JSON.stringify({ is_public: true }),
       });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        toast.error((j as { error?: string }).error ?? "Failed to update visibility settings.");
+      if (!publishRes.ok) {
+        const j = await publishRes.json().catch(() => ({}));
+        toast.error((j as { error?: string }).error ?? "Failed to enable link sharing.");
         return;
       }
-      const j = (await res.json().catch(() => ({}))) as { template?: { is_public?: boolean } };
-      const resolved = typeof j.template?.is_public === "boolean" ? j.template.is_public : next;
-      setIsPublic(resolved);
-      toast.success(resolved ? "Published to Explore." : "Set to private.");
-    } catch {
-      toast.error("Failed to update visibility settings.");
     } finally {
       setShareBusy(false);
     }
-  }
-
-  async function copyShareLink() {
     const url = `https://yeonote.vercel.app/shared/${templateId}`;
     await navigator.clipboard.writeText(url);
     toast.success("Link copied.");
@@ -711,9 +682,6 @@ export function TemplateEditor({
           {!readOnly && (
             <>
               <CoverPicker value={cover} onChange={(c) => setMeta({ cover: c })} />
-              <Button type="button" variant="ghost" size="icon" onClick={toggleFav} aria-label="Favorites" disabled={inTrash}>
-                <Star className={cn("size-5", fav && "fill-amber-400 text-amber-500")} />
-              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -931,34 +899,19 @@ export function TemplateEditor({
             <DialogTitle>Share Template</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
-              <label htmlFor="template-share-toggle" className="text-sm text-foreground">
-                Public in Explore
-              </label>
-              <Switch
-                id="template-share-toggle"
-                checked={isPublic}
-                disabled={shareBusy}
-                className="h-6 w-11"
-                onCheckedChange={(checked) => {
-                  void setPublic(Boolean(checked));
-                }}
-              />
-            </div>
-            {isPublic ? (
-              <div className="rounded-md border bg-muted/10 p-2">
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1 break-all text-sm text-foreground">
-                    {`https://yeonote.vercel.app/shared/${templateId}`}
-                  </div>
-                  <Button size="sm" variant="outline" onClick={copyShareLink} disabled={shareBusy}>
-                    Copy Link
-                  </Button>
+            <p className="text-xs text-muted-foreground">
+              Copy a read-only link to share this creation.
+            </p>
+            <div className="rounded-md border bg-muted/10 p-2">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 break-all text-sm text-foreground">
+                  {`https://yeonote.vercel.app/shared/${templateId}`}
                 </div>
+                <Button size="sm" variant="outline" onClick={copyShareLink} disabled={shareBusy}>
+                  Copy Link
+                </Button>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">When public, it appears in Explore and can be opened via a shared link.</p>
-            )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setShareOpen(false)} disabled={shareBusy}>

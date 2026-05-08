@@ -44,7 +44,6 @@ export async function GET(req: Request) {
   if (view === "trash") query = query.eq("is_deleted", true);
   else query = query.eq("is_deleted", false);
 
-  if (view === "favorites") query = query.eq("is_favorited", true);
   if (view === "my") query = query.eq("is_deleted", false);
 
   if (q) query = query.ilike("title", `%${q}%`);

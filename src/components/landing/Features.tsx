@@ -13,8 +13,8 @@ const items = [
   },
   {
     icon: Share2,
-    title: "Explore & Share",
-    body: "Publish creations, duplicate favorites, and share read-only links from one unified workspace.",
+    title: "Share Links",
+    body: "Create read-only share links instantly and collaborate without exposing your workspace.",
   },
 ];
 
