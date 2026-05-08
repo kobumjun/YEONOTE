@@ -16,7 +16,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useUiStore } from "@/stores/uiStore";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
-import { normalizeAiTemplate, normalizeDocumentBlocksFromAi, type CreationType } from "@/types/template";
+import { normalizeAiTemplate, normalizeDocumentBlocksFromAi } from "@/types/template";
+import { GENERATE_MODAL_PREFILL_KEY } from "@/lib/landing-prompt-bridge";
+import { cn } from "@/lib/utils";
+
+const PLACEHOLDER_EXAMPLES = [
+  "e.g., Write a cover letter for a marketing position",
+  "e.g., Create a 10-slide pitch deck for my startup",
+  "e.g., Design a poster for a music festival",
+  "e.g., Build a weekly project management dashboard",
+];
 
 export function GenerateModal() {
   const router = useRouter();
@@ -24,58 +33,38 @@ export function GenerateModal() {
   const setOpen = useUiStore((s) => s.setGenerateOpen);
   const { generateStream, streaming } = useAIGenerate();
   const [prompt, setPrompt] = useState("");
-  const [progress, setProgress] = useState("");
-  const [previewCount, setPreviewCount] = useState(0);
   const [noCreditsOpen, setNoCreditsOpen] = useState(false);
-  const [classifiedType, setClassifiedType] = useState<CreationType | null>(null);
-  const [estimatedCredits, setEstimatedCredits] = useState<number>(1);
-  const [classifying, setClassifying] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   useEffect(() => {
     if (open) {
       setNoCreditsOpen(false);
+      try {
+        const pre = sessionStorage.getItem(GENERATE_MODAL_PREFILL_KEY);
+        if (pre) {
+          setPrompt(pre);
+          sessionStorage.removeItem(GENERATE_MODAL_PREFILL_KEY);
+        }
+      } catch {
+        /* private mode */
+      }
     }
   }, [open]);
 
   useEffect(() => {
-    const trimmed = prompt.trim();
-    if (!trimmed) {
-      setClassifiedType(null);
-      setEstimatedCredits(3);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setClassifying(true);
-      try {
-        const res = await fetch("/api/ai/classify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: trimmed }),
-        });
-        const j = await res.json();
-        if (res.ok) {
-          setClassifiedType(j.creationType ?? null);
-          setEstimatedCredits(typeof j.credits === "number" ? j.credits : 1);
-        }
-      } finally {
-        setClassifying(false);
-      }
-    }, 450);
-    return () => clearTimeout(timer);
-  }, [prompt]);
+    const interval = setInterval(() => {
+      setPlaceholderIndex((i) => (i + 1) % PLACEHOLDER_EXAMPLES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function onGenerate() {
     if (!prompt.trim()) {
       toast.error("Describe what you want to create.");
       return;
     }
-    setProgress("");
-    setPreviewCount(0);
     try {
-      const result = await generateStream(prompt, {
-        onProgress: (m) => setProgress(m),
-        onBlock: () => setPreviewCount((c) => c + 1),
-      });
+      const result = await generateStream(prompt, {});
       if (!result) return;
       const payload = result.payload;
       const saveBody: Record<string, unknown> = {
@@ -149,35 +138,27 @@ export function GenerateModal() {
               <Textarea
                 id="prompt"
                 rows={5}
-                placeholder="e.g., Weekly workout tracker with daily meal logging"
+                placeholder={PLACEHOLDER_EXAMPLES[placeholderIndex]}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="mt-2 rounded-xl border-border"
+                disabled={streaming}
+                className={cn("mt-2 rounded-xl border-border transition-opacity duration-300", streaming && "opacity-60")}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {classifying
-                  ? "Classifying prompt..."
-                  : classifiedType
-                    ? `Detected type: ${classifiedType} · This will use ${estimatedCredits} credit(s).`
-                    : "Type and cost will be detected automatically before generation."}
-              </p>
             </div>
-            {streaming && (
-              <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin text-yeo-600 stroke-[1.5]" />
-                  <span>{progress || "Generating..."}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">Blocks received: {previewCount}</p>
-              </div>
-            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
+            <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)} disabled={streaming}>
               Close
             </Button>
             <Button className="rounded-xl bg-yeo-600 shadow-sm" onClick={() => void onGenerate()} disabled={streaming}>
-              {streaming ? "Generating..." : `Generate (${estimatedCredits} credit${estimatedCredits > 1 ? "s" : ""})`}
+              {streaming ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin stroke-[1.5]" />
+                  Creating...
+                </span>
+              ) : (
+                "Generate"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

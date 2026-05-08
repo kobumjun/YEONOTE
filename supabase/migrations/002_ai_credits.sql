@@ -4,7 +4,7 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS ai_credits_ceiling INTEGER NOT NULL DEFAULT 0;
 
 COMMENT ON COLUMN public.profiles.ai_credits IS 'Remaining AI generation credits.';
-COMMENT ON COLUMN public.profiles.ai_credits_ceiling IS 'Sum of granted pack sizes for UI (e.g. 3/50).';
+COMMENT ON COLUMN public.profiles.ai_credits_ceiling IS 'Sum of granted pack sizes for UI (e.g. 5/103).';
 
 CREATE TABLE IF NOT EXISTS public.processed_lemon_orders (
   lemon_order_id TEXT PRIMARY KEY,

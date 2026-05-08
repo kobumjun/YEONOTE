@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { FREE_MAX_TEMPLATES, effectivePlan } from "@/lib/plan";
 import type { TemplateContent } from "@/types/template";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -13,20 +12,6 @@ export async function POST(_req: Request, ctx: Ctx) {
 
   const { id } = await ctx.params;
   const supabase = await createClient();
-
-  const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).single();
-  const plan = effectivePlan(profile ?? { plan: "free" });
-
-  if (plan === "free") {
-    const { count } = await supabase
-      .from("templates")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("is_deleted", false);
-    if ((count ?? 0) >= FREE_MAX_TEMPLATES) {
-      return NextResponse.json({ error: `Free plan allows up to ${FREE_MAX_TEMPLATES} templates.` }, { status: 403 });
-    }
-  }
 
   const { data: src, error: fetchErr } = await supabase
     .from("templates")

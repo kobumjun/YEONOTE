@@ -8,7 +8,7 @@ export function Footer() {
         <div>
           <Logo href="/" className="text-white [&_span:last-child]:text-white" />
           <p className="mt-3 max-w-xs text-sm text-neutral-400">
-            Build quickly with AI, refine manually, and ship polished structured templates with YEO.
+            Documents, slides, images, and templates from one prompt — edit in-browser and export anywhere.
           </p>
         </div>
         <div className="flex flex-wrap gap-12 text-sm">

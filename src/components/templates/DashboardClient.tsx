@@ -11,6 +11,7 @@ import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateListPagination } from "@/components/templates/TemplateListPagination";
 import { useUiStore } from "@/stores/uiStore";
 import { cn } from "@/lib/utils";
+import { GENERATE_MODAL_PREFILL_KEY, LANDING_PROMPT_STORAGE_KEY } from "@/lib/landing-prompt-bridge";
 import type { TemplateRow } from "@/types/database";
 
 const PAGE_SIZE = 12;
@@ -49,6 +50,19 @@ export function DashboardClient() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    try {
+      const fromLanding = sessionStorage.getItem(LANDING_PROMPT_STORAGE_KEY);
+      if (fromLanding) {
+        sessionStorage.removeItem(LANDING_PROMPT_STORAGE_KEY);
+        sessionStorage.setItem(GENERATE_MODAL_PREFILL_KEY, fromLanding);
+        setGenerateOpen(true);
+      }
+    } catch {
+      /* storage unavailable */
+    }
+  }, [setGenerateOpen]);
 
   const isTrash = view === "trash";
   const showSharedFilter = view === "my";

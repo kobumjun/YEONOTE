@@ -1,8 +1,10 @@
 import { Hero } from "@/components/landing/Hero";
 import { Demo } from "@/components/landing/Demo";
 import { Features } from "@/components/landing/Features";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Pricing } from "@/components/landing/Pricing";
 import { UseCases } from "@/components/landing/UseCases";
+import { LandingFinalCta } from "@/components/landing/LandingFinalCta";
 import { Footer } from "@/components/landing/Footer";
 import { Logo } from "@/components/shared/Logo";
 import { LandingHeaderActions } from "@/components/landing/LandingHeaderActions";
@@ -20,8 +22,10 @@ export default function HomePage() {
         <Hero />
         <Demo />
         <Features />
+        <HowItWorks />
         <UseCases />
         <Pricing />
+        <LandingFinalCta />
       </main>
       <Footer />
     </div>

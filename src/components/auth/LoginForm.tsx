@@ -26,7 +26,15 @@ export function LoginForm() {
     }
 
     async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+      let {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        await new Promise((r) => setTimeout(r, 200));
+        ({
+          data: { session },
+        } = await supabase.auth.getSession());
+      }
       if (cancelled) return;
       if (session) {
         goDashboard();
@@ -41,7 +49,10 @@ export function LoginForm() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
+      if (
+        session &&
+        (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")
+      ) {
         goDashboard();
       }
     });

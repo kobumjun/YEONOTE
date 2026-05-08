@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+const THUMB_H = "h-[84px]";
+
 function freshElement(kind: SlideElement["type"]): SlideElement {
   switch (kind) {
     case "bullet_list":
@@ -47,72 +49,178 @@ function SlideElementEditor({
   onChange: (next: SlideElement) => void;
   onDelete: () => void;
 }) {
-  return (
-    <div className="group relative rounded-lg border border-border/60 bg-muted/20 p-3">
-      {!readOnly && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute right-1 top-1 size-8 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-          aria-label="Remove element"
-          onClick={onDelete}
-        >
-          <Trash2 className="size-4 stroke-[1.5]" />
-        </Button>
-      )}
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        {element.type.replace(/_/g, " ")}
-      </p>
-      {element.type === "bullet_list" || element.type === "numbered_list" ? (
-        <Textarea
-          value={element.items.join("\n")}
-          onChange={(e) =>
-            onChange({
-              ...element,
-              items: e.target.value.split("\n").map((s) => s.trimEnd()),
-            })
-          }
-          readOnly={readOnly}
-          className="min-h-[88px] rounded-lg border-border text-sm"
-          placeholder="One line per item"
-        />
-      ) : element.type === "divider" ? (
+  const removeBtn = !readOnly && (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="absolute right-0 top-0 size-8 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+      aria-label="Remove element"
+      onClick={onDelete}
+    >
+      <Trash2 className="size-4 stroke-[1.5]" />
+    </Button>
+  );
+
+  if (element.type === "bullet_list") {
+    const items = element.items.length > 0 ? element.items : [""];
+    return (
+      <div className="group relative pr-8">
+        {removeBtn}
+        <ul className="list-disc space-y-1.5 pl-5 marker:text-foreground">
+          {items.map((item, idx) => (
+            <li key={idx} className="pl-0.5">
+              <input
+                value={item}
+                readOnly={readOnly}
+                onChange={(e) => {
+                  const next = [...items];
+                  next[idx] = e.target.value;
+                  onChange({ ...element, items: next });
+                }}
+                className="w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0"
+                placeholder="Bullet"
+              />
+            </li>
+          ))}
+        </ul>
+        {!readOnly && (
+          <button
+            type="button"
+            className="mt-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange({ ...element, items: [...items, ""] })}
+          >
+            + Add bullet
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (element.type === "numbered_list") {
+    const items = element.items.length > 0 ? element.items : [""];
+    return (
+      <div className="group relative pr-8">
+        {removeBtn}
+        <ol className="list-decimal space-y-1.5 pl-5 marker:font-medium marker:text-foreground">
+          {items.map((item, idx) => (
+            <li key={idx}>
+              <input
+                value={item}
+                readOnly={readOnly}
+                onChange={(e) => {
+                  const next = [...items];
+                  next[idx] = e.target.value;
+                  onChange({ ...element, items: next });
+                }}
+                className="w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0"
+                placeholder="Item"
+              />
+            </li>
+          ))}
+        </ol>
+        {!readOnly && (
+          <button
+            type="button"
+            className="mt-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange({ ...element, items: [...items, ""] })}
+          >
+            + Add item
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (element.type === "divider") {
+    return (
+      <div className="group relative pr-8">
+        {removeBtn}
         <hr className="border-border" />
-      ) : element.type === "image" ? (
-        <div className="space-y-2">
-          <Input
-            value={element.url}
-            onChange={(e) => onChange({ ...element, url: e.target.value })}
+      </div>
+    );
+  }
+
+  if (element.type === "image") {
+    return (
+      <div className="group relative space-y-2 pr-8">
+        {removeBtn}
+        <Input
+          value={element.url}
+          onChange={(e) => onChange({ ...element, url: e.target.value })}
+          readOnly={readOnly}
+          placeholder="Image URL"
+          className="rounded-lg border-border text-sm"
+        />
+        <Input
+          value={element.alt}
+          onChange={(e) => onChange({ ...element, alt: e.target.value })}
+          readOnly={readOnly}
+          placeholder="Alt text"
+          className="rounded-lg border-border text-sm"
+        />
+      </div>
+    );
+  }
+
+  if (element.type === "callout") {
+    return (
+      <div className="group relative pr-8">
+        {removeBtn}
+        <div className="rounded-lg border-l-4 border-violet-500 bg-violet-50 py-2 pl-3 pr-2 dark:bg-violet-950/40">
+          <Textarea
+            value={element.content}
+            onChange={(e) => onChange({ ...element, content: e.target.value })}
             readOnly={readOnly}
-            placeholder="Image URL"
-            className="rounded-lg border-border"
-          />
-          <Input
-            value={element.alt}
-            onChange={(e) => onChange({ ...element, alt: e.target.value })}
-            readOnly={readOnly}
-            placeholder="Alt text"
-            className="rounded-lg border-border"
+            className="min-h-[56px] resize-none border-0 bg-transparent p-0 text-sm text-violet-950 shadow-none outline-none focus-visible:ring-0 dark:text-violet-100"
+            placeholder="Key point…"
           />
         </div>
-      ) : (
+      </div>
+    );
+  }
+
+  if (element.type === "quote") {
+    return (
+      <div className="group relative pr-8">
+        {removeBtn}
         <Textarea
           value={element.content}
-          onChange={(e) => {
-            if (
-              element.type === "text" ||
-              element.type === "heading" ||
-              element.type === "callout" ||
-              element.type === "quote"
-            ) {
-              onChange({ ...element, content: e.target.value });
-            }
-          }}
+          onChange={(e) => onChange({ ...element, content: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[72px] rounded-lg border-border text-sm"
+          className="min-h-[56px] resize-none border-l-2 border-muted-foreground/40 bg-transparent py-1 pl-3 text-sm italic text-muted-foreground shadow-none outline-none focus-visible:ring-0"
+          placeholder="Quote…"
         />
-      )}
+      </div>
+    );
+  }
+
+  if (element.type === "heading") {
+    return (
+      <div className="group relative pr-8">
+        {removeBtn}
+        <Textarea
+          value={element.content}
+          onChange={(e) => onChange({ ...element, content: e.target.value })}
+          readOnly={readOnly}
+          className="min-h-[44px] resize-none border-0 bg-transparent p-0 text-xl font-semibold leading-snug shadow-none outline-none focus-visible:ring-0"
+          placeholder="Heading…"
+        />
+      </div>
+    );
+  }
+
+  /* text */
+  return (
+    <div className="group relative pr-8">
+      {removeBtn}
+      <Textarea
+        value={element.content}
+        onChange={(e) => onChange({ ...element, content: e.target.value })}
+        readOnly={readOnly}
+        className="min-h-[56px] resize-none border-0 bg-transparent p-0 text-sm shadow-none outline-none focus-visible:ring-0"
+        placeholder="Text…"
+      />
     </div>
   );
 }
@@ -147,15 +255,18 @@ function SlideCanvas({
   return (
     <div className="mx-auto max-w-3xl">
       <span className="mb-2 block text-sm text-muted-foreground">Slide {slideNumber}</span>
-      <div className="mb-6 aspect-[16/9] rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div
+        className="relative mb-6 w-full max-w-[800px] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-sm"
+        style={{ aspectRatio: "16 / 9", minHeight: 400, maxHeight: 500 }}
+      >
         <Input
           value={slide.title}
           onChange={(e) => onUpdate({ ...slide, title: e.target.value })}
           readOnly={readOnly}
           className="mb-4 border-0 bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0"
-          placeholder="Slide title..."
+          placeholder="Slide title…"
         />
-        <div className="max-h-[min(320px,42vh)] space-y-3 overflow-y-auto pr-1">
+        <div className="space-y-4">
           {elements.map((el, i) => (
             <SlideElementEditor
               key={`${slideNumber}-${i}-${el.type}`}
@@ -196,7 +307,7 @@ function SlideCanvas({
           onChange={(e) => onUpdate({ ...slide, notes: e.target.value })}
           readOnly={readOnly}
           className="min-h-[72px] resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
-          placeholder="Add speaker notes..."
+          placeholder="Add speaker notes…"
         />
       </div>
     </div>
@@ -251,7 +362,8 @@ export function PresentationEditor({
             type="button"
             onClick={() => setActiveSlide(i)}
             className={cn(
-              "relative flex w-full flex-col gap-0.5 rounded-lg border-2 bg-card p-2 text-left transition-all aspect-[16/9]",
+              "relative flex w-full shrink-0 flex-col justify-between rounded-lg border-2 bg-card p-2 text-left transition-all",
+              THUMB_H,
               "hover:border-yeo-400/50",
               i === safeIndex ? "border-yeo-600 shadow-sm" : "border-border"
             )}
@@ -267,7 +379,10 @@ export function PresentationEditor({
           <button
             type="button"
             onClick={addSlide}
-            className="flex aspect-[16/9] w-full items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-yeo-500 hover:text-yeo-700"
+            className={cn(
+              "flex w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-yeo-500 hover:text-yeo-700",
+              THUMB_H
+            )}
           >
             <Plus className="size-5 stroke-[1.5]" />
           </button>

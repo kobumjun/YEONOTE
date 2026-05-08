@@ -1,4 +1,10 @@
-/** New users receive this many tutorial credits (Supabase trigger + column default). */
+/**
+ * Tutorial credits shown in marketing copy. Must match DB:
+ * `handle_new_user()` in `supabase/migrations/003_tutorial_credits_defaults.sql`
+ * and `006_pricing_rework.sql` (INSERT … ai_credits, ai_credits_ceiling), and
+ * `ALTER COLUMN … SET DEFAULT` there — not set in `src/app/auth/callback` (profile
+ * row is created by the DB trigger only).
+ */
 export const TUTORIAL_SIGNUP_CREDITS = 5;
 
 export type PricingMode = "one_time" | "subscription";

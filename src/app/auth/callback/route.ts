@@ -51,6 +51,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/login?error=auth`);
     }
 
+    // Ensure session is readable from cookies before redirect (helps mobile / race after PKCE).
+    await supabase.auth.getSession();
+
     const {
       data: { user },
     } = await supabase.auth.getUser();

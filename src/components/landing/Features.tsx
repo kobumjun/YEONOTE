@@ -1,20 +1,20 @@
-import { Sparkles, Wand2, Share2 } from "lucide-react";
+import { Layers, MonitorSmartphone, FileDown } from "lucide-react";
 
 const items = [
   {
-    icon: Sparkles,
-    title: "AI Generation",
-    body: "Describe your needs naturally and YEO assembles rich structured blocks automatically.",
+    icon: Layers,
+    title: "One Prompt, Four Formats",
+    body: "Type what you need. YEO detects whether it's a document, presentation, image, or template — and creates the right output automatically.",
   },
   {
-    icon: Wand2,
-    title: "Automatic Routing",
-    body: "YEO classifies your prompt and generates the right format: doc, slides, image, or template.",
+    icon: MonitorSmartphone,
+    title: "Edit Everything In-Browser",
+    body: "Refine your documents, rearrange slides, adjust templates — all without leaving YEO. No downloads needed to make changes.",
   },
   {
-    icon: Share2,
-    title: "Share Links",
-    body: "Create read-only share links instantly and collaborate without exposing your workspace.",
+    icon: FileDown,
+    title: "Export Anywhere",
+    body: "Download as .docx, .pptx, .pdf, or image. Copy to clipboard. Share via link. Your content, your format.",
   },
 ];
 
@@ -25,7 +25,7 @@ export function Features() {
         Why teams choose YEO
       </h2>
       <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground">
-        One prompt in, polished output out - across every creation type.
+        One place for every kind of AI output — from first prompt to finished file.
       </p>
       <div className="mt-10 grid gap-6 sm:grid-cols-3">
         {items.map(({ icon: Icon, title, body }) => (

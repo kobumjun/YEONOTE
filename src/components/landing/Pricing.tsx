@@ -9,11 +9,11 @@ const tiers = [
   {
     name: "Free",
     price: "$0",
-    desc: "Start free and build templates directly with the block editor.",
+    desc: "Try every format — documents, slides, images, and templates — with free starter credits.",
     features: [
-      `${TUTORIAL_SIGNUP_CREDITS} tutorial credits on signup`,
-      "Core block editor",
-      "Manual template building",
+      `${TUTORIAL_SIGNUP_CREDITS} free credits on signup`,
+      "AI creates the right format from one prompt",
+      "Edit in-browser and export",
     ],
     href: "/login",
     cta: "Get Started Free",
@@ -23,12 +23,12 @@ const tiers = [
   {
     name: "Growth",
     price: `$${CREDIT_PACKS.one_time.growth.usd}`,
-    desc: "Best for people who generate templates frequently with AI.",
+    desc: "For steady creators who generate documents, decks, images, and templates often.",
     features: [
       `${CREDIT_PACKS.one_time.growth.credits} AI credits`,
-      "All block types",
-      "PDF/PNG export",
-      "Version history",
+      "All creation types",
+      "PDF, PPTX, DOCX & image export",
+      "Share via link",
     ],
     href: "/login?next=/pricing",
     cta: "Buy credits",

@@ -4,8 +4,27 @@ import { type NextRequest, NextResponse } from "next/server";
 const protectedPrefixes = ["/dashboard", "/template", "/explore", "/settings"];
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
+
+  // OAuth code exchange runs in the route handler; do not run auth middleware here
+  // (avoids reading cookies before Set-Cookie is applied on the redirect response).
+  if (
+    pathname === "/auth/callback" ||
+    pathname.startsWith("/auth/callback/") ||
+    pathname === "/callback"
+  ) {
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+  }
+
+  let supabaseResponse = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
   if (pathname === "/signup" || pathname.startsWith("/signup/")) {
     const u = new URL("/login", request.url);
@@ -17,12 +36,14 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/share/")) {
-    return NextResponse.next({ request });
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
   }
 
-  const isProtected = protectedPrefixes.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
+  const isProtected = protectedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -40,11 +61,17 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        );
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
+        supabaseResponse = NextResponse.next({
+          request: {
+            headers: request.headers,
+          },
+        });
+        cookiesToSet.forEach(({ name, value, options }) => {
+          supabaseResponse.cookies.set(name, value, options);
+        });
       },
     },
   });

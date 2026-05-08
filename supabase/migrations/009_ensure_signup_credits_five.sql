@@ -1,9 +1,9 @@
--- Tutorial credits for new signups (default balance + ceiling for UI)
-ALTER TABLE public.profiles ALTER COLUMN ai_credits SET DEFAULT 5;
-ALTER TABLE public.profiles ALTER COLUMN ai_credits_ceiling SET DEFAULT 5;
+-- Idempotent fix: remote projects may still have handle_new_user() or column defaults at 3
+-- if an older migration order was applied or the function was edited in the Dashboard.
 
-COMMENT ON COLUMN public.profiles.ai_credits IS 'Remaining AI generation credits (includes tutorial credits for new users).';
-COMMENT ON COLUMN public.profiles.ai_credits_ceiling IS 'Running total of granted pack + tutorial credits for display (e.g. 5/103).';
+ALTER TABLE public.profiles
+  ALTER COLUMN ai_credits SET DEFAULT 5,
+  ALTER COLUMN ai_credits_ceiling SET DEFAULT 5;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER

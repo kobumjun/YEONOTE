@@ -9,15 +9,15 @@ export function Hero() {
       <div className="relative mx-auto max-w-4xl text-center">
         <p className="mb-4 text-xs font-medium uppercase tracking-widest text-muted-foreground">YEO</p>
         <h1 className="font-heading text-4xl font-bold tracking-[-0.02em] text-foreground sm:text-5xl md:text-6xl">
-          Describe it.
+          One prompt.
           <br />
-          <span className="bg-gradient-to-r from-yeo-500 via-yeo-400 to-yeo-700 bg-clip-text text-transparent">YEO builds it.</span>
+          <span className="bg-gradient-to-r from-yeo-500 via-yeo-400 to-yeo-700 bg-clip-text text-transparent">Any format.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-          Describe anything. YEO creates it. Documents, presentations, images, and templates.
+          Documents, presentations, images, templates — describe what you need and YEO creates it instantly.
         </p>
-        <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
-          From one prompt to polished output in the right format, ready to edit and export.
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+          No switching tools. No learning curves. Just results.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <GoogleSignInButton
