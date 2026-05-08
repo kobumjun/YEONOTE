@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import {
   DndContext,
   PointerSensor,
@@ -13,7 +12,7 @@ import {
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, Share2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +34,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useEditorStore } from "@/stores/editorStore";
 import type { AITemplatePayload, DatabaseRow, TemplateBlock } from "@/types/template";
+import { normalizeDocumentBlocksFromAi } from "@/types/template";
 import {
   collectHiddenRootIdsForMasterView,
   collectLinkedSectionTargets,
@@ -43,6 +43,8 @@ import {
   instantiateDetailTemplate,
 } from "@/types/template";
 import { cn } from "@/lib/utils";
+import { templateToMarkdown } from "@/lib/export";
+import { CREDITS_PER_GENERATION } from "@/lib/ai-credits";
 
 function gradientClass(cover: string | null) {
   const map: Record<string, string> = {
@@ -261,6 +263,7 @@ export function TemplateEditor({
   templateId,
   initial,
   readOnly,
+  creationMode = "template",
 }: {
   templateId: string;
   initial: {
@@ -272,6 +275,7 @@ export function TemplateEditor({
     is_deleted?: boolean;
   };
   readOnly?: boolean;
+  creationMode?: "template" | "document";
 }) {
   const router = useRouter();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -299,6 +303,7 @@ export function TemplateEditor({
   const [inTrash, setInTrash] = useState(Boolean(initial.is_deleted));
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [pageStack, setPageStack] = useState<PageView[]>([]);
   const currentPage = pageStack.length > 0 ? pageStack[pageStack.length - 1] : null;
 
@@ -620,9 +625,48 @@ export function TemplateEditor({
   }
 
   async function runRegenerate() {
-    if (!regenPrompt.trim()) return;
+    if (creationMode !== "document" && !regenPrompt.trim()) return;
     setRegenBusy(true);
     try {
+      if (creationMode === "document") {
+        const res = await fetch("/api/ai/regenerate-creation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, feedback: regenPrompt.trim() }),
+        });
+        const j = (await res.json()) as {
+          error?: string;
+          code?: string;
+          title?: string;
+          content?: { blocks?: unknown[] };
+          creditsRemaining?: number;
+          chargedCredits?: number;
+        };
+        if (!res.ok) {
+          if (j.code === "NO_CREDITS") {
+            toast.error("No AI credits left. Please top up in Billing.");
+            return;
+          }
+          throw new Error(j.error ?? "Request failed");
+        }
+        const nextBlocks = normalizeDocumentBlocksFromAi(j.content?.blocks ?? []);
+        loadFromServer({
+          id: templateId,
+          title: j.title ?? title,
+          icon,
+          cover,
+          blocks: nextBlocks.length > 0 ? nextBlocks : blocks,
+        });
+        setRegenOpen(false);
+        setRegenPrompt("");
+        toast.success("Document regenerated.");
+        if (typeof j.creditsRemaining === "number" && typeof j.chargedCredits === "number") {
+          toast.message(`Used ${j.chargedCredits} credit(s). ${j.creditsRemaining} credits left.`);
+        }
+        router.refresh();
+        return;
+      }
+
       const summary = blocks.map((b) => b.type).join(", ");
       const res = await fetch("/api/ai/regenerate", {
         method: "POST",
@@ -656,7 +700,7 @@ export function TemplateEditor({
         toast.message(warning);
       }
       if (usedCredit !== false && typeof creditsRemaining === "number") {
-        toast.message(`Used 1 credit. ${creditsRemaining} credits left.`);
+        toast.message(`Used ${CREDITS_PER_GENERATION} credit(s). ${creditsRemaining} credits left.`);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong");
@@ -665,13 +709,34 @@ export function TemplateEditor({
     }
   }
 
+  async function copyAll() {
+    try {
+      await navigator.clipboard.writeText(templateToMarkdown(title, blocks));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Copied to clipboard.");
+    } catch {
+      toast.error("Could not copy.");
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background">
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
-        <Link href="/dashboard" className="text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground">
-          ← Dashboard
-        </Link>
-        {!readOnly && <IconPicker value={icon} onChange={(i) => setMeta({ icon: i })} />}
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+        >
+          <ArrowLeft className="size-4 stroke-[1.5]" />
+          Back to All Creations
+        </button>
+        {!readOnly && creationMode === "template" ? <IconPicker value={icon} onChange={(i) => setMeta({ icon: i })} /> : null}
+        {!readOnly && creationMode === "document" ? (
+          <span className="text-lg" aria-hidden>
+            {icon}
+          </span>
+        ) : null}
         <Input
           value={title}
           onChange={(e) => setMeta({ title: e.target.value })}
@@ -681,18 +746,30 @@ export function TemplateEditor({
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {!readOnly && (
             <>
-              <CoverPicker value={cover} onChange={(c) => setMeta({ cover: c })} />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="rounded-xl border-border shadow-sm"
-                onClick={sharePublic}
-                disabled={inTrash}
+                onClick={() => void copyAll()}
               >
-                <Share2 className="mr-1 size-4 stroke-[1.5]" />
-                Share
+                <Copy className="mr-1 size-4 stroke-[1.5]" />
+                {copied ? "Copied!" : "Copy"}
               </Button>
+              {creationMode === "template" ? <CoverPicker value={cover} onChange={(c) => setMeta({ cover: c })} /> : null}
+              {creationMode === "template" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-border shadow-sm"
+                  onClick={sharePublic}
+                  disabled={inTrash}
+                >
+                  <Share2 className="mr-1 size-4 stroke-[1.5]" />
+                  Share
+                </Button>
+              ) : null}
               <ExportMenu editorRef={editorRef} />
               <Button
                 type="button"
@@ -733,7 +810,7 @@ export function TemplateEditor({
         </div>
       )}
 
-      <div className={cn("h-36 w-full bg-gradient-to-br", gradientClass(cover))} />
+      {creationMode === "template" ? <div className={cn("h-36 w-full bg-gradient-to-br", gradientClass(cover))} /> : null}
 
       <ScrollArea className="min-h-0 flex-1">
         <div ref={editorRef} className={cn("mx-auto px-6 py-10 pb-32", currentPage ? "max-w-4xl" : "max-w-3xl")}>

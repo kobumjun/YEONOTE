@@ -6,7 +6,7 @@ import { buildTimeoutFallbackTemplate } from "@/lib/ai-fallback-template";
 import { createClient } from "@/lib/supabase/server";
 import { limitAiGeneration } from "@/lib/ratelimit";
 import type { AITemplatePayload } from "@/types/template";
-import { deductAiCreditsAtomic } from "@/lib/ai-credits";
+import { CREDITS_PER_GENERATION, deductAiCreditsAtomic } from "@/lib/ai-credits";
 
 export const runtime = "nodejs";
 
@@ -25,8 +25,11 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 400 });
 
   const creditsBefore = profile.ai_credits ?? 0;
-  if (creditsBefore < 1) {
-    return NextResponse.json({ error: "No AI credits left. Please top up and try again.", code: "NO_CREDITS" }, { status: 403 });
+  if (creditsBefore < CREDITS_PER_GENERATION) {
+    return NextResponse.json(
+      { error: `Not enough AI credits. ${CREDITS_PER_GENERATION} credits are required.`, code: "NO_CREDITS" },
+      { status: 403 }
+    );
   }
 
   const body = await req.json().catch(() => null) as {
@@ -88,7 +91,7 @@ export async function POST(req: Request) {
   let creditsRemaining = creditsBefore;
 
   if (usedCredit) {
-    const creditResult = await deductAiCreditsAtomic(supabase, user.id, creditsBefore, 1);
+    const creditResult = await deductAiCreditsAtomic(supabase, user.id, creditsBefore, CREDITS_PER_GENERATION);
     if ("error" in creditResult) {
       return NextResponse.json({ error: creditResult.error, code: creditResult.code }, { status: creditResult.code === "NO_CREDITS" ? 403 : 409 });
     }
@@ -101,7 +104,7 @@ export async function POST(req: Request) {
       tokens_used: completionTokens,
       classified_type: "template",
       generation_type: "template",
-      charged_credits: 1,
+      charged_credits: CREDITS_PER_GENERATION,
     });
   } else {
     await supabase.from("ai_logs").insert({

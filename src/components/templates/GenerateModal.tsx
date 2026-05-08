@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useUiStore } from "@/stores/uiStore";
 import { useAIGenerate } from "@/hooks/useAIGenerate";
-import { normalizeAiTemplate, type CreationType } from "@/types/template";
+import { normalizeAiTemplate, normalizeDocumentBlocksFromAi, type CreationType } from "@/types/template";
 
 export function GenerateModal() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export function GenerateModal() {
     const trimmed = prompt.trim();
     if (!trimmed) {
       setClassifiedType(null);
-      setEstimatedCredits(1);
+      setEstimatedCredits(3);
       return;
     }
     const timer = setTimeout(async () => {
@@ -90,7 +90,7 @@ export function GenerateModal() {
         const normalized = normalizeAiTemplate(payload);
         saveBody.content = { blocks: normalized.blocks };
       } else if (payload.creationType === "document") {
-        saveBody.content = { html: payload.html };
+        saveBody.content = { blocks: normalizeDocumentBlocksFromAi(payload.blocks) };
       } else if (payload.creationType === "presentation") {
         saveBody.content = { title: payload.title, slides: payload.slides };
       } else {

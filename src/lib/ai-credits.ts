@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreationType } from "@/types/template";
 
-export function creditsForCreationType(type: CreationType): number {
-  if (type === "image") return 3;
-  if (type === "presentation") return 2;
-  return 1;
+/** All AI creation paths (generate + non-template regenerate) use this amount. */
+export const CREDITS_PER_GENERATION = 3;
+
+export function creditsForCreationType(_creationType: CreationType): number {
+  void _creationType;
+  return CREDITS_PER_GENERATION;
 }
 
 export async function deductAiCreditsAtomic(

@@ -6,8 +6,14 @@ import { buildTimeoutFallbackTemplate } from "@/lib/ai-fallback-template";
 import { createClient } from "@/lib/supabase/server";
 import { limitAiGeneration } from "@/lib/ratelimit";
 import { creditsForCreationType, deductAiCreditsAtomic } from "@/lib/ai-credits";
-import type { AIGeneratePayload, PresentationSlide } from "@/types/template";
+import type { AIGeneratePayload } from "@/types/template";
 import { classifyPrompt } from "@/lib/ai-classifier";
+import {
+  generateDocumentBlocksJson,
+  generatePresentationJson,
+  generateImageUrl,
+  pickGenerationTitle,
+} from "@/lib/ai-generate-executors";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -15,63 +21,7 @@ export const maxDuration = 120;
 type GenerateBody = { prompt?: string };
 
 function pickTitle(prompt: string): string {
-  return prompt.slice(0, 80).trim() || "Untitled";
-}
-
-async function generateDocument(prompt: string): Promise<{ html: string; tokens: number | null }> {
-  const openai = getOpenAI();
-  const r = await openai.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.7,
-    messages: [
-      { role: "system", content: "Write polished HTML article content only. Use semantic tags (h1,h2,p,ul,ol,blockquote). Return valid HTML fragment only." },
-      { role: "user", content: prompt },
-    ],
-  });
-  return {
-    html: r.choices[0]?.message?.content?.trim() || `<h1>${pickTitle(prompt)}</h1><p></p>`,
-    tokens: r.usage?.total_tokens ?? null,
-  };
-}
-
-async function generatePresentation(prompt: string): Promise<{ slides: PresentationSlide[]; tokens: number | null }> {
-  const openai = getOpenAI();
-  const r = await openai.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.6,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content:
-          'Return JSON only: {"slides":[{"title":"...","bullets":["..."],"notes":"..."}]}. Make 6-10 slides. bullets must be concise.',
-      },
-      { role: "user", content: prompt },
-    ],
-  });
-  const raw = r.choices[0]?.message?.content ?? '{"slides":[]}';
-  let parsed: { slides?: PresentationSlide[] } = {};
-  try {
-    parsed = JSON.parse(raw) as { slides?: PresentationSlide[] };
-  } catch {
-    parsed = { slides: [] };
-  }
-  return {
-    slides: Array.isArray(parsed.slides) ? parsed.slides : [],
-    tokens: r.usage?.total_tokens ?? null,
-  };
-}
-
-async function generateImage(prompt: string): Promise<{ imageUrl: string; tokens: number | null }> {
-  const openai = getOpenAI();
-  const r = await openai.images.generate({
-    model: "dall-e-3",
-    prompt,
-    size: "1024x1024",
-    quality: "standard",
-    n: 1,
-  });
-  return { imageUrl: r.data?.[0]?.url ?? "", tokens: null };
+  return pickGenerationTitle(prompt);
 }
 
 export async function POST(req: Request) {
@@ -126,15 +76,32 @@ export async function POST(req: Request) {
   let warning: string | undefined;
   try {
     if (classifiedType === "document") {
-      const doc = await generateDocument(prompt);
+      const doc = await generateDocumentBlocksJson(prompt);
       completionTokens = doc.tokens;
-      payload = { creationType: "document", title: pickTitle(prompt), icon: "📝", html: doc.html };
+      let blocks = Array.isArray(doc.blocks) ? doc.blocks : [];
+      if (blocks.length === 0) {
+        blocks = [
+          { type: "heading", level: 1, text: pickTitle(prompt) },
+          { type: "paragraph", text: " " },
+        ];
+      }
+      payload = {
+        creationType: "document",
+        title: pickTitle(prompt),
+        icon: "📝",
+        blocks,
+      };
     } else if (classifiedType === "presentation") {
-      const p = await generatePresentation(prompt);
+      const p = await generatePresentationJson(prompt);
       completionTokens = p.tokens;
-      payload = { creationType: "presentation", title: pickTitle(prompt), icon: "📊", slides: p.slides };
+      payload = {
+        creationType: "presentation",
+        title: p.deckTitle,
+        icon: "📊",
+        slides: p.slides,
+      };
     } else if (classifiedType === "image") {
-      const img = await generateImage(prompt);
+      const img = await generateImageUrl(prompt);
       payload = { creationType: "image", title: pickTitle(prompt), icon: "🖼️", imageUrl: img.imageUrl };
     } else {
       const openai = getOpenAI();

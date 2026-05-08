@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { AIGeneratePayload } from "@/types/template";
+import { CREDITS_PER_GENERATION } from "@/lib/ai-credits";
 
 type ProgressCb = (message: string) => void;
 
@@ -124,7 +125,7 @@ export function useAIGenerate() {
         payload,
         creditsRemaining: meta.creditsRemaining ?? null,
         usedCredit: meta.usedCredit !== false,
-        chargedCredits: meta.chargedCredits ?? 1,
+        chargedCredits: meta.chargedCredits ?? CREDITS_PER_GENERATION,
         warning: meta.warning,
       };
     },
