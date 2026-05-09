@@ -480,7 +480,11 @@ export type SlideElement =
   | { type: "callout"; content: string; icon?: string }
   | { type: "divider" }
   | { type: "quote"; content: string }
-  | { type: "numbered_list"; items: string[] };
+  | { type: "numbered_list"; items: string[] }
+  | { type: "table"; headers: string[]; rows: string[][] }
+  | { type: "stat_box"; stats: { value: string; label: string }[] }
+  | { type: "timeline"; items: { title: string; description: string }[] }
+  | { type: "two_column"; left: string; right: string };
 
 export type PresentationSlide = {
   title: string;
@@ -533,6 +537,45 @@ export function normalizeSlideElement(raw: unknown): SlideElement | null {
       return { type: "divider" };
     case "quote":
       return { type: "quote", content: String(o.content ?? "").trim() };
+    case "table": {
+      const headers = Array.isArray(o.headers) ? o.headers.map((h) => String(h ?? "").trim()) : [];
+      const rows = Array.isArray(o.rows)
+        ? o.rows.map((r) =>
+            Array.isArray(r) ? r.map((cell) => String(cell ?? "").trim()) : []
+          )
+        : [];
+      return { type: "table", headers, rows };
+    }
+    case "stat_box": {
+      const stats = Array.isArray(o.stats)
+        ? o.stats.map((s) => {
+            const rec = (s ?? {}) as Record<string, unknown>;
+            return {
+              value: String(rec.value ?? "").trim(),
+              label: String(rec.label ?? "").trim(),
+            };
+          })
+        : [];
+      return { type: "stat_box", stats };
+    }
+    case "timeline": {
+      const items = Array.isArray(o.items)
+        ? o.items.map((it) => {
+            const rec = (it ?? {}) as Record<string, unknown>;
+            return {
+              title: String(rec.title ?? "").trim(),
+              description: String(rec.description ?? "").trim(),
+            };
+          })
+        : [];
+      return { type: "timeline", items };
+    }
+    case "two_column":
+      return {
+        type: "two_column",
+        left: String(o.left ?? "").trim(),
+        right: String(o.right ?? "").trim(),
+      };
     default:
       return null;
   }
@@ -579,6 +622,14 @@ export function slideElementToPlainText(el: SlideElement): string {
       return el.alt || el.url;
     case "divider":
       return "—";
+    case "table":
+      return [el.headers.join(" | "), ...el.rows.map((r) => r.join(" | "))].join("\n");
+    case "stat_box":
+      return el.stats.map((s) => `${s.value} ${s.label}`.trim()).join(" · ");
+    case "timeline":
+      return el.items.map((it) => `${it.title}: ${it.description}`.trim()).join("\n");
+    case "two_column":
+      return `${el.left}\n${el.right}`.trim();
     default:
       return "";
   }

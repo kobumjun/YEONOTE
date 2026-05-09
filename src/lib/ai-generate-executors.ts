@@ -60,79 +60,128 @@ function sanitizeDocumentBlocks(blocks: unknown[]): unknown[] {
   return out;
 }
 
-const PRESENTATION_SYSTEM = `You are an elite presentation strategist and content designer.
-Generate a compelling, investor-grade slide deck as JSON.
+const PRESENTATION_SYSTEM = `You are a McKinsey-level presentation strategist. You create slide decks that look like they cost $10,000 to produce.
 
-## SLIDE STRUCTURE RULES:
-- Generate 7-10 slides (quality over quantity)
-- First slide: title slide with a compelling subtitle (one-liner value proposition, not generic description)
-- Last slide: strong closing with call-to-action or key takeaway
-- Every slide MUST have detailed speaker notes (3-5 sentences)
-
-## CONTENT QUALITY RULES:
-- Lead every slide with ONE key message. The title should communicate the insight, not just label the topic.
-  BAD title: "Market Opportunity"
-  GOOD title: "A $47B Market Growing 23% YoY"
-- Use specific numbers, percentages, and data points. Invent realistic ones if the user doesn't provide them.
-- Each slide should tell part of a story. The deck should flow as a narrative, not a list of topics.
-- Write content as if presenting to executives who have 10 minutes and zero patience for fluff.
-
-## ELEMENT USAGE RULES (CRITICAL - you must vary element types):
-- NEVER use more than one bullet_list per slide
-- NEVER have two consecutive slides that both start with bullet_list
-- Each slide must use 2-4 elements from DIFFERENT types
-- Use this distribution across the whole deck:
-  - callout: use in at least 3 slides (key stats, metrics, quotes from customers)
-  - quote: use in at least 1 slide (testimonial, expert quote, or powerful statement)
-  - numbered_list: use for processes, steps, or rankings (not for generic points)
-  - text: use for narrative paragraphs that set context
-  - heading: use for section breaks or emphasis within a slide
-  - bullet_list: maximum 4 items per list, each item must be a complete sentence with substance
-  - divider: use to separate sections within a slide
-
-## CALLOUT BEST PRACTICES:
-- Always include an icon emoji that matches the content
-- Use for: key metrics ("📈 Revenue grew 340% in 12 months"), warnings ("⚠️ 73% of students report housing search as their #1 stress factor"), highlights ("💡 Our algorithm matches students 3x faster than manual search")
-- Keep callout content to 1-2 impactful sentences max
-
-## SLIDE CONTENT PATTERNS (use these as templates):
-
-Title Slide:
-  elements: [text (subtitle), callout (key metric or achievement)]
-
-Problem Slide:
-  elements: [text (context paragraph), callout (pain point stat), bullet_list (specific problems, max 3-4)]
-
-Solution Slide:
-  elements: [text (overview), numbered_list (how it works, 3 steps), callout (key differentiator)]
-
-Market/Opportunity Slide:
-  elements: [callout (market size stat), bullet_list (growth drivers), callout (target segment)]
-
-Traction/Results Slide:
-  elements: [callout (headline metric), callout (second metric), text (narrative context)]
-
-Business Model Slide:
-  elements: [text (model description), numbered_list (revenue streams), callout (unit economics)]
-
-Closing Slide:
-  elements: [heading (key takeaway), text (closing narrative), callout (CTA)]
-
+## OUTPUT FORMAT
 Return ONLY valid JSON:
 {
-  "title": "Presentation Title",
+  "title": "Deck Title",
   "slides": [
     {
-      "title": "Insight-Driven Slide Title",
-      "elements": [
-        { "type": "text", "content": "Contextual narrative paragraph..." },
-        { "type": "callout", "content": "📊 Key statistic or insight", "icon": "📊" },
-        { "type": "bullet_list", "items": ["Substantive point with detail", "Another meaningful point"] }
-      ],
-      "notes": "Detailed speaker notes: what to say, what to emphasize, transition to next slide..."
+      "title": "Slide Title That Communicates the Insight",
+      "elements": [ ... ],
+      "notes": "What the presenter should say (3-5 sentences, natural speech)..."
     }
   ]
-}`;
+}
+
+## DECK STRUCTURE (8-10 slides)
+Slide 1: Title slide — compelling title + subtitle + stat_box with 2-3 hero metrics
+Slide 2: Problem/Context — set up the pain point with data
+Slide 3: Solution — how it works (use numbered_list or timeline)
+Slide 4: Market/Opportunity — table or stat_box with market data
+Slide 5: Traction/Results — stat_box with KPIs
+Slide 6: Business Model — table for pricing/revenue, two_column for comparisons
+Slide 7: Competitive Advantage — table comparing vs competitors
+Slide 8: Roadmap/Next Steps — timeline
+Slide 9 (optional): Team or Partnerships
+Slide 10: Closing — strong CTA with key takeaway
+
+## SLIDE TITLE RULES
+NEVER use generic labels. Every title must communicate an insight.
+- BAD: "Market Opportunity" → GOOD: "A $47B Market Growing 23% Year-Over-Year"
+- BAD: "Our Solution" → GOOD: "3 Steps to Fresh Meals in Under 30 Minutes"  
+- BAD: "Business Model" → GOOD: "Scalable Unit Economics: $15 AOV at 62% Margin"
+- BAD: "Traction" → GOOD: "5,000 Users in 90 Days with Zero Paid Marketing"
+
+## ELEMENT TYPES AND WHEN TO USE THEM
+
+### stat_box — for KPIs, metrics, key numbers
+Use on: title slide, traction slide, market size slide
+{ "type": "stat_box", "stats": [
+  { "value": "5,000", "label": "Active Users" },
+  { "value": "$15", "label": "Avg Order Value" },
+  { "value": "340%", "label": "QoQ Growth" }
+]}
+Rules: 2-4 stats per box. Values must be specific numbers. Labels max 3 words.
+
+### table — for comparisons, pricing, feature matrices
+Use on: competitive analysis, pricing, feature comparison
+{ "type": "table", "headers": ["Feature", "FreshBox", "Competitor A", "Competitor B"], "rows": [
+  ["Price per meal", "$8.50", "$12.00", "$15.00"],
+  ["Delivery time", "Same day", "2-3 days", "Next day"],
+  ["Local sourcing", "100%", "30%", "0%"]
+]}
+Rules: 3-5 rows, 3-4 columns. Keep cell text short (under 5 words per cell).
+
+### timeline — for roadmaps, processes, history
+Use on: roadmap slide, company history, implementation plan
+{ "type": "timeline", "items": [
+  { "title": "Q1 2025: Launch", "description": "Beta launch with 3 campus partners" },
+  { "title": "Q2 2025: Scale", "description": "Expand to 15 campuses, hit 10K users" },
+  { "title": "Q3 2025: Monetize", "description": "Premium plans, enterprise partnerships" }
+]}
+Rules: 3-5 items. Title is short (phase/date + action). Description is one sentence.
+
+### two_column — for comparisons, before/after, problem/solution
+{ "type": "two_column", "left": "Without FreshBox:\nStudents spend 3+ hours weekly searching for affordable meals. 73% rely on fast food due to time constraints.", "right": "With FreshBox:\nFresh meal kits delivered in 30 minutes. Average prep time under 20 minutes. 89% report healthier eating habits." }
+Rules: Use \n for line breaks. Each column 2-4 sentences. Make the contrast clear.
+
+### text — for narrative context (NOT for listing things)
+{ "type": "text", "content": "Paragraph with context, storytelling, or explanation. Should be 2-3 sentences that set up the next element." }
+Rules: 2-3 sentences. Never just one sentence. Use to bridge between structured elements.
+
+### bullet_list — use sparingly
+{ "type": "bullet_list", "items": ["Each item is a complete sentence with substance", "Not a fragment"] }
+Rules: Max 4 items. Each item is a full sentence. NEVER more than one bullet_list per slide. NEVER use on consecutive slides.
+
+### numbered_list — for sequential steps or ranked items
+{ "type": "numbered_list", "items": ["Step one with full explanation", "Step two with detail"] }
+Rules: 3-5 items. Only for things with inherent order.
+
+### callout — for ONE key insight per slide (use sparingly)
+{ "type": "callout", "content": "Key insight without emoji. One powerful sentence." }
+Rules: NO emoji. NO icons. Max one per slide. Max 3 across entire deck. Content is one sentence.
+
+### quote — for testimonials or expert endorsements  
+{ "type": "quote", "content": "This changed how our students eat. - Campus Director, UCLA" }
+
+### heading — for section labels within a slide
+{ "type": "heading", "content": "Section Title" }
+
+### divider — visual separator
+{ "type": "divider" }
+
+## CRITICAL RULES
+
+1. ELEMENT VARIETY: Each slide must use at least 2 different element types. Never repeat the same element type pattern on consecutive slides.
+
+2. STRUCTURE OVER BULLETS: Prefer table, stat_box, timeline, two_column over bullet_list. Bullets are a last resort.
+
+3. DATA DENSITY: Every slide must contain at least one specific number, percentage, or data point. If the user didn't provide data, create realistic estimates and frame them as projections.
+
+4. NO EMOJI: Never use emoji anywhere — not in callouts, not in titles, not in content.
+
+5. CALLOUT RESTRAINT: Maximum 3 callouts in the entire deck. When you want to highlight something, prefer stat_box instead.
+
+6. CONTENT DEPTH: 
+   - text elements: 2-3 sentences minimum
+   - bullet items: full sentences, not fragments  
+   - speaker notes: 3-5 sentences of natural speech
+   - table cells: concise but informative
+
+7. SLIDE ELEMENT COUNT: Each slide should have 3-5 elements. Not 1-2 (too sparse), not 6+ (too crowded).
+
+8. NARRATIVE FLOW: The deck should tell a story. Each slide transitions naturally to the next. Speaker notes should include transition phrases.
+
+## ELEMENT DISTRIBUTION ACROSS DECK (MANDATORY)
+- stat_box: use in at least 3 slides
+- table: use in at least 2 slides  
+- timeline: use in at least 1 slide
+- two_column: use in at least 1 slide
+- bullet_list: maximum 2 slides in entire deck
+- callout: maximum 3 in entire deck, NO emoji
+- text: use in most slides as contextual bridges`;
 
 export async function generateDocumentBlocksJson(prompt: string): Promise<{ blocks: unknown[]; tokens: number | null }> {
   const openai = getOpenAI();
@@ -168,8 +217,8 @@ export async function generatePresentationJson(prompt: string): Promise<{
   const openai = getOpenAI();
   const r = await openai.chat.completions.create({
     model: "gpt-4o",
-    temperature: 0.6,
-    max_tokens: 6000,
+    temperature: 0.7,
+    max_tokens: 12000,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: PRESENTATION_SYSTEM },

@@ -32,13 +32,13 @@ export async function POST(req: Request) {
   // Design tokens
   const COLORS = {
     primary: "6C5CE7",
-    primaryLight: "E8E5FC",
+    primaryLight: "F8F7FF",
     dark: "2D3436",
     gray: "636E72",
     lightGray: "F5F5F5",
     white: "FFFFFF",
-    accent: "00B894",
-    warning: "FDCB6E",
+    tableBorder: "E2E8F0",
+    tableStripe: "FAFAFA",
   } as const;
 
   const FONTS = {
@@ -116,16 +116,24 @@ export async function POST(req: Request) {
           case "callout": {
             const content = el.content.trim();
             if (!content) break;
-            s.addShape("rect", {
-              x: 0.8, y: currentY, w: 8.4, h: 0.7,
+            const cleanContent = content
+              .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "")
+              .replace(/[\u2600-\u27BF]/g, "")
+              .trim();
+            s.addShape("roundRect", {
+              x: 0.8, y: currentY, w: 8.4, h: 0.65,
               fill: { color: COLORS.primaryLight },
-              line: { color: COLORS.primary, pt: 0.5 },
+              line: { color: COLORS.primary, pt: 0.8 },
             });
-            s.addText(content, {
-              x: 1.1, y: currentY + 0.1, w: 7.8, h: 0.5,
-              ...FONTS.callout,
+            s.addText(cleanContent, {
+              x: 1.1, y: currentY + 0.08, w: 7.8, h: 0.5,
+              fontFace: "Arial",
+              fontSize: 13,
+              bold: true,
+              color: COLORS.primary,
+              valign: "middle",
             });
-            currentY += 0.9;
+            currentY += 0.85;
             break;
           }
           case "quote": {
@@ -168,6 +176,121 @@ export async function POST(req: Request) {
             currentY += 2.7;
             break;
           }
+          case "table": {
+            if (!el.headers.length) break;
+            const border = { type: "solid" as const, color: COLORS.tableBorder, pt: 0.5 };
+            const margin: [number, number, number, number] = [6, 8, 6, 8];
+            const tableRows = [
+              el.headers.map((h) => ({
+                text: h,
+                options: {
+                  bold: true,
+                  fontSize: 11,
+                  color: "FFFFFF",
+                  fill: { color: COLORS.primary },
+                  align: "left" as const,
+                  border,
+                  margin,
+                },
+              })),
+              ...el.rows.map((row, i) =>
+                row.map((cell) => ({
+                  text: cell,
+                  options: {
+                    fontSize: 11,
+                    color: COLORS.dark,
+                    fill: { color: i % 2 === 0 ? COLORS.tableStripe : COLORS.white },
+                    border,
+                    margin,
+                  },
+                }))
+              ),
+            ];
+            s.addTable(tableRows, {
+              x: 0.8,
+              y: currentY,
+              w: 8.4,
+              colW: Array(el.headers.length).fill(8.4 / el.headers.length),
+            });
+            currentY += 0.4 * (el.rows.length + 1) + 0.3;
+            break;
+          }
+          case "stat_box": {
+            if (!el.stats.length) break;
+            const statWidth = 8.4 / el.stats.length;
+            el.stats.forEach((stat, i) => {
+              const sx = 0.8 + statWidth * i + (i > 0 ? 0.1 : 0);
+              const sw = statWidth - (el.stats.length > 1 ? 0.1 : 0);
+              s.addShape("roundRect", {
+                x: sx, y: currentY, w: sw, h: 1.1,
+                fill: { color: COLORS.primaryLight },
+                line: { color: COLORS.primaryLight, pt: 0 },
+              });
+              s.addText(stat.value, {
+                x: sx, y: currentY + 0.1, w: sw, h: 0.55,
+                fontSize: 26, bold: true, color: COLORS.primary,
+                align: "center", valign: "middle",
+              });
+              s.addText(stat.label, {
+                x: sx, y: currentY + 0.65, w: sw, h: 0.35,
+                fontSize: 10, color: COLORS.gray,
+                align: "center", valign: "top",
+              });
+            });
+            currentY += 1.3;
+            break;
+          }
+          case "timeline": {
+            el.items.forEach((item, i) => {
+              if (i < el.items.length - 1) {
+                s.addShape("rect", {
+                  x: 1.05, y: currentY + 0.15, w: 0.03, h: 0.55,
+                  fill: { color: COLORS.primaryLight },
+                  line: { color: COLORS.primaryLight, pt: 0 },
+                });
+              }
+              s.addShape("ellipse", {
+                x: 0.95, y: currentY + 0.02, w: 0.22, h: 0.22,
+                fill: { color: COLORS.primary },
+                line: { color: COLORS.primary, pt: 0 },
+              });
+              s.addText(item.title, {
+                x: 1.4, y: currentY, w: 7.5, h: 0.28,
+                fontSize: 13, bold: true, color: COLORS.dark,
+              });
+              s.addText(item.description, {
+                x: 1.4, y: currentY + 0.28, w: 7.5, h: 0.3,
+                fontSize: 11, color: COLORS.gray,
+              });
+              currentY += 0.65;
+            });
+            currentY += 0.15;
+            break;
+          }
+          case "two_column": {
+            s.addShape("roundRect", {
+              x: 0.8, y: currentY, w: 4.0, h: 1.2,
+              fill: { color: COLORS.lightGray },
+              line: { color: COLORS.lightGray, pt: 0 },
+            });
+            s.addText(el.left, {
+              x: 1.0, y: currentY + 0.1, w: 3.6, h: 1.0,
+              fontSize: 12, color: COLORS.dark, valign: "top",
+              lineSpacingMultiple: 1.3,
+            });
+            s.addShape("roundRect", {
+              x: 5.0, y: currentY, w: 4.0, h: 1.2,
+              fill: { color: COLORS.lightGray },
+              line: { color: COLORS.lightGray, pt: 0 },
+            });
+            s.addText(el.right, {
+              x: 5.2, y: currentY + 0.1, w: 3.6, h: 1.0,
+              fontSize: 12, color: COLORS.dark, valign: "top",
+              lineSpacingMultiple: 1.3,
+            });
+            currentY += 1.4;
+            break;
+          }
           default:
             break;
         }
@@ -177,22 +300,32 @@ export async function POST(req: Request) {
     if (index === 0) {
       s.background = { color: COLORS.primary };
       s.addText(raw.title || "Untitled", {
-        x: 0.8, y: 1.5, w: 8.4, h: 1.5,
-        fontFace: "Arial", fontSize: 36, bold: true,
+        x: 0.8, y: 2.0, w: 8.4, h: 1.2,
+        fontFace: "Arial", fontSize: 34, bold: true,
         color: COLORS.white, align: "center", valign: "middle",
       });
 
       const subtitle = elements.find((e) => e.type === "text");
       if (subtitle?.type === "text" && subtitle.content.trim()) {
         s.addText(subtitle.content, {
-          x: 1.5, y: 3.2, w: 7.0, h: 0.8,
-          fontFace: "Arial", fontSize: 18, color: "FFFFFFCC",
-          align: "center", valign: "top",
+          x: 1.5, y: 3.4, w: 7.0, h: 0.7,
+          fontFace: "Arial", fontSize: 16, color: "FFFFFFCC",
+          align: "center",
         });
       }
 
-      const remaining = elements.filter((e) => e !== subtitle);
-      renderElements(remaining, 4.2);
+      const statEl = elements.find((e) => e.type === "stat_box");
+      if (statEl?.type === "stat_box" && statEl.stats.length) {
+        renderElements([statEl], 4.3);
+      }
+      s.addShape("rect", {
+        x: 0, y: 7.2, w: 10, h: 0.05,
+        fill: { color: "FFFFFF33" },
+        line: { color: "FFFFFF33", pt: 0 },
+      });
+      const notes = raw.notes?.trim();
+      if (notes) s.addNotes(notes);
+      continue;
     } else {
       s.background = { color: COLORS.white };
       s.addText(raw.title || "Untitled", {
@@ -204,12 +337,12 @@ export async function POST(req: Request) {
 
     // 모든 슬라이드에 하단 브랜드 라인 + 페이지 번호
     s.addShape("rect", {
-      x: 0, y: 7.2, w: 10, h: 0.05,
+      x: 0, y: 7.2, w: 10, h: 0.04,
       fill: { color: COLORS.primary },
       line: { color: COLORS.primary, pt: 0 },
     });
     s.addText(`${index + 1}`, {
-      x: 9.0, y: 6.9, w: 0.6, h: 0.3,
+      x: 9.0, y: 6.85, w: 0.5, h: 0.3,
       ...FONTS.notes,
       align: "right",
     });
