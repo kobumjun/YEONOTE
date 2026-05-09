@@ -5,61 +5,68 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  LayoutDashboard,
-  FileText,
+  Home,
+  LayoutGrid,
   Trash2,
   CreditCard,
   Settings,
-  PanelLeftClose,
-  PanelLeft,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/shared/Logo";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const links = [
-  { href: "/dashboard", label: "All Creations", icon: LayoutDashboard, dashboardView: "all" as const },
-  { href: "/dashboard?view=my", label: "My Work", icon: FileText, dashboardView: "my" as const },
-  { href: "/dashboard?view=trash", label: "Trash", icon: Trash2, dashboardView: "trash" as const },
-  { href: "/pricing", label: "Pricing", icon: CreditCard, dashboardView: null },
-  { href: "/settings", label: "Settings", icon: Settings, dashboardView: null },
+const NAV_LINKS = [
+  { href: "/dashboard", label: "Home", icon: Home, key: "home" as const },
+  { href: "/dashboard/creations", label: "All Creations", icon: LayoutGrid, key: "creations" as const },
+  { href: "/dashboard/creations?view=trash", label: "Trash", icon: Trash2, key: "trash" as const },
+  { href: "/pricing", label: "Pricing", icon: CreditCard, key: "pricing" as const },
+  { href: "/settings", label: "Settings", icon: Settings, key: "settings" as const },
 ];
 
-function SidebarNavLinks({ collapsed }: { collapsed: boolean }) {
+function navActive(
+  key: (typeof NAV_LINKS)[number]["key"],
+  pathname: string,
+  creationsView: string | null | undefined
+): boolean {
+  if (key === "home") return pathname === "/dashboard";
+  if (key === "creations") {
+    return pathname === "/dashboard/creations" && creationsView !== "trash";
+  }
+  if (key === "trash") {
+    return pathname === "/dashboard/creations" && creationsView === "trash";
+  }
+  if (key === "pricing") return pathname === "/pricing" || pathname.startsWith("/pricing/");
+  if (key === "settings") return pathname === "/settings" || pathname.startsWith("/settings/");
+  return false;
+}
+
+function SidebarNavLinks() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentDashView = pathname === "/dashboard" ? searchParams.get("view") ?? "all" : null;
-
-  function isActive(href: string, dashboardView: string | null): boolean {
-    if (dashboardView != null) {
-      return pathname === "/dashboard" && currentDashView === dashboardView;
-    }
-    if (href === "/pricing") return pathname === "/pricing" || pathname.startsWith("/pricing/");
-    if (href === "/settings") return pathname === "/settings" || pathname.startsWith("/settings/");
-    return false;
-  }
+  const creationsView =
+    pathname === "/dashboard/creations" ? searchParams.get("view") ?? undefined : undefined;
 
   return (
-    <nav className="flex flex-1 flex-col gap-0.5 p-2">
-      {links.map(({ href, label, icon: Icon, dashboardView }) => {
-        const active = isActive(href, dashboardView);
+    <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
+      {NAV_LINKS.map(({ href, label, icon: Icon, key }) => {
+        const active = navActive(key, pathname, creationsView);
         return (
           <Link
             key={href}
             href={href}
+            title={label}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200",
+              "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors duration-200",
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/90 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                ? "bg-violet-500/12 text-violet-700 dark:bg-violet-500/20 dark:text-violet-200"
+                : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
             )}
-            title={collapsed ? label : undefined}
           >
-            <Icon className="size-4 shrink-0 stroke-[1.5]" />
-            {!collapsed && <span>{label}</span>}
+            <Icon className="size-[18px] shrink-0 stroke-[1.75]" aria-hidden />
+            <span className="min-w-0 truncate opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">
+              {label}
+            </span>
           </Link>
         );
       })}
@@ -67,18 +74,18 @@ function SidebarNavLinks({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function SidebarNavFallback({ collapsed }: { collapsed: boolean }) {
+function SidebarNavFallback() {
   return (
-    <nav className="flex flex-1 flex-col gap-0.5 p-2">
-      {links.map(({ href, label, icon: Icon }) => (
+    <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
+      {NAV_LINKS.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
           href={href}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/90 transition-all duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-          title={collapsed ? label : undefined}
+          title={label}
+          className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
         >
-          <Icon className="size-4 shrink-0 stroke-[1.5]" />
-          {!collapsed && <span>{label}</span>}
+          <Icon className="size-[18px] shrink-0 stroke-[1.75]" />
+          <span className="min-w-0 truncate opacity-0">{label}</span>
         </Link>
       ))}
     </nav>
@@ -99,85 +106,75 @@ export function Sidebar({
   avatarUrl: string | null;
 }) {
   const router = useRouter();
-  const collapsed = useUiStore((s) => s.sidebarCollapsed);
-  const toggleSidebar = useUiStore((s) => s.toggleSidebar);
-
   const initials = (displayName || email || "U").slice(0, 2).toUpperCase();
+  const pct = Math.max(0, Math.min(100, aiCreditsCeiling > 0 ? (aiCredits / aiCreditsCeiling) * 100 : 0));
 
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex",
-        collapsed ? "w-[72px]" : "w-56"
+        "group/sidebar sticky top-0 z-40 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar/85 text-sidebar-foreground shadow-sm backdrop-blur-xl transition-[width] duration-300 ease-out md:flex",
+        "w-16 hover:w-52"
       )}
     >
-      <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-3">
-        {!collapsed && <Logo href="/dashboard" className="text-sidebar-foreground [&_span:last-child]:text-sidebar-foreground" />}
-        {collapsed && (
-          <Link
-            href="/dashboard"
-            className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-yeo-600 text-sm font-bold text-primary-foreground"
-          >
-            Y
-          </Link>
-        )}
-      </div>
-      <Suspense fallback={<SidebarNavFallback collapsed={collapsed} />}>
-        <SidebarNavLinks collapsed={collapsed} />
-      </Suspense>
-      {!collapsed && (
-        <div className="border-t border-sidebar-border p-3">
-          <div className="flex items-center justify-between text-xs text-sidebar-foreground/80">
-            <span>Credits</span>
-            <span>{creditsDisplay(aiCredits, aiCreditsCeiling)}</span>
-          </div>
-          <div className="mt-1 h-1.5 w-full rounded-full bg-sidebar-accent/50">
-            <div
-              className="h-1.5 rounded-full bg-yeo-600 transition-all"
-              style={{ width: `${Math.max(0, Math.min(100, (aiCreditsCeiling > 0 ? (aiCredits / aiCreditsCeiling) * 100 : 0)))}%` }}
-            />
-          </div>
-          <Link
-            href="/pricing"
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "mt-2 flex w-full justify-center rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
-            )}
-          >
-            Get More Credits
-          </Link>
-        </div>
-      )}
-      <div className="border-t border-sidebar-border p-2">
-        {!collapsed ? (
-          <button
-            type="button"
-            className="mb-2 w-full rounded-lg border border-sidebar-border/70 bg-sidebar-accent/20 p-2 text-left transition-colors hover:bg-sidebar-accent/40"
-            onClick={() => router.push("/settings")}
-          >
-            <div className="flex items-center gap-2">
-              <Avatar className="size-8">
-                {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{displayName || "User"}</p>
-                <p className="truncate text-xs text-sidebar-foreground/70">{email || "—"}</p>
-              </div>
-            </div>
-          </button>
-        ) : null}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent/60"
-          onClick={toggleSidebar}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-3">
+        <Link
+          href="/dashboard"
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 text-sm font-bold text-white shadow-sm"
+          aria-label="YEO Home"
         >
-          {collapsed ? <PanelLeft className="size-4 stroke-[1.5]" /> : <PanelLeftClose className="size-4 stroke-[1.5]" />}
-          {!collapsed && <span>Collapse sidebar</span>}
-        </Button>
+          Y
+        </Link>
+        <span className="min-w-0 truncate text-sm font-semibold tracking-tight opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">
+          YEO
+        </span>
+      </div>
+
+      <Suspense fallback={<SidebarNavFallback />}>
+        <SidebarNavLinks />
+      </Suspense>
+
+      <div className="mt-auto space-y-3 border-t border-sidebar-border p-3">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-muted/50 text-[10px] font-semibold tabular-nums text-foreground"
+            title={creditsDisplay(aiCredits, aiCreditsCeiling)}
+          >
+            {aiCredits}
+          </div>
+          <div className="min-w-0 flex-1 opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">
+            <p className="text-[11px] font-medium text-muted-foreground">Credits</p>
+            <p className="truncate text-xs text-foreground">{creditsDisplay(aiCredits, aiCreditsCeiling)}</p>
+            <div className="mt-1.5 h-1 w-24 max-w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-600 to-blue-600 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/pricing"
+          className="yeo-gradient-btn flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-center text-xs font-semibold shadow-sm"
+        >
+          <Sparkles className="size-4 shrink-0 stroke-[1.75]" />
+          <span className="opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">Get credits</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => router.push("/settings")}
+          className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-muted/80"
+        >
+          <Avatar className="size-9 shrink-0 border border-sidebar-border">
+            {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1 opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName || "User"}</p>
+            <p className="truncate text-xs text-muted-foreground">{email || "—"}</p>
+          </div>
+        </button>
       </div>
     </aside>
   );

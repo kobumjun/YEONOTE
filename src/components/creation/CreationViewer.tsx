@@ -228,7 +228,7 @@ export function CreationViewer({
       }
       toast.success("Moved to Trash.");
       setDeleteOpen(false);
-      router.push("/dashboard?view=trash");
+      router.push("/dashboard/creations?view=trash");
     } finally {
       setDeleteBusy(false);
     }

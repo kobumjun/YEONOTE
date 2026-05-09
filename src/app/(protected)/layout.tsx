@@ -4,7 +4,6 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import type { TopBarProfile } from "@/types/top-bar-profile";
 import { MobileNav } from "@/components/layout/MobileNav";
-import { GenerateModal } from "@/components/templates/GenerateModal";
 import Link from "next/link";
 import { resolveAuthEmail, resolveAvatarFromMeta, resolveDisplayName, safeHttpAvatarUrl } from "@/lib/profile-display";
 
@@ -39,7 +38,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen yeo-app-gradient">
       <Sidebar
         aiCredits={aiCredits}
         aiCreditsCeiling={aiCreditsCeiling}
@@ -56,7 +55,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           aiCreditsCeiling={aiCreditsCeiling}
         />
         <main className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</main>
-        <footer className="border-t bg-background px-4 py-3 text-xs text-muted-foreground md:px-6">
+        <footer className="border-t border-border/80 bg-background/60 px-4 py-4 text-xs text-muted-foreground backdrop-blur-sm md:px-6">
           <div className="mx-auto flex max-w-6xl items-center gap-4">
             <Link href="/privacy" className="transition-colors duration-200 hover:text-foreground">
               Privacy Policy
@@ -67,7 +66,6 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           </div>
         </footer>
       </div>
-      <GenerateModal />
     </div>
   );
 }

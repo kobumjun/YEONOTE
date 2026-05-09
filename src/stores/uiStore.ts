@@ -1,15 +1,12 @@
 import { create } from "zustand";
 
 type UiState = {
-  sidebarCollapsed: boolean;
-  generateOpen: boolean;
-  toggleSidebar: () => void;
-  setGenerateOpen: (open: boolean) => void;
+  /** Increment to request focus on the home dashboard prompt (Create new). */
+  promptFocusNonce: number;
+  requestPromptFocus: () => void;
 };
 
 export const useUiStore = create<UiState>((set) => ({
-  sidebarCollapsed: false,
-  generateOpen: false,
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-  setGenerateOpen: (generateOpen) => set({ generateOpen }),
+  promptFocusNonce: 0,
+  requestPromptFocus: () => set((s) => ({ promptFocusNonce: s.promptFocusNonce + 1 })),
 }));

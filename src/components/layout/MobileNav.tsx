@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -12,9 +12,9 @@ import { useUiStore } from "@/stores/uiStore";
 import { creditsDisplay } from "@/lib/credits";
 
 const links = [
-  { href: "/dashboard", label: "All Creations" },
-  { href: "/dashboard?view=my", label: "My Work" },
-  { href: "/dashboard?view=trash", label: "Trash" },
+  { href: "/dashboard", label: "Home" },
+  { href: "/dashboard/creations", label: "All Creations" },
+  { href: "/dashboard/creations?view=trash", label: "Trash" },
   { href: "/pricing", label: "Pricing" },
   { href: "/settings", label: "Settings" },
 ];
@@ -47,7 +47,7 @@ function MobileNavSheet({
       >
         <Menu className="size-4 stroke-[1.5]" />
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 border-border bg-background">
+      <SheetContent side="left" className="w-72 border-border/80 bg-background/95 backdrop-blur-xl">
         <SheetHeader>
           <SheetTitle className="text-left">
             <Logo href="/dashboard" />
@@ -84,7 +84,7 @@ function MobileNavSheet({
             href="/pricing"
             className={cn(
               buttonVariants({ size: "sm" }),
-              "mt-2 flex w-full justify-center rounded-xl bg-yeo-600 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-yeo-700"
+              "yeo-gradient-btn mt-2 flex w-full justify-center rounded-2xl font-semibold shadow-sm"
             )}
             onClick={() => setOpen(false)}
           >
@@ -107,11 +107,13 @@ export function MobileNav({
   aiCredits: number;
   aiCreditsCeiling: number;
 }) {
-  const setGenerateOpen = useUiStore((s) => s.setGenerateOpen);
+  const router = useRouter();
+  const pathname = usePathname();
+  const requestPromptFocus = useUiStore((s) => s.requestPromptFocus);
 
   return (
-    <div className="flex flex-col border-b border-border bg-background md:hidden">
-      <div className="flex items-center gap-2 px-4 py-2">
+    <div className="flex flex-col border-b border-border/80 bg-background/85 backdrop-blur-md md:hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5">
         <Suspense
           fallback={
             <Button
@@ -134,7 +136,18 @@ export function MobileNav({
           />
         </Suspense>
         <Logo href="/dashboard" />
-        <Button type="button" size="sm" className="ml-auto rounded-xl bg-yeo-600 shadow-sm" onClick={() => setGenerateOpen(true)}>
+        <Button
+          type="button"
+          size="sm"
+          className="yeo-gradient-btn ml-auto h-9 rounded-xl px-4 text-sm font-semibold shadow-sm"
+          onClick={() => {
+            if (pathname === "/dashboard") {
+              requestPromptFocus();
+            } else {
+              router.push("/dashboard?focus=1");
+            }
+          }}
+        >
           New Creation
         </Button>
       </div>

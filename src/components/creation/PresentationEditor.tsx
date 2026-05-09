@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import type { PresentationSlide, SlideElement } from "@/types/template";
 import { slideElementToPlainText } from "@/types/template";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-
-const THUMB_H = "h-[84px]";
 
 function freshElement(kind: SlideElement["type"]): SlideElement {
   switch (kind) {
@@ -204,14 +201,13 @@ function SlideElementEditor({
           value={element.content}
           onChange={(e) => onChange({ ...element, content: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[44px] resize-none border-0 bg-transparent p-0 text-xl font-semibold leading-snug shadow-none outline-none focus-visible:ring-0"
+          className="min-h-[44px] resize-none border-0 bg-transparent p-0 text-base font-semibold leading-snug shadow-none outline-none focus-visible:ring-0 md:text-xl"
           placeholder="Heading…"
         />
       </div>
     );
   }
 
-  /* text */
   return (
     <div className="group relative pr-8">
       {removeBtn}
@@ -228,17 +224,16 @@ function SlideElementEditor({
 
 function SlideCanvas({
   slide,
-  slideNumber,
+  slideIndex,
+  slideCount,
   readOnly,
   onUpdate,
-  variant = "desktop",
 }: {
   slide: PresentationSlide;
-  slideNumber: number;
+  slideIndex: number;
+  slideCount: number;
   readOnly?: boolean;
   onUpdate: (s: PresentationSlide) => void;
-  /** `mobile`: full-width canvas, no duplicate slide index label (shown in top bar). */
-  variant?: "desktop" | "mobile";
 }) {
   const elements = slide.elements ?? [];
 
@@ -256,35 +251,23 @@ function SlideCanvas({
     onUpdate({ ...slide, elements: [...elements, freshElement(kind)] });
   }
 
-  const isMobileVariant = variant === "mobile";
-
   return (
-    <div className={cn(isMobileVariant ? "w-full max-w-none" : "mx-auto max-w-3xl")}>
-      {!isMobileVariant ? (
-        <span className="mb-2 block text-sm text-muted-foreground">Slide {slideNumber}</span>
-      ) : null}
-      <div
-        className={cn(
-          "relative mb-6 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-sm",
-          isMobileVariant ? "aspect-video max-h-[min(70vh,520px)] min-h-[200px] p-4" : "max-w-[800px] p-6"
-        )}
-        style={
-          isMobileVariant
-            ? undefined
-            : { aspectRatio: "16 / 9", minHeight: 400, maxHeight: 500 }
-        }
-      >
+    <div className="w-full min-w-0">
+      <p className="mb-2 text-sm text-muted-foreground">
+        Slide {slideIndex + 1} / {slideCount}
+      </p>
+      <div className="aspect-[16/9] w-full overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm md:p-6">
         <Input
           value={slide.title}
           onChange={(e) => onUpdate({ ...slide, title: e.target.value })}
           readOnly={readOnly}
-          className="mb-4 border-0 bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0"
+          className="mb-3 border-0 bg-transparent p-0 text-lg font-bold shadow-none focus-visible:ring-0 md:mb-4 md:text-2xl"
           placeholder="Slide title…"
         />
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {elements.map((el, i) => (
             <SlideElementEditor
-              key={`${slideNumber}-${i}-${el.type}`}
+              key={`${slideIndex}-${i}-${el.type}`}
               element={el}
               readOnly={readOnly}
               onChange={(next) => patchElement(i, next)}
@@ -296,7 +279,7 @@ function SlideCanvas({
           <DropdownMenu>
             <DropdownMenuTrigger
               type="button"
-              className="mt-4 inline-flex h-8 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="mt-3 inline-flex h-8 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:mt-4"
             >
               <Plus className="size-4 stroke-[1.5]" />
               Add element
@@ -315,7 +298,7 @@ function SlideCanvas({
           </DropdownMenu>
         )}
       </div>
-      <div className={cn("rounded-lg border border-border bg-muted/10", isMobileVariant ? "p-3" : "p-4")}>
+      <div className="mt-3 rounded-lg border border-border bg-muted/10 p-3 md:mt-4 md:p-4">
         <p className="mb-1 text-xs text-muted-foreground">Speaker notes</p>
         <Textarea
           value={slide.notes ?? ""}
@@ -339,8 +322,6 @@ export function PresentationEditor({
   readOnly?: boolean;
 }) {
   const [activeSlide, setActiveSlide] = useState(0);
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (slides.length === 0) return;
@@ -370,143 +351,58 @@ export function PresentationEditor({
     setActiveSlide(slides.length);
   }
 
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.targetTouches[0]?.clientX ?? null;
-  }
-
-  function onTouchEnd(e: React.TouchEvent) {
-    const startX = touchStartX.current;
-    touchStartX.current = null;
-    if (startX == null) return;
-    const endX = e.changedTouches[0]?.clientX;
-    if (endX == null) return;
-    const dx = endX - startX;
-    if (dx > 56) setActiveSlide((i) => Math.max(0, i - 1));
-    else if (dx < -56) setActiveSlide((i) => Math.min(slides.length - 1, i + 1));
-  }
-
-  if (isMobile) {
-    return (
-      <div className="flex w-full min-w-0 flex-col rounded-xl border border-border bg-background">
-        <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-muted-foreground disabled:opacity-30"
-            disabled={safeIndex === 0}
-            aria-label="Previous slide"
-            onClick={() => setActiveSlide((i) => Math.max(0, i - 1))}
-          >
-            <ChevronLeft className="size-5 stroke-[1.5]" />
-          </Button>
-          <span className="text-sm font-medium tabular-nums">
-            Slide {safeIndex + 1} / {slides.length}
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0 text-muted-foreground disabled:opacity-30"
-            disabled={safeIndex >= slides.length - 1}
-            aria-label="Next slide"
-            onClick={() => setActiveSlide((i) => Math.min(slides.length - 1, i + 1))}
-          >
-            <ChevronRight className="size-5 stroke-[1.5]" />
-          </Button>
-        </div>
-
-        <div
-          className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-3 pb-2 pt-3"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <SlideCanvas
-            slide={current}
-            slideNumber={safeIndex + 1}
-            readOnly={readOnly}
-            variant="mobile"
-            onUpdate={(updated) => {
-              const next = [...slides];
-              next[safeIndex] = updated;
-              onSlidesChange(next);
-            }}
-          />
-        </div>
-
-        <div className="flex justify-center gap-1.5 border-t border-border py-3">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Go to slide ${i + 1}`}
-              onClick={() => setActiveSlide(i)}
-              className={cn(
-                "size-2 rounded-full transition-colors",
-                i === safeIndex ? "bg-yeo-600" : "bg-muted-foreground/30"
-              )}
-            />
-          ))}
-        </div>
-
-        {!readOnly && (
-          <div className="border-t border-border px-3 py-2">
-            <Button type="button" variant="outline" size="sm" className="w-full rounded-xl" onClick={addSlide}>
-              <Plus className="mr-1 size-4 stroke-[1.5]" />
-              Add slide
-            </Button>
-          </div>
-        )}
-      </div>
-    );
+  function patchCurrent(updated: PresentationSlide) {
+    const next = [...slides];
+    next[safeIndex] = updated;
+    onSlidesChange(next);
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-220px)] gap-0 rounded-xl border border-border bg-background">
-      <div className="w-48 shrink-0 space-y-2 overflow-y-auto border-r border-border bg-muted/30 p-3">
-        {slides.map((slide, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => setActiveSlide(i)}
-            className={cn(
-              "relative flex w-full shrink-0 flex-col justify-between rounded-lg border-2 bg-card p-2 text-left transition-all",
-              THUMB_H,
-              "hover:border-yeo-400/50",
-              i === safeIndex ? "border-yeo-600 shadow-sm" : "border-border"
-            )}
-          >
-            <span className="absolute bottom-1 right-1.5 text-[9px] text-muted-foreground">{i + 1}</span>
-            <p className="line-clamp-2 pr-4 text-[9px] font-semibold leading-tight">{slide.title || "Untitled"}</p>
-            <p className="line-clamp-2 text-[8px] text-muted-foreground">
-              {slide.elements?.[0] ? slideElementToPlainText(slide.elements[0]).slice(0, 80) : "…"}
-            </p>
-          </button>
-        ))}
-        {!readOnly && (
-          <button
-            type="button"
-            onClick={addSlide}
-            className={cn(
-              "flex w-full shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-yeo-500 hover:text-yeo-700",
-              THUMB_H
-            )}
-          >
-            <Plus className="size-5 stroke-[1.5]" />
-          </button>
-        )}
-      </div>
-      <div className="min-w-0 flex-1 overflow-y-auto p-6 md:p-8">
+    <div className="w-full min-w-0 rounded-xl border border-border bg-background">
+      <div className="px-4 py-4 md:px-8 md:py-6">
         <SlideCanvas
           slide={current}
-          slideNumber={safeIndex + 1}
+          slideIndex={safeIndex}
+          slideCount={slides.length}
           readOnly={readOnly}
-          onUpdate={(updated) => {
-            const next = [...slides];
-            next[safeIndex] = updated;
-            onSlidesChange(next);
-          }}
+          onUpdate={patchCurrent}
         />
+      </div>
+
+      <div className="border-t border-border px-4 py-3 md:px-8">
+        <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1">
+          {slides.map((slide, i) => {
+            const preview = slide.elements?.[0] ? slideElementToPlainText(slide.elements[0]).slice(0, 48) : "…";
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveSlide(i)}
+                className={cn(
+                  "flex aspect-[16/9] w-24 shrink-0 flex-col rounded-lg border-2 p-1.5 text-left transition-all md:w-32 md:p-2",
+                  "hover:border-yeo-400/60",
+                  i === safeIndex ? "border-yeo-600 bg-card shadow-sm" : "border-border bg-muted/30"
+                )}
+              >
+                <p className="line-clamp-2 text-[8px] font-semibold leading-tight md:text-[10px]">
+                  {slide.title || "Untitled"}
+                </p>
+                <p className="mt-0.5 line-clamp-2 flex-1 text-[6px] text-muted-foreground md:text-[8px]">{preview}</p>
+                <span className="mt-auto text-right text-[7px] tabular-nums text-muted-foreground/80">{i + 1}</span>
+              </button>
+            );
+          })}
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={addSlide}
+              className="flex aspect-[16/9] w-24 shrink-0 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-yeo-500 hover:text-yeo-700 md:w-32"
+              aria-label="Add slide"
+            >
+              <Plus className="size-5 stroke-[1.5] md:size-6" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

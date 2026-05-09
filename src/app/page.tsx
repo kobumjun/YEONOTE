@@ -11,9 +11,9 @@ import { LandingHeaderActions } from "@/components/landing/LandingHeaderActions"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-50 via-background to-neutral-100/80 dark:from-background dark:via-background dark:to-neutral-950">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:h-16 md:px-6">
           <Logo />
           <LandingHeaderActions />
         </div>
