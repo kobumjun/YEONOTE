@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import type { PresentationSlide, SlideElement } from "@/types/template";
 import { slideElementToPlainText } from "@/types/template";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const THUMB_H = "h-[84px]";
 
@@ -230,11 +231,14 @@ function SlideCanvas({
   slideNumber,
   readOnly,
   onUpdate,
+  variant = "desktop",
 }: {
   slide: PresentationSlide;
   slideNumber: number;
   readOnly?: boolean;
   onUpdate: (s: PresentationSlide) => void;
+  /** `mobile`: full-width canvas, no duplicate slide index label (shown in top bar). */
+  variant?: "desktop" | "mobile";
 }) {
   const elements = slide.elements ?? [];
 
@@ -252,12 +256,23 @@ function SlideCanvas({
     onUpdate({ ...slide, elements: [...elements, freshElement(kind)] });
   }
 
+  const isMobileVariant = variant === "mobile";
+
   return (
-    <div className="mx-auto max-w-3xl">
-      <span className="mb-2 block text-sm text-muted-foreground">Slide {slideNumber}</span>
+    <div className={cn(isMobileVariant ? "w-full max-w-none" : "mx-auto max-w-3xl")}>
+      {!isMobileVariant ? (
+        <span className="mb-2 block text-sm text-muted-foreground">Slide {slideNumber}</span>
+      ) : null}
       <div
-        className="relative mb-6 w-full max-w-[800px] overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-sm"
-        style={{ aspectRatio: "16 / 9", minHeight: 400, maxHeight: 500 }}
+        className={cn(
+          "relative mb-6 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-sm",
+          isMobileVariant ? "aspect-video max-h-[min(70vh,520px)] min-h-[200px] p-4" : "max-w-[800px] p-6"
+        )}
+        style={
+          isMobileVariant
+            ? undefined
+            : { aspectRatio: "16 / 9", minHeight: 400, maxHeight: 500 }
+        }
       >
         <Input
           value={slide.title}
@@ -300,7 +315,7 @@ function SlideCanvas({
           </DropdownMenu>
         )}
       </div>
-      <div className="rounded-lg border border-border bg-muted/10 p-4">
+      <div className={cn("rounded-lg border border-border bg-muted/10", isMobileVariant ? "p-3" : "p-4")}>
         <p className="mb-1 text-xs text-muted-foreground">Speaker notes</p>
         <Textarea
           value={slide.notes ?? ""}
@@ -324,6 +339,8 @@ export function PresentationEditor({
   readOnly?: boolean;
 }) {
   const [activeSlide, setActiveSlide] = useState(0);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (slides.length === 0) return;
@@ -351,6 +368,97 @@ export function PresentationEditor({
       },
     ]);
     setActiveSlide(slides.length);
+  }
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.targetTouches[0]?.clientX ?? null;
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const startX = touchStartX.current;
+    touchStartX.current = null;
+    if (startX == null) return;
+    const endX = e.changedTouches[0]?.clientX;
+    if (endX == null) return;
+    const dx = endX - startX;
+    if (dx > 56) setActiveSlide((i) => Math.max(0, i - 1));
+    else if (dx < -56) setActiveSlide((i) => Math.min(slides.length - 1, i + 1));
+  }
+
+  if (isMobile) {
+    return (
+      <div className="flex w-full min-w-0 flex-col rounded-xl border border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground disabled:opacity-30"
+            disabled={safeIndex === 0}
+            aria-label="Previous slide"
+            onClick={() => setActiveSlide((i) => Math.max(0, i - 1))}
+          >
+            <ChevronLeft className="size-5 stroke-[1.5]" />
+          </Button>
+          <span className="text-sm font-medium tabular-nums">
+            Slide {safeIndex + 1} / {slides.length}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground disabled:opacity-30"
+            disabled={safeIndex >= slides.length - 1}
+            aria-label="Next slide"
+            onClick={() => setActiveSlide((i) => Math.min(slides.length - 1, i + 1))}
+          >
+            <ChevronRight className="size-5 stroke-[1.5]" />
+          </Button>
+        </div>
+
+        <div
+          className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-3 pb-2 pt-3"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          <SlideCanvas
+            slide={current}
+            slideNumber={safeIndex + 1}
+            readOnly={readOnly}
+            variant="mobile"
+            onUpdate={(updated) => {
+              const next = [...slides];
+              next[safeIndex] = updated;
+              onSlidesChange(next);
+            }}
+          />
+        </div>
+
+        <div className="flex justify-center gap-1.5 border-t border-border py-3">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Go to slide ${i + 1}`}
+              onClick={() => setActiveSlide(i)}
+              className={cn(
+                "size-2 rounded-full transition-colors",
+                i === safeIndex ? "bg-yeo-600" : "bg-muted-foreground/30"
+              )}
+            />
+          ))}
+        </div>
+
+        {!readOnly && (
+          <div className="border-t border-border px-3 py-2">
+            <Button type="button" variant="outline" size="sm" className="w-full rounded-xl" onClick={addSlide}>
+              <Plus className="mr-1 size-4 stroke-[1.5]" />
+              Add slide
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (

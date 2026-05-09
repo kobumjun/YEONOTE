@@ -6,28 +6,59 @@ export function pickGenerationTitle(prompt: string): string {
   return prompt.slice(0, 80).trim() || "Untitled";
 }
 
-const DOCUMENT_SYSTEM = `Generate the document as a JSON object with a single key "blocks" whose value is an array of blocks.
-Each block has a "type" and fields for that type.
-Available types: heading, paragraph, bulleted_list, numbered_list, callout, divider, quote.
-For heading include "level" (1, 2, or 3) and "text".
-For paragraph use "text".
-For bulleted_list / numbered_list use "items" (array of strings).
-For callout and quote use "text".
-For divider use only "type": "divider".
+const DOCUMENT_SYSTEM = `You are a professional writer. Generate the requested document as clean, well-structured prose.
 
-Return ONLY valid JSON:
+LANGUAGE
+- Match the user's language for all visible text.
+
+RULES (strict)
+- Use ONLY these block types: "heading", "paragraph".
+- Do NOT use: callout, quote, divider, bulleted_list, numbered_list, toggle, code, columns, tables, or any other block type.
+- Write in natural, flowing prose paragraphs.
+- Use "heading" blocks only for major section titles (not every sentence).
+- The document should read like a professionally written letter, email, essay, or report — not like an AI template.
+- No decorative elements, no tip boxes, no highlighted sections, no ornamental dividers.
+- Keep formatting minimal and clean.
+- Match tone to the request (formal for business, casual for personal, etc.).
+
+OUTPUT
+- Return ONLY valid JSON with a single key "blocks" whose value is an array.
+- Each block: { "type": "heading", "level": 1 | 2 | 3, "text": "..." } OR { "type": "paragraph", "text": "..." }.
+- Nothing else. No markdown outside JSON.
+
+Example shape:
 {"blocks":[
   { "type": "heading", "level": 1, "text": "Document Title" },
-  { "type": "paragraph", "text": "Introduction paragraph..." },
-  { "type": "callout", "text": "Important note or tip" },
-  { "type": "bulleted_list", "items": ["Point 1", "Point 2"] },
-  { "type": "divider" },
+  { "type": "paragraph", "text": "First paragraph of natural prose..." },
+  { "type": "paragraph", "text": "Second paragraph..." },
   { "type": "heading", "level": 2, "text": "Section Title" },
   { "type": "paragraph", "text": "Section content..." }
-]}
+]}`;
 
-Make the document rich and well-structured with diverse block types.
-Use callouts for important notes, quotes for emphasis, dividers between major sections.`;
+function sanitizeDocumentBlocks(blocks: unknown[]): unknown[] {
+  const out: unknown[] = [];
+  for (const raw of blocks) {
+    if (!raw || typeof raw !== "object") continue;
+    const b = raw as { type?: string; level?: unknown; text?: unknown; content?: unknown };
+    const t = b.type;
+    if (t === "heading") {
+      const level = typeof b.level === "number" && b.level >= 1 && b.level <= 3 ? b.level : 2;
+      const text =
+        typeof b.text === "string"
+          ? b.text
+          : typeof b.content === "string"
+            ? b.content
+            : "";
+      if (!text.trim()) continue;
+      out.push({ type: "heading", level, text });
+    } else if (t === "paragraph") {
+      const text = typeof b.text === "string" ? b.text : typeof b.content === "string" ? b.content : "";
+      if (!text.trim()) continue;
+      out.push({ type: "paragraph", text });
+    }
+  }
+  return out;
+}
 
 const PRESENTATION_SYSTEM = `You are a professional presentation designer.
 Generate a detailed, high-quality slide deck as JSON.
@@ -78,8 +109,9 @@ export async function generateDocumentBlocksJson(prompt: string): Promise<{ bloc
   } catch {
     parsed = { blocks: [] };
   }
+  const rawBlocks = Array.isArray(parsed.blocks) ? parsed.blocks : [];
   return {
-    blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+    blocks: sanitizeDocumentBlocks(rawBlocks),
     tokens: r.usage?.total_tokens ?? null,
   };
 }
