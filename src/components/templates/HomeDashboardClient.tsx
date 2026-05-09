@@ -287,15 +287,15 @@ export function HomeDashboardClient() {
       <Dialog open={noCreditsOpen} onOpenChange={setNoCreditsOpen}>
         <DialogContent className="max-w-md rounded-2xl border-border/80 bg-card/95 shadow-lg backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="font-heading tracking-tight">Not enough credits</DialogTitle>
+            <DialogTitle className="font-heading tracking-tight">You&apos;ve used all your free credits!</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Buy credits to create documents, presentations, images, and templates.</p>
+          <p className="text-sm text-muted-foreground">Loved what you created? Unlock unlimited creations starting at just $5.</p>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <Button type="button" className="yeo-gradient-btn w-full rounded-2xl py-2.5 font-semibold" onClick={() => router.push("/pricing")}>
-              Get More Credits
+              See Plans
             </Button>
             <Button type="button" variant="ghost" className="w-full rounded-2xl" onClick={() => setNoCreditsOpen(false)}>
-              Close
+              Maybe later
             </Button>
           </DialogFooter>
         </DialogContent>

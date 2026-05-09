@@ -100,9 +100,12 @@ function SlideElementEditor({
     return (
       <div className="group relative min-w-0 max-w-full break-words pr-8">
         {removeBtn}
-        <ol className="min-w-0 max-w-full list-decimal space-y-1.5 pl-5 marker:font-medium marker:text-foreground">
+        <ol className="min-w-0 max-w-full space-y-2">
           {items.map((item, idx) => (
-            <li key={idx} className="min-w-0 max-w-full">
+            <li key={idx} className="flex min-w-0 max-w-full items-start gap-2">
+              <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#6C5CE7] text-[11px] font-semibold text-white">
+                {idx + 1}
+              </span>
               <input
                 value={item}
                 readOnly={readOnly}
@@ -111,7 +114,7 @@ function SlideElementEditor({
                   next[idx] = e.target.value;
                   onChange({ ...element, items: next });
                 }}
-                className="w-full min-w-0 max-w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0 break-words"
+                className="w-full min-w-0 max-w-full border-0 bg-transparent p-0 pt-0.5 text-sm outline-none focus-visible:ring-0 break-words"
                 placeholder="Item"
               />
             </li>
@@ -134,7 +137,7 @@ function SlideElementEditor({
     return (
       <div className="group relative min-w-0 max-w-full pr-8">
         {removeBtn}
-        <hr className="max-w-full border-border" />
+        <hr className="max-w-full border-[#E5E7EB]" />
       </div>
     );
   }
@@ -165,12 +168,12 @@ function SlideElementEditor({
     return (
       <div className="group relative min-w-0 max-w-full pr-8">
         {removeBtn}
-        <div className="min-w-0 max-w-full rounded-lg border-l-4 border-violet-500 bg-violet-50 py-2 pl-3 pr-2 dark:bg-violet-950/40">
+        <div className="min-w-0 max-w-full rounded-lg border-l-4 border-[#6C5CE7] bg-[#E8E5FC] py-2 pl-3 pr-2 dark:border-violet-400 dark:bg-violet-950/40">
           <Textarea
             value={element.content}
             onChange={(e) => onChange({ ...element, content: e.target.value })}
             readOnly={readOnly}
-            className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-sm text-violet-950 shadow-none outline-none focus-visible:ring-0 break-words dark:text-violet-100"
+            className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-sm font-semibold text-[#4C3FB5] shadow-none outline-none focus-visible:ring-0 break-words dark:text-violet-100"
             placeholder="Key point…"
           />
         </div>
@@ -186,7 +189,7 @@ function SlideElementEditor({
           value={element.content}
           onChange={(e) => onChange({ ...element, content: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-l-2 border-muted-foreground/40 bg-transparent py-1 pl-3 text-sm italic text-muted-foreground shadow-none outline-none focus-visible:ring-0 break-words"
+          className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-l-4 border-[#6C5CE7] bg-transparent py-1 pl-3 text-sm italic text-muted-foreground shadow-none outline-none focus-visible:ring-0 break-words"
           placeholder="Quote…"
         />
       </div>
@@ -201,7 +204,7 @@ function SlideElementEditor({
           value={element.content}
           onChange={(e) => onChange({ ...element, content: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[44px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-base font-semibold leading-snug shadow-none outline-none focus-visible:ring-0 break-words md:text-xl"
+          className="min-h-[46px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-lg font-bold leading-snug text-foreground shadow-none outline-none focus-visible:ring-0 break-words md:text-2xl"
           placeholder="Heading…"
         />
       </div>

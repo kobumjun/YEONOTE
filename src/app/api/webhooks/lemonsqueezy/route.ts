@@ -171,7 +171,7 @@ export async function POST(req: Request) {
 
     let pack: CreditPack | null = packForLemonVariant(variantId);
     if (!pack) {
-      pack = creditsToAdd >= 250 ? "bulk" : creditsToAdd >= 100 ? "growth" : "starter";
+      pack = creditsToAdd >= 400 ? "bulk" : creditsToAdd >= 150 ? "growth" : "starter";
     }
 
     const { error: upErr } = await admin

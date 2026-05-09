@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { CREDIT_PACKS, type CreditPackKey, type PricingMode } from "@/lib/credits";
+import { CREDIT_PACKS, TUTORIAL_SIGNUP_CREDITS, type CreditPackKey, type PricingMode } from "@/lib/credits";
 import { getLemonVariantIdForCheckout } from "@/lib/lemon-checkout-client";
 import { createClient } from "@/lib/supabase/client";
 import { withAuth } from "@/lib/auth-fetch";
@@ -29,7 +29,7 @@ const DISPLAY_NAME: Record<CreditPackKey, string> = {
 export function PricingClient() {
   const [billingMode, setBillingMode] = useState<PricingMode>("one_time");
   const [credits, setCredits] = useState(0);
-  const [ceiling, setCeiling] = useState(5);
+  const [ceiling, setCeiling] = useState(TUTORIAL_SIGNUP_CREDITS);
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function PricingClient() {
         .then(({ data }) => {
           if (!data) return;
           setCredits(data.ai_credits ?? 0);
-          setCeiling(Math.max(data.ai_credits_ceiling ?? 0, 5));
+          setCeiling(Math.max(data.ai_credits_ceiling ?? 0, TUTORIAL_SIGNUP_CREDITS));
         });
     });
   }, []);
