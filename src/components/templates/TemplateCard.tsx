@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { withAuth } from "@/lib/auth-fetch";
 import type { TemplateRow } from "@/types/database";
 
 export function TemplateCard({
@@ -45,7 +46,7 @@ export function TemplateCard({
   const TypeIcon = creationType === "document" ? FileText : creationType === "presentation" ? Presentation : creationType === "image" ? ImageIcon : LayoutTemplate;
 
   async function softDelete() {
-    const res = await fetch(`/api/templates/${template.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/templates/${template.id}`, await withAuth({ method: "DELETE" }));
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       toast.error((j as { error?: string }).error ?? "Failed to delete");
@@ -58,11 +59,14 @@ export function TemplateCard({
   }
 
   async function restore() {
-    const res = await fetch(`/api/templates/${template.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_deleted: false }),
-    });
+    const res = await fetch(
+      `/api/templates/${template.id}`,
+      await withAuth({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_deleted: false }),
+      })
+    );
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       toast.error((j as { error?: string }).error ?? "Failed to restore");
@@ -74,7 +78,10 @@ export function TemplateCard({
   }
 
   async function permanentDelete() {
-    const res = await fetch(`/api/templates/${template.id}?permanent=1`, { method: "DELETE" });
+    const res = await fetch(
+      `/api/templates/${template.id}?permanent=1`,
+      await withAuth({ method: "DELETE" })
+    );
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       toast.error((j as { error?: string }).error ?? "Failed to delete permanently");

@@ -7,7 +7,7 @@ import type { TemplateContent } from "@/types/template";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(_req: Request, ctx: Ctx) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(_req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;

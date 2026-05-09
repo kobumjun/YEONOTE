@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isAllowedLemonCheckoutVariantId } from "@/lib/lemon-billing";
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user?.email) {
     return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   }

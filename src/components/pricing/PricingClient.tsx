@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CREDIT_PACKS, type CreditPackKey, type PricingMode } from "@/lib/credits";
 import { getLemonVariantIdForCheckout } from "@/lib/lemon-checkout-client";
 import { createClient } from "@/lib/supabase/client";
+import { withAuth } from "@/lib/auth-fetch";
 import { CREDITS_PER_GENERATION } from "@/lib/ai-credits";
 import { cn } from "@/lib/utils";
 
@@ -60,11 +61,14 @@ export function PricingClient() {
         toast.error("Checkout is not configured for this plan. Set Lemon variant env vars.");
         return;
       }
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variantId }),
-      });
+      const res = await fetch(
+        "/api/billing/checkout",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ variantId }),
+        })
+      );
       const j = (await res.json()) as { url?: string; error?: string };
       if (!res.ok) {
         toast.error(j.error ?? "Failed to open checkout page");

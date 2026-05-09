@@ -14,6 +14,7 @@ import {
 import { templateToMarkdown } from "@/lib/export";
 import { useEditorStore } from "@/stores/editorStore";
 import { toPng } from "html-to-image";
+import { withAuth } from "@/lib/auth-fetch";
 
 export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivElement | null> }) {
   const { title, blocks, templateId } = useEditorStore();
@@ -22,11 +23,14 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
   async function markdown() {
     setBusy(true);
     try {
-      const res = await fetch("/api/export/markdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, title, blocks }),
-      });
+      const res = await fetch(
+        "/api/export/markdown",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, title, blocks }),
+        })
+      );
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "Export failed");
       const blob = new Blob([j.markdown], { type: "text/markdown;charset=utf-8" });
@@ -46,11 +50,14 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
   async function pdf() {
     setBusy(true);
     try {
-      const res = await fetch("/api/export/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, title, blocks }),
-      });
+      const res = await fetch(
+        "/api/export/pdf",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, title, blocks }),
+        })
+      );
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "Export failed");
       const binary = atob(j.pdfBase64);
@@ -74,11 +81,14 @@ export function ExportMenu({ editorRef }: { editorRef: React.RefObject<HTMLDivEl
     if (!editorRef.current) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/export/markdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, title, blocks }),
-      });
+      const res = await fetch(
+        "/api/export/markdown",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, title, blocks }),
+        })
+      );
       if (!res.ok) {
         const j = await res.json();
         throw new Error(j.error ?? "Export failed");

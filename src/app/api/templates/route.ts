@@ -16,7 +16,7 @@ function normalizeCreationType(raw: unknown): CreationType {
 const PAGE_SIZE = 12;
 
 export async function GET(req: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
@@ -65,7 +65,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const supabase = await createClient();

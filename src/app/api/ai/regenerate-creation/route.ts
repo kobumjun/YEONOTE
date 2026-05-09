@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const rl = await limitAiGeneration(user.id);

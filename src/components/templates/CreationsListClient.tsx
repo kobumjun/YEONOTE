@@ -11,6 +11,7 @@ import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateListPagination } from "@/components/templates/TemplateListPagination";
 import { useUiStore } from "@/stores/uiStore";
 import { cn } from "@/lib/utils";
+import { withAuth } from "@/lib/auth-fetch";
 import type { TemplateRow } from "@/types/database";
 
 const PAGE_SIZE = 12;
@@ -38,7 +39,7 @@ export function CreationsListClient() {
     params.set("sort", sort === "alphabetical" ? "alphabetical" : "recent");
     if (view === "my" && filter === "shared_with_me") params.set("filter", "shared_with_me");
     if (page > 1) params.set("page", String(page));
-    const res = await fetch(`/api/templates?${params.toString()}`);
+    const res = await fetch(`/api/templates?${params.toString()}`, await withAuth());
     const j = await res.json();
     if (res.ok) {
       setTemplates(j.templates ?? []);

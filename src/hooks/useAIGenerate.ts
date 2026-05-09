@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import type { AIGeneratePayload } from "@/types/template";
 import { CREDITS_PER_GENERATION } from "@/lib/ai-credits";
+import { withAuth } from "@/lib/auth-fetch";
 
 type ProgressCb = (message: string) => void;
 
@@ -38,11 +39,14 @@ export function useAIGenerate() {
       } = {};
 
       try {
-        const res = await fetch("/api/ai/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        });
+        const res = await fetch(
+          "/api/ai/generate",
+          await withAuth({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt }),
+          })
+        );
 
         if (!res.ok) {
           const j = (await res.json().catch(() => ({}))) as { error?: string; code?: string };

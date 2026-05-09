@@ -11,7 +11,7 @@ import { CREDITS_PER_GENERATION, deductAiCreditsAtomic } from "@/lib/ai-credits"
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const rl = await limitAiGeneration(user.id);

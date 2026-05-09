@@ -7,7 +7,7 @@ import type { TemplateBlock } from "@/types/template";
 import type { TemplateContent } from "@/types/template";
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const body = await req.json().catch(() => null) as {

@@ -5,8 +5,8 @@ import { getSessionUser } from "@/lib/auth";
  * Lemon Squeezy customer portal URL is usually fetched via API with customer id.
  * Configure LEMONSQUEEZY_BILLING_PORTAL_URL after linking a customer, or build URL in your backend.
  */
-export async function GET() {
-  const user = await getSessionUser();
+export async function GET(request: Request) {
+  const user = await getSessionUser(request);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const portal = process.env.LEMONSQUEEZY_BILLING_PORTAL_URL;

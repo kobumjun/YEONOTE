@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ResultToolbar, DownloadTrigger } from "@/components/creation/ResultToolbar";
 import { PresentationEditor } from "@/components/creation/PresentationEditor";
+import { withAuth } from "@/lib/auth-fetch";
 
 export function CreationViewer({
   templateId,
@@ -75,11 +76,14 @@ export function CreationViewer({
   }, [type, imageContent.imageUrl]);
 
   const saveMeta = useCallback(async () => {
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    });
+    const res = await fetch(
+      `/api/templates/${templateId}`,
+      await withAuth({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      })
+    );
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       throw new Error((j as { error?: string }).error ?? "Failed to save");
@@ -87,13 +91,16 @@ export function CreationViewer({
   }, [templateId, title]);
 
   const savePresentation = useCallback(async () => {
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: { title, slides },
-      }),
-    });
+    const res = await fetch(
+      `/api/templates/${templateId}`,
+      await withAuth({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: { title, slides },
+        }),
+      })
+    );
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       throw new Error((j as { error?: string }).error ?? "Failed to save");
@@ -101,13 +108,16 @@ export function CreationViewer({
   }, [templateId, title, slides]);
 
   const saveImage = useCallback(async () => {
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: { imageUrl, prompt: imageContent.prompt },
-      }),
-    });
+    const res = await fetch(
+      `/api/templates/${templateId}`,
+      await withAuth({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: { imageUrl, prompt: imageContent.prompt },
+        }),
+      })
+    );
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       throw new Error((j as { error?: string }).error ?? "Failed to save");
@@ -155,11 +165,14 @@ export function CreationViewer({
 
   async function exportPresentationPptx() {
     if (type !== "presentation") return;
-    const res = await fetch("/api/export/pptx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, slides }),
-    });
+    const res = await fetch(
+      "/api/export/pptx",
+      await withAuth({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, slides }),
+      })
+    );
     if (!res.ok) return;
     const j = await res.json();
     if (typeof j.pptxBase64 === "string") {
@@ -176,11 +189,14 @@ export function CreationViewer({
     }
     setRegenBusy(true);
     try {
-      const res = await fetch("/api/ai/regenerate-creation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, feedback: regenPrompt.trim() || undefined }),
-      });
+      const res = await fetch(
+        "/api/ai/regenerate-creation",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, feedback: regenPrompt.trim() || undefined }),
+        })
+      );
       const j = (await res.json()) as {
         error?: string;
         code?: string;
@@ -220,7 +236,7 @@ export function CreationViewer({
   async function moveToTrash() {
     setDeleteBusy(true);
     try {
-      const res = await fetch(`/api/templates/${templateId}`, { method: "DELETE" });
+      const res = await fetch(`/api/templates/${templateId}`, await withAuth({ method: "DELETE" }));
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error((j as { error?: string }).error ?? "Failed to delete");

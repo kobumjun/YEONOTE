@@ -3,8 +3,8 @@ import { getSessionUser } from "@/lib/auth";
 import { LEMON_CHECKOUT_VARIANT_DEFS } from "@/lib/lemon-billing";
 import { getLemonStoreId } from "@/lib/lemonsqueezy";
 
-export async function GET() {
-  const user = await getSessionUser();
+export async function GET(request: Request) {
+  const user = await getSessionUser(request);
   if (!user) {
     return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   }

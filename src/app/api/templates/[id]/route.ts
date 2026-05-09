@@ -6,7 +6,7 @@ import type { CreationContent, CreationType } from "@/types/template";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, ctx: Ctx) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(_req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;
@@ -27,7 +27,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;
@@ -65,7 +65,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
   const { id } = await ctx.params;

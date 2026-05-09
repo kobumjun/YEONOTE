@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { templateToMarkdown } from "@/lib/export";
 import { CREDITS_PER_GENERATION } from "@/lib/ai-credits";
+import { withAuth } from "@/lib/auth-fetch";
 
 function gradientClass(cover: string | null) {
   const map: Record<string, string> = {
@@ -504,16 +505,19 @@ export function TemplateEditor({
 
   const save = useCallback(async () => {
     const st = useEditorStore.getState();
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: st.title,
-        icon: st.icon,
-        cover: st.cover,
-        content: { blocks: st.blocks },
-      }),
-    });
+    const res = await fetch(
+      `/api/templates/${templateId}`,
+      await withAuth({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: st.title,
+          icon: st.icon,
+          cover: st.cover,
+          content: { blocks: st.blocks },
+        }),
+      })
+    );
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       throw new Error((j as { error?: string }).error ?? "Failed to save");
@@ -574,11 +578,14 @@ export function TemplateEditor({
   async function copyShareLink() {
     setShareBusy(true);
     try {
-      const publishRes = await fetch(`/api/templates/${templateId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_public: true }),
-      });
+      const publishRes = await fetch(
+        `/api/templates/${templateId}`,
+        await withAuth({
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_public: true }),
+        })
+      );
       if (!publishRes.ok) {
         const j = await publishRes.json().catch(() => ({}));
         toast.error((j as { error?: string }).error ?? "Failed to enable link sharing.");
@@ -595,7 +602,7 @@ export function TemplateEditor({
   async function moveToTrash() {
     setDeleteBusy(true);
     try {
-      const res = await fetch(`/api/templates/${templateId}`, { method: "DELETE" });
+      const res = await fetch(`/api/templates/${templateId}`, await withAuth({ method: "DELETE" }));
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error((j as { error?: string }).error ?? "Failed to delete");
@@ -610,11 +617,14 @@ export function TemplateEditor({
   }
 
   async function restoreFromTrash() {
-    const res = await fetch(`/api/templates/${templateId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_deleted: false }),
-    });
+    const res = await fetch(
+      `/api/templates/${templateId}`,
+      await withAuth({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_deleted: false }),
+      })
+    );
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       toast.error((j as { error?: string }).error ?? "Failed to restore");
@@ -629,11 +639,14 @@ export function TemplateEditor({
     setRegenBusy(true);
     try {
       if (creationMode === "document") {
-        const res = await fetch("/api/ai/regenerate-creation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ templateId, feedback: regenPrompt.trim() }),
-        });
+        const res = await fetch(
+          "/api/ai/regenerate-creation",
+          await withAuth({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ templateId, feedback: regenPrompt.trim() }),
+          })
+        );
         const j = (await res.json()) as {
           error?: string;
           code?: string;
@@ -668,15 +681,18 @@ export function TemplateEditor({
       }
 
       const summary = blocks.map((b) => b.type).join(", ");
-      const res = await fetch("/api/ai/regenerate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: regenPrompt,
-          currentTitle: title,
-          currentBlocksSummary: summary,
-        }),
-      });
+      const res = await fetch(
+        "/api/ai/regenerate",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: regenPrompt,
+            currentTitle: title,
+            currentBlocksSummary: summary,
+          }),
+        })
+      );
       const j = (await res.json()) as AITemplatePayload & {
         error?: string;
         code?: string;

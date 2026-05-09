@@ -19,6 +19,7 @@ import { normalizeAiTemplate, normalizeDocumentBlocksFromAi } from "@/types/temp
 import { GENERATE_MODAL_PREFILL_KEY, LANDING_PROMPT_STORAGE_KEY } from "@/lib/landing-prompt-bridge";
 import { CREDITS_PER_GENERATION } from "@/lib/ai-credits";
 import { cn } from "@/lib/utils";
+import { withAuth } from "@/lib/auth-fetch";
 import type { TemplateRow } from "@/types/database";
 
 const PLACEHOLDER_ROTATION = [
@@ -111,7 +112,7 @@ export function HomeDashboardClient() {
   }, [searchParams, router]);
 
   const loadRecent = useCallback(async () => {
-    const res = await fetch("/api/templates?view=all&sort=recent&page=1");
+    const res = await fetch("/api/templates?view=all&sort=recent&page=1", await withAuth());
     const j = await res.json();
     if (res.ok) {
       const list = (j.templates ?? []) as TemplateRow[];
@@ -150,11 +151,14 @@ export function HomeDashboardClient() {
       } else {
         saveBody.content = { imageUrl: payload.imageUrl, prompt };
       }
-      const res = await fetch("/api/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(saveBody),
-      });
+      const res = await fetch(
+        "/api/templates",
+        await withAuth({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(saveBody),
+        })
+      );
       const j = await res.json();
       if (!res.ok) {
         toast.error(j.error ?? "Failed to save creation");
