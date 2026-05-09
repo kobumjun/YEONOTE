@@ -10,7 +10,6 @@ import {
   Trash2,
   CreditCard,
   Settings,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { creditsDisplay } from "@/lib/credits";
@@ -134,32 +133,38 @@ export function Sidebar({
       </Suspense>
 
       <div className="mt-auto space-y-3 border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-muted/50 text-[10px] font-semibold tabular-nums text-foreground"
-            title={creditsDisplay(aiCredits, aiCreditsCeiling)}
+        {/* Narrow: credit count circle only (links to pricing) */}
+        <div className="flex justify-center group-hover/sidebar:hidden">
+          <Link
+            href="/pricing"
+            title={`${creditsDisplay(aiCredits, aiCreditsCeiling)} — Get credits`}
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[10px] font-semibold tabular-nums text-violet-700 ring-1 ring-violet-500/20 transition-colors hover:bg-violet-500/15 dark:bg-violet-500/20 dark:text-violet-200 dark:ring-violet-400/30 dark:hover:bg-violet-500/30"
           >
             {aiCredits}
-          </div>
-          <div className="min-w-0 flex-1 opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">
-            <p className="text-[11px] font-medium text-muted-foreground">Credits</p>
-            <p className="truncate text-xs text-foreground">{creditsDisplay(aiCredits, aiCreditsCeiling)}</p>
-            <div className="mt-1.5 h-1 w-24 max-w-full overflow-hidden rounded-full bg-muted">
+          </Link>
+        </div>
+
+        {/* Expanded: bar + Get credits */}
+        <div className="hidden space-y-3 group-hover/sidebar:block">
+          <div>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Credits</span>
+              <span className="font-medium tabular-nums text-foreground">{creditsDisplay(aiCredits, aiCreditsCeiling)}</span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-violet-600 to-blue-600 transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
           </div>
+          <Link
+            href="/pricing"
+            className="yeo-gradient-btn flex w-full items-center justify-center rounded-xl py-2.5 text-center text-xs font-semibold shadow-sm"
+          >
+            Get credits
+          </Link>
         </div>
-
-        <Link
-          href="/pricing"
-          className="yeo-gradient-btn flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-center text-xs font-semibold shadow-sm"
-        >
-          <Sparkles className="size-4 shrink-0 stroke-[1.75]" />
-          <span className="opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100">Get credits</span>
-        </Link>
 
         <button
           type="button"
