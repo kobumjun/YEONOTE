@@ -254,7 +254,7 @@ export function CreationViewer({
 
   if (type === "presentation") {
     return (
-      <div className="mx-auto max-w-6xl p-6">
+      <div className="mx-auto w-full min-w-0 max-w-full px-4 py-4 sm:px-6 sm:py-6 md:max-w-6xl">
         <ResultToolbar
           onCopy={() => void handleCopy()}
           copied={copied}
@@ -288,10 +288,10 @@ export function CreationViewer({
           }
         />
         {readOnly ? (
-          <h1 className="mb-6 text-2xl font-semibold">{title}</h1>
+          <h1 className="mb-6 break-words text-lg font-semibold md:text-2xl">{title}</h1>
         ) : (
           <input
-            className="mb-6 w-full border-b border-transparent bg-transparent py-1 text-2xl font-semibold outline-none focus-visible:border-border"
+            className="mb-6 w-full min-w-0 max-w-full border-b border-transparent bg-transparent py-1 text-lg font-semibold outline-none focus-visible:border-border break-words md:text-2xl"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={Boolean(isDeleted)}

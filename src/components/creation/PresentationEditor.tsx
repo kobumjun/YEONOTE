@@ -63,11 +63,11 @@ function SlideElementEditor({
   if (element.type === "bullet_list") {
     const items = element.items.length > 0 ? element.items : [""];
     return (
-      <div className="group relative pr-8">
+      <div className="group relative min-w-0 max-w-full break-words pr-8">
         {removeBtn}
-        <ul className="list-disc space-y-1.5 pl-5 marker:text-foreground">
+        <ul className="min-w-0 max-w-full list-disc space-y-1.5 pl-5 marker:text-foreground">
           {items.map((item, idx) => (
-            <li key={idx} className="pl-0.5">
+            <li key={idx} className="min-w-0 max-w-full pl-0.5">
               <input
                 value={item}
                 readOnly={readOnly}
@@ -76,7 +76,7 @@ function SlideElementEditor({
                   next[idx] = e.target.value;
                   onChange({ ...element, items: next });
                 }}
-                className="w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0"
+                className="w-full min-w-0 max-w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0 break-words"
                 placeholder="Bullet"
               />
             </li>
@@ -98,11 +98,11 @@ function SlideElementEditor({
   if (element.type === "numbered_list") {
     const items = element.items.length > 0 ? element.items : [""];
     return (
-      <div className="group relative pr-8">
+      <div className="group relative min-w-0 max-w-full break-words pr-8">
         {removeBtn}
-        <ol className="list-decimal space-y-1.5 pl-5 marker:font-medium marker:text-foreground">
+        <ol className="min-w-0 max-w-full list-decimal space-y-1.5 pl-5 marker:font-medium marker:text-foreground">
           {items.map((item, idx) => (
-            <li key={idx}>
+            <li key={idx} className="min-w-0 max-w-full">
               <input
                 value={item}
                 readOnly={readOnly}
@@ -111,7 +111,7 @@ function SlideElementEditor({
                   next[idx] = e.target.value;
                   onChange({ ...element, items: next });
                 }}
-                className="w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0"
+                className="w-full min-w-0 max-w-full border-0 bg-transparent p-0 text-sm outline-none focus-visible:ring-0 break-words"
                 placeholder="Item"
               />
             </li>
@@ -132,30 +132,30 @@ function SlideElementEditor({
 
   if (element.type === "divider") {
     return (
-      <div className="group relative pr-8">
+      <div className="group relative min-w-0 max-w-full pr-8">
         {removeBtn}
-        <hr className="border-border" />
+        <hr className="max-w-full border-border" />
       </div>
     );
   }
 
   if (element.type === "image") {
     return (
-      <div className="group relative space-y-2 pr-8">
+      <div className="group relative min-w-0 max-w-full space-y-2 pr-8">
         {removeBtn}
         <Input
           value={element.url}
           onChange={(e) => onChange({ ...element, url: e.target.value })}
           readOnly={readOnly}
           placeholder="Image URL"
-          className="rounded-lg border-border text-sm"
+          className="w-full max-w-full min-w-0 rounded-lg border-border text-sm break-all"
         />
         <Input
           value={element.alt}
           onChange={(e) => onChange({ ...element, alt: e.target.value })}
           readOnly={readOnly}
           placeholder="Alt text"
-          className="rounded-lg border-border text-sm"
+          className="w-full max-w-full min-w-0 rounded-lg border-border text-sm break-words"
         />
       </div>
     );
@@ -163,14 +163,14 @@ function SlideElementEditor({
 
   if (element.type === "callout") {
     return (
-      <div className="group relative pr-8">
+      <div className="group relative min-w-0 max-w-full pr-8">
         {removeBtn}
-        <div className="rounded-lg border-l-4 border-violet-500 bg-violet-50 py-2 pl-3 pr-2 dark:bg-violet-950/40">
+        <div className="min-w-0 max-w-full rounded-lg border-l-4 border-violet-500 bg-violet-50 py-2 pl-3 pr-2 dark:bg-violet-950/40">
           <Textarea
             value={element.content}
             onChange={(e) => onChange({ ...element, content: e.target.value })}
             readOnly={readOnly}
-            className="min-h-[56px] resize-none border-0 bg-transparent p-0 text-sm text-violet-950 shadow-none outline-none focus-visible:ring-0 dark:text-violet-100"
+            className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-sm text-violet-950 shadow-none outline-none focus-visible:ring-0 break-words dark:text-violet-100"
             placeholder="Key point…"
           />
         </div>
@@ -180,13 +180,13 @@ function SlideElementEditor({
 
   if (element.type === "quote") {
     return (
-      <div className="group relative pr-8">
+      <div className="group relative min-w-0 max-w-full pr-8">
         {removeBtn}
         <Textarea
           value={element.content}
           onChange={(e) => onChange({ ...element, content: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[56px] resize-none border-l-2 border-muted-foreground/40 bg-transparent py-1 pl-3 text-sm italic text-muted-foreground shadow-none outline-none focus-visible:ring-0"
+          className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-l-2 border-muted-foreground/40 bg-transparent py-1 pl-3 text-sm italic text-muted-foreground shadow-none outline-none focus-visible:ring-0 break-words"
           placeholder="Quote…"
         />
       </div>
@@ -195,13 +195,13 @@ function SlideElementEditor({
 
   if (element.type === "heading") {
     return (
-      <div className="group relative pr-8">
+      <div className="group relative min-w-0 max-w-full pr-8">
         {removeBtn}
         <Textarea
           value={element.content}
           onChange={(e) => onChange({ ...element, content: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[44px] resize-none border-0 bg-transparent p-0 text-base font-semibold leading-snug shadow-none outline-none focus-visible:ring-0 md:text-xl"
+          className="min-h-[44px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-base font-semibold leading-snug shadow-none outline-none focus-visible:ring-0 break-words md:text-xl"
           placeholder="Heading…"
         />
       </div>
@@ -209,13 +209,13 @@ function SlideElementEditor({
   }
 
   return (
-    <div className="group relative pr-8">
+    <div className="group relative min-w-0 max-w-full pr-8">
       {removeBtn}
       <Textarea
         value={element.content}
         onChange={(e) => onChange({ ...element, content: e.target.value })}
         readOnly={readOnly}
-        className="min-h-[56px] resize-none border-0 bg-transparent p-0 text-sm shadow-none outline-none focus-visible:ring-0"
+        className="min-h-[56px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-sm shadow-none outline-none focus-visible:ring-0 break-words"
         placeholder="Text…"
       />
     </div>
@@ -252,19 +252,19 @@ function SlideCanvas({
   }
 
   return (
-    <div className="w-full min-w-0">
-      <p className="mb-2 text-sm text-muted-foreground">
+    <div className="w-full min-w-0 max-w-full overflow-hidden">
+      <p className="mb-2 break-words text-sm text-muted-foreground">
         Slide {slideIndex + 1} / {slideCount}
       </p>
-      <div className="aspect-[16/9] w-full overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm md:p-6">
+      <div className="aspect-[16/9] w-full max-w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm md:p-6">
         <Input
           value={slide.title}
           onChange={(e) => onUpdate({ ...slide, title: e.target.value })}
           readOnly={readOnly}
-          className="mb-3 border-0 bg-transparent p-0 text-lg font-bold shadow-none focus-visible:ring-0 md:mb-4 md:text-2xl"
+          className="mb-3 w-full min-w-0 max-w-full border-0 bg-transparent p-0 text-lg font-bold shadow-none focus-visible:ring-0 break-words md:mb-4 md:text-2xl"
           placeholder="Slide title…"
         />
-        <div className="space-y-3 md:space-y-4">
+        <div className="min-w-0 space-y-3 break-words md:space-y-4">
           {elements.map((el, i) => (
             <SlideElementEditor
               key={`${slideIndex}-${i}-${el.type}`}
@@ -298,13 +298,13 @@ function SlideCanvas({
           </DropdownMenu>
         )}
       </div>
-      <div className="mt-3 rounded-lg border border-border bg-muted/10 p-3 md:mt-4 md:p-4">
+      <div className="mt-3 min-w-0 max-w-full rounded-lg border border-border bg-muted/10 p-3 md:mt-4 md:p-4">
         <p className="mb-1 text-xs text-muted-foreground">Speaker notes</p>
         <Textarea
           value={slide.notes ?? ""}
           onChange={(e) => onUpdate({ ...slide, notes: e.target.value })}
           readOnly={readOnly}
-          className="min-h-[72px] resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
+          className="min-h-[72px] w-full min-w-0 max-w-full resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 break-words"
           placeholder="Add speaker notes…"
         />
       </div>
@@ -358,8 +358,8 @@ export function PresentationEditor({
   }
 
   return (
-    <div className="w-full min-w-0 rounded-xl border border-border bg-background">
-      <div className="px-4 py-4 md:px-8 md:py-6">
+    <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-background">
+      <div className="min-w-0 max-w-full px-4 py-4 md:px-8 md:py-6">
         <SlideCanvas
           slide={current}
           slideIndex={safeIndex}
@@ -369,8 +369,8 @@ export function PresentationEditor({
         />
       </div>
 
-      <div className="border-t border-border px-4 py-3 md:px-8">
-        <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1">
+      <div className="min-w-0 max-w-full border-t border-border px-4 py-3 md:px-8">
+        <div className="scrollbar-hide flex min-w-0 gap-2 overflow-x-auto pb-1">
           {slides.map((slide, i) => {
             const preview = slide.elements?.[0] ? slideElementToPlainText(slide.elements[0]).slice(0, 48) : "…";
             return (
