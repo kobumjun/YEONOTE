@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Play, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { PresentationEditor } from "@/components/creation/PresentationEditor";
@@ -14,8 +13,7 @@ import {
   type PresentationSlide,
 } from "@/types/template";
 import { withAuth } from "@/lib/auth-fetch";
-import { normalizePlan, SLIDE_LIMITS, type UserPlan } from "@/lib/subscription";
-import { Button } from "@/components/ui/button";
+import { normalizePlan, SLIDE_LIMITS } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 
 export function DeckEditor({
@@ -33,14 +31,12 @@ export function DeckEditor({
   isDeleted?: boolean;
   plan: string;
 }) {
-  const router = useRouter();
   const plan = normalizePlan(planRaw);
   const content = (initialContent ?? { slides: [] }) as PresentationContent;
   const [title, setTitle] = useState(initialTitle);
   const [slides, setSlides] = useState<PresentationSlide[]>(() =>
     normalizePresentationSlides(content.slides ?? [])
   );
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [agentCollapsed, setAgentCollapsed] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -95,30 +91,28 @@ export function DeckEditor({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {sidebarOpen && (
-          <div className="hidden w-48 shrink-0 flex-col border-r border-border bg-[#F9FAFB] md:flex">
-            <div className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
-              Slides
-            </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              {slides.map((s, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActiveSlide(i)}
-                  className={cn(
-                    "mb-1 w-full rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
-                    i === activeSlide
-                      ? "bg-[#6C5CE7]/15 font-medium text-[#6C5CE7]"
-                      : "hover:bg-muted"
-                  )}
-                >
-                  {i + 1}. {s.title || "Untitled"}
-                </button>
-              ))}
-            </div>
+        <div className="hidden w-48 shrink-0 flex-col border-r border-border bg-[#F9FAFB] md:flex">
+          <div className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+            Slides
           </div>
-        )}
+          <div className="flex-1 overflow-y-auto p-2">
+            {slides.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveSlide(i)}
+                className={cn(
+                  "mb-1 w-full rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
+                  i === activeSlide
+                    ? "bg-[#6C5CE7]/15 font-medium text-[#6C5CE7]"
+                    : "hover:bg-muted"
+                )}
+              >
+                {i + 1}. {s.title || "Untitled"}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-auto p-4">

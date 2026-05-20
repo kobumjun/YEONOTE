@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Loader2, PanelRightClose, PanelRightOpen, Send } from "lucide-react";
+import { Loader2, PanelRightClose, PanelRightOpen, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
