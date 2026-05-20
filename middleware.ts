@@ -1,29 +1,23 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const protectedPrefixes = ["/dashboard", "/template", "/explore", "/settings"];
+const protectedPrefixes = ["/dashboard", "/deck", "/settings", "/pricing"];
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // OAuth code exchange runs in the route handler; do not run auth middleware here
-  // (avoids reading cookies before Set-Cookie is applied on the redirect response).
   if (
     pathname === "/auth/callback" ||
     pathname.startsWith("/auth/callback/") ||
     pathname === "/callback"
   ) {
     return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
+      request: { headers: request.headers },
     });
   }
 
   let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   });
 
   if (pathname === "/signup" || pathname.startsWith("/signup/")) {
@@ -37,10 +31,17 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/share/")) {
     return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
+      request: { headers: request.headers },
     });
+  }
+
+  // Legacy template URLs → deck editor
+  if (pathname.startsWith("/template/")) {
+    const id = pathname.split("/")[2];
+    if (id) {
+      const rest = pathname.slice(`/template/${id}`.length);
+      return NextResponse.redirect(new URL(`/deck/${id}${rest}`, request.url));
+    }
   }
 
   const isProtected = protectedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -65,9 +66,7 @@ export async function middleware(request: NextRequest) {
           request.cookies.set(name, value);
         });
         supabaseResponse = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
+          request: { headers: request.headers },
         });
         cookiesToSet.forEach(({ name, value, options }) => {
           supabaseResponse.cookies.set(name, value, options);
@@ -79,6 +78,10 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (pathname === "/" && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   if ((pathname === "/login" || pathname.startsWith("/login/")) && user) {
     const nextParam = request.nextUrl.searchParams.get("next");

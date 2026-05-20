@@ -119,11 +119,7 @@ export function ProfileAccountMenu({ profile }: { profile: TopBarProfile }) {
     displayName: profile?.displayName ?? "",
     email: profile?.email ?? "",
     avatarUrl: profile?.avatarUrl ?? null,
-    aiCredits: typeof profile?.aiCredits === "number" && !Number.isNaN(profile.aiCredits) ? profile.aiCredits : 0,
-    aiCreditsCeiling:
-      typeof profile?.aiCreditsCeiling === "number" && !Number.isNaN(profile.aiCreditsCeiling)
-        ? profile.aiCreditsCeiling
-        : 0,
+    plan: profile?.plan ?? "free",
   };
 
   const fallback = (

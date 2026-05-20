@@ -1,10 +1,4 @@
-import { packForLemonVariant as packFromLemonVariantId } from "@/lib/lemon-billing";
-
-type LegacyCreditPack = "pro" | "team";
-const LEMONSQUEEZY_VARIANT_ENV_BY_PACK: Record<LegacyCreditPack, string> = {
-  pro: "LEMONSQUEEZY_VARIANT_ID_PRO",
-  team: "LEMONSQUEEZY_VARIANT_ID_TEAM",
-};
+import { resolvePlanFromVariant } from "@/lib/lemon-billing";
 
 const LEMON_API_BASE = "https://api.lemonsqueezy.com/v1";
 
@@ -19,15 +13,9 @@ export function getLemonStoreId(): string | undefined {
   return id || undefined;
 }
 
-export function getVariantIdForPack(pack: LegacyCreditPack): string | null {
-  const key = LEMONSQUEEZY_VARIANT_ENV_BY_PACK[pack];
-  const id = process.env[key]?.trim();
-  return id || null;
-}
-
-/** Resolve starter / growth / bulk tier from Lemon variant id (includes legacy Pro / Team). */
+/** Resolve subscription plan from Lemon variant id. */
 export function planFromVariantId(variantId: string | undefined | null) {
-  return packFromLemonVariantId(variantId);
+  return resolvePlanFromVariant(variantId);
 }
 
 /** When webhook includes product id, ensure it matches our single product (if configured). */
@@ -121,18 +109,3 @@ export async function createLemonCheckout(params: {
   return { ok: true, url, checkoutId };
 }
 
-export async function createLemonCheckoutForPack(
-  pack: LegacyCreditPack,
-  email: string,
-  userId: string
-): Promise<
-  { ok: true; url: string; checkoutId: string; variantId: string } | { ok: false; error: string; status: number }
-> {
-  const variantId = getVariantIdForPack(pack);
-  if (!variantId) {
-    return { ok: false, error: `Variant ID for pack "${pack}" is not configured on the server.`, status: 500 };
-  }
-  const result = await createLemonCheckout({ email, userId, variantId });
-  if (!result.ok) return result;
-  return { ok: true, url: result.url, checkoutId: result.checkoutId, variantId };
-}

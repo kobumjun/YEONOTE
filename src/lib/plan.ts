@@ -1,10 +1,12 @@
 import type { Profile } from "@/types/database";
+import { normalizePlan, type UserPlan } from "@/lib/subscription";
 
-export function effectivePlan(profile: Pick<Profile, "plan">): "free" | "starter" | "growth" | "bulk" {
-  return profile.plan ?? "free";
+export function effectivePlan(profile: Pick<Profile, "plan">): UserPlan {
+  return normalizePlan(profile.plan);
 }
 
-/** AI generation requires at least one remaining credit. */
-export function canGenerateAI(aiCredits: number): boolean {
-  return aiCredits > 0;
+export function hasActiveSubscription(
+  profile: Pick<Profile, "subscription_status">
+): boolean {
+  return profile.subscription_status === "active";
 }

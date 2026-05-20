@@ -1,7 +1,6 @@
-export type BillingPlan = "free" | "starter" | "growth" | "bulk";
+import type { UserPlan } from "@/lib/subscription";
 
-export type PricingMode = "one_time" | "subscription";
-export type CreditPack = "starter" | "growth" | "bulk";
+export type BillingPlan = UserPlan;
 
 export type SubscriptionStatus =
   | "active"

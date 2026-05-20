@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { LEMON_CHECKOUT_VARIANT_DEFS } from "@/lib/lemon-billing";
+import { LEMON_SUBSCRIPTION_VARIANTS } from "@/lib/lemon-billing";
 import { getLemonStoreId } from "@/lib/lemonsqueezy";
 
 export async function GET(request: Request) {
@@ -13,9 +13,9 @@ export async function GET(request: Request) {
   const storeConfigured = Boolean(getLemonStoreId());
   const webhookConfigured = Boolean(process.env.LEMONSQUEEZY_WEBHOOK_SECRET?.trim());
 
-  const variants = LEMON_CHECKOUT_VARIANT_DEFS.map((def) => ({
-    mode: def.mode,
-    pack: def.pack,
+  const variants = LEMON_SUBSCRIPTION_VARIANTS.map((def) => ({
+    plan: def.plan,
+    interval: def.interval,
     envKey: def.envKey,
     configured: Boolean(process.env[def.envKey]?.trim()),
   }));

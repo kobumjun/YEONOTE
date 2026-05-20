@@ -1,5 +1,6 @@
 export type BlockId = string;
-export type CreationType = "document" | "presentation" | "image" | "template";
+/** Decks are stored as presentation rows in `templates`. */
+export type CreationType = "presentation";
 
 export type TemplateStyle = "minimal" | "colorful" | "corporate" | "playful";
 
@@ -650,7 +651,7 @@ export type ImageContent = {
   prompt?: string;
 };
 
-export type CreationContent = TemplateContent | DocumentContent | PresentationContent | ImageContent;
+export type CreationContent = PresentationContent;
 
 export function isTemplateContent(content: unknown): content is TemplateContent {
   return Boolean(content && typeof content === "object" && Array.isArray((content as { blocks?: unknown[] }).blocks));

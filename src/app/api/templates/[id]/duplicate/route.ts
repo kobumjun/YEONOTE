@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { TemplateContent } from "@/types/template";
+import { getActiveDeckCount, checkDeckLimit } from "@/lib/deck-limits";
+import { normalizePlan } from "@/lib/subscription";
+import type { CreationContent } from "@/types/template";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -12,6 +14,17 @@ export async function POST(_req: Request, ctx: Ctx) {
 
   const { id } = await ctx.params;
   const supabase = await createClient();
+
+  const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).single();
+  const plan = normalizePlan(profile?.plan);
+  const deckCount = await getActiveDeckCount(user.id);
+  const limitCheck = checkDeckLimit(plan, deckCount);
+  if (!limitCheck.ok) {
+    return NextResponse.json(
+      { error: limitCheck.message, code: "upgrade_required" },
+      { status: 403 }
+    );
+  }
 
   const { data: src, error: fetchErr } = await supabase
     .from("templates")
@@ -24,15 +37,15 @@ export async function POST(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Access denied." }, { status: 403 });
   }
 
-  const content = (src.content ?? { blocks: [] }) as TemplateContent;
+  const content = (src.content ?? { slides: [] }) as CreationContent;
 
   const { data: created, error: insErr } = await supabase
     .from("templates")
     .insert({
       user_id: user.id,
       title: `${src.title} (Copy)`,
-      icon: src.icon,
-      creation_type: src.creation_type ?? "template",
+      icon: src.icon ?? "📊",
+      creation_type: "presentation",
       cover: src.cover,
       content,
       tags: src.tags ?? [],
@@ -57,5 +70,5 @@ export async function POST(_req: Request, ctx: Ctx) {
     }
   }
 
-  return NextResponse.json({ template: { ...created, creationType: created.creation_type ?? "template" } });
+  return NextResponse.json({ template: { ...created, creationType: "presentation" as const } });
 }

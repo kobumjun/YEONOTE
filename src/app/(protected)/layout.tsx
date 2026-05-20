@@ -6,6 +6,7 @@ import type { TopBarProfile } from "@/types/top-bar-profile";
 import { MobileNav } from "@/components/layout/MobileNav";
 import Link from "next/link";
 import { resolveAuthEmail, resolveAvatarFromMeta, resolveDisplayName, safeHttpAvatarUrl } from "@/lib/profile-display";
+import { normalizePlan } from "@/lib/subscription";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, ai_credits, ai_credits_ceiling")
+    .select("full_name, avatar_url, plan")
     .eq("id", user.id)
     .single();
 
@@ -26,22 +27,19 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const email = resolveAuthEmail(user?.email, meta);
   const avatarUrl =
     safeHttpAvatarUrl(profile?.avatar_url?.trim()) ?? resolveAvatarFromMeta(meta);
-  const aiCredits = profile?.ai_credits ?? 0;
-  const aiCreditsCeiling = profile?.ai_credits_ceiling ?? 0;
+  const plan = normalizePlan(profile?.plan);
 
   const topProfile: TopBarProfile = {
     displayName,
     email,
     avatarUrl,
-    aiCredits,
-    aiCreditsCeiling,
+    plan,
   };
 
   return (
     <div className="flex min-h-screen yeo-app-gradient">
       <Sidebar
-        aiCredits={aiCredits}
-        aiCreditsCeiling={aiCreditsCeiling}
+        plan={plan}
         displayName={displayName}
         email={email}
         avatarUrl={avatarUrl}
@@ -51,8 +49,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         <MobileNav
           email={email}
           displayName={displayName}
-          aiCredits={aiCredits}
-          aiCreditsCeiling={aiCreditsCeiling}
+          plan={plan}
         />
         <main className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</main>
         <footer className="border-t border-border/80 bg-background/60 px-4 py-4 text-xs text-muted-foreground backdrop-blur-sm md:px-6">

@@ -1,4 +1,5 @@
-import type { CreationContent, CreationType } from "@/types/template";
+import type { CreationContent } from "@/types/template";
+import type { UserPlan } from "@/lib/subscription";
 
 export type Profile = {
   id: string;
@@ -8,9 +9,13 @@ export type Profile = {
   bio: string | null;
   language: string | null;
   theme: string | null;
-  plan: "free" | "starter" | "growth" | "bulk";
+  plan: UserPlan;
+  subscription_id: string | null;
+  subscription_status: "inactive" | "active" | "cancelled" | "expired" | "past_due" | "paused";
+  subscription_ends_at: string | null;
   ai_generations_used: number;
   ai_generations_reset_at: string | null;
+  /** Legacy columns — no longer used for billing */
   ai_credits: number;
   ai_credits_ceiling: number;
   created_at: string;
@@ -23,7 +28,7 @@ export type TemplateRow = {
   title: string;
   icon: string;
   cover: string | null;
-  creation_type: CreationType;
+  creation_type: "presentation";
   content: CreationContent;
   tags: string[] | null;
   category: string | null;

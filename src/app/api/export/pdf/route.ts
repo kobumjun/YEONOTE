@@ -1,56 +1,65 @@
 import { NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
 import { getSessionUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { templateToMarkdown } from "@/lib/export";
-import type { TemplateBlock } from "@/types/template";
-import type { TemplateContent } from "@/types/template";
+import {
+  normalizePresentationSlides,
+  presentationToPlainText,
+  type PresentationSlide,
+} from "@/types/template";
 
 export async function POST(req: Request) {
   const user = await getSessionUser(req);
   if (!user) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
 
-  const body = await req.json().catch(() => null) as {
-    templateId?: string;
+  const body = await req.json().catch(() => ({})) as {
     title?: string;
-    blocks?: TemplateBlock[];
-  } | null;
+    slides?: PresentationSlide[];
+    watermark?: boolean;
+  };
 
-  const supabase = await createClient();
+  const title = body.title ?? "Untitled deck";
+  const slides = normalizePresentationSlides(body.slides ?? []);
+  const watermark = Boolean(body.watermark);
 
-  let title = body?.title ?? "Untitled";
-  let blocks: TemplateBlock[] = body?.blocks ?? [];
-
-  if (body?.templateId) {
-    const { data: tpl } = await supabase
-      .from("templates")
-      .select("title,content,user_id")
-      .eq("id", body.templateId)
-      .maybeSingle();
-    if (!tpl || tpl.user_id !== user.id) {
-      return NextResponse.json({ error: "Not found." }, { status: 404 });
-    }
-    title = tpl.title;
-    const c = (tpl.content ?? { blocks: [] }) as TemplateContent;
-    blocks = c.blocks ?? [];
-  }
-
-  const text = templateToMarkdown(title, blocks);
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
   const margin = 48;
-  const maxW = doc.internal.pageSize.getWidth() - margin * 2;
-  doc.setFontSize(11);
-  const lines = doc.splitTextToSize(text.replace(/[#>`]/g, ""), maxW);
-  let y = margin;
-  const lh = 14;
-  for (const line of lines) {
-    if (y > doc.internal.pageSize.getHeight() - margin) {
-      doc.addPage();
-      y = margin;
+
+  slides.forEach((slide, i) => {
+    if (i > 0) doc.addPage();
+    doc.setFontSize(22);
+    doc.text(slide.title || `Slide ${i + 1}`, margin, margin + 20);
+    doc.setFontSize(11);
+    const text = presentationToPlainText([slide]);
+    const lines = doc.splitTextToSize(text, w - margin * 2);
+    let y = margin + 50;
+    for (const line of lines) {
+      if (y > h - margin - (watermark ? 24 : 0)) break;
+      doc.text(String(line), margin, y);
+      y += 14;
     }
-    doc.text(String(line), margin, y);
-    y += lh;
+    if (watermark) {
+      doc.setFontSize(9);
+      doc.setTextColor(150);
+      doc.text("Made with YEO", w / 2, h - 20, { align: "center" });
+      doc.setTextColor(0);
+    }
+  });
+
+  if (slides.length === 0) {
+    doc.text("Empty deck", margin, margin);
+    if (watermark) {
+      doc.setFontSize(9);
+      doc.text("Made with YEO", w / 2, h - 20, { align: "center" });
+    }
   }
-  const b64 = doc.output("datauristring").split(",")[1];
-  return NextResponse.json({ pdfBase64: b64, filename: `${title}.pdf` });
+
+  const pdfBytes = doc.output("arraybuffer");
+  return new NextResponse(pdfBytes, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${title}.pdf"`,
+    },
+  });
 }

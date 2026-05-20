@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { creditsForLemonVariant, packForLemonVariant } from "@/lib/lemon-billing";
+import { resolvePlanFromVariant } from "@/lib/lemon-billing";
 import { isWebhookProductAllowed } from "@/lib/lemonsqueezy";
-import type { BillingPlan, CreditPack } from "@/types/billing";
+import type { UserPlan } from "@/lib/subscription";
 
 function verifySignature(rawBody: string, signature: string | null, secret: string) {
   if (!signature) return false;
@@ -63,7 +63,7 @@ function extractUserId(payload: {
   return "";
 }
 
-function subscriptionStatus(attrs: Record<string, unknown>): "active" | "cancelled" | "paused" | "past_due" | "expired" {
+function subscriptionStatus(attrs: Record<string, unknown>): string {
   const s = String(attrs.status ?? "").toLowerCase();
   if (s === "active") return "active";
   if (s === "paused") return "paused";
@@ -72,20 +72,33 @@ function subscriptionStatus(attrs: Record<string, unknown>): "active" | "cancell
   return "cancelled";
 }
 
-function variantIdFromOrderAttributes(attrs: Record<string, unknown>): string | undefined {
-  const foi = attrs.first_order_item as { variant_id?: string | number } | undefined;
-  if (foi?.variant_id == null) return undefined;
-  return String(foi.variant_id);
+function inferPlan(variantId: string | undefined, attrs: Record<string, unknown>): UserPlan {
+  const fromVariant = resolvePlanFromVariant(variantId);
+  if (fromVariant) return fromVariant;
+  const name = String(attrs.variant_name ?? attrs.product_name ?? "").toLowerCase();
+  if (name.includes("pro")) return "pro";
+  if (name.includes("plus")) return "plus";
+  return "plus";
 }
 
-function inferPlanFromName(variantId: string | undefined, attrs: Record<string, unknown>): BillingPlan {
-  const pack = packForLemonVariant(variantId);
-  if (pack) return pack;
-  const name = String(attrs.variant_name ?? attrs.product_name ?? "").toLowerCase();
-  if (name.includes("team") || name.includes("bulk")) return "bulk";
-  if (name.includes("growth") || name.includes("pro")) return "growth";
-  if (name.includes("starter")) return "starter";
-  return "starter";
+async function updateProfilePlan(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  plan: UserPlan,
+  subscriptionId: string,
+  status: string,
+  endsAt: string | null
+) {
+  await admin
+    .from("profiles")
+    .update({
+      plan,
+      subscription_id: subscriptionId,
+      subscription_status: status,
+      subscription_ends_at: endsAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", userId);
 }
 
 export async function POST(req: Request) {
@@ -121,79 +134,9 @@ export async function POST(req: Request) {
 
   const event = payload.meta?.event_name ?? "";
   const admin = createAdminClient();
-  console.log("[lemonsqueezy webhook] event:", event);
-
-  if (event === "order_created") {
-    const attrs = payload.data?.attributes ?? {};
-    const productId = extractProductId(payload);
-    if (!isWebhookProductAllowed(productId)) {
-      return NextResponse.json({ received: true, ignored: "unknown_product" });
-    }
-
-    const variantId = variantIdFromOrderAttributes(attrs);
-    const userId = extractUserId(payload);
-    const creditsToAdd = creditsForLemonVariant(variantId);
-    console.log("[lemonsqueezy webhook] order_created", {
-      variant_id: variantId ?? null,
-      user_id: userId || null,
-      credits_added: creditsToAdd,
-    });
-
-    if (!creditsToAdd) {
-      console.warn("[lemonsqueezy webhook] unknown variant id", { variant_id: variantId ?? null });
-      return NextResponse.json({ received: true, ignored: "unknown_variant" });
-    }
-
-    if (!userId) {
-      return NextResponse.json({ received: true, warning: "missing_user_id" });
-    }
-
-    const orderKey = String(payload.data?.id ?? attrs.identifier ?? "");
-    if (!orderKey) {
-      return NextResponse.json({ received: true, warning: "missing_order_id" });
-    }
-
-    const { error: insErr } = await admin.from("processed_lemon_orders").insert({
-      lemon_order_id: orderKey,
-      user_id: userId,
-    });
-    if (insErr?.code === "23505") {
-      return NextResponse.json({ received: true, duplicate: true });
-    }
-    if (insErr) {
-      console.error("processed_lemon_orders insert", insErr);
-      return NextResponse.json({ received: true, warning: "processed_order_insert_failed" });
-    }
-
-    const { data: row } = await admin.from("profiles").select("ai_credits, ai_credits_ceiling").eq("id", userId).single();
-    const nextCredits = (row?.ai_credits ?? 0) + creditsToAdd;
-    const nextCeiling = (row?.ai_credits_ceiling ?? 0) + creditsToAdd;
-
-    let pack: CreditPack | null = packForLemonVariant(variantId);
-    if (!pack) {
-      pack = creditsToAdd >= 400 ? "bulk" : creditsToAdd >= 150 ? "growth" : "starter";
-    }
-
-    const { error: upErr } = await admin
-      .from("profiles")
-      .update({
-        plan: pack,
-        ai_credits: nextCredits,
-        ai_credits_ceiling: nextCeiling,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-
-    if (upErr) {
-      console.error("profiles credit grant", upErr);
-      return NextResponse.json({ received: true, warning: "profile_credit_update_failed" });
-    }
-
-    return NextResponse.json({ received: true, order: orderKey, credits_added: creditsToAdd });
-  }
 
   if (!event.includes("subscription")) {
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, ignored: "non_subscription_event" });
   }
 
   const productId = extractProductId(payload);
@@ -203,34 +146,44 @@ export async function POST(req: Request) {
 
   const variantId = extractVariantId(payload);
   const attrs = payload.data?.attributes ?? {};
-  const plan: BillingPlan = inferPlanFromName(variantId, attrs);
+  const plan = inferPlan(variantId, attrs);
   const userId = extractUserId(payload);
   const status = subscriptionStatus(attrs);
+  const subscriptionId = String(payload.data?.id ?? "");
+  const endsAt = (attrs.ends_at as string | undefined) ?? (attrs.current_period_ends_at as string | undefined) ?? null;
 
   if (!userId) {
     return NextResponse.json({ received: true, warning: "missing_user_id" });
   }
 
-  const { error: subErr } = await admin.from("subscriptions").upsert(
-    {
-      user_id: userId,
-      lemon_squeezy_id: String(payload.data?.id ?? ""),
-      plan,
-      status,
-      current_period_start: (attrs.current_period_starts_at as string | undefined) ?? null,
-      current_period_end: (attrs.current_period_ends_at as string | undefined) ?? null,
-      cancel_at: (attrs.ends_at as string | undefined) ?? null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "lemon_squeezy_id" }
-  );
-  if (subErr) {
-    console.error("subscription upsert failed", subErr);
+  if (event === "subscription_created" || event === "subscription_updated") {
+    await updateProfilePlan(admin, userId, plan, subscriptionId, status === "active" ? "active" : status, endsAt);
+
+    await admin.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        lemon_squeezy_id: subscriptionId,
+        plan,
+        status,
+        current_period_start: (attrs.current_period_starts_at as string | undefined) ?? null,
+        current_period_end: (attrs.current_period_ends_at as string | undefined) ?? null,
+        cancel_at: endsAt,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "lemon_squeezy_id" }
+    );
+
+    return NextResponse.json({ received: true, plan, status });
   }
 
-  const { error: planErr } = await admin.from("profiles").update({ plan }).eq("id", userId);
-  if (planErr) {
-    console.error("profile plan update failed", planErr);
+  if (event === "subscription_cancelled") {
+    await updateProfilePlan(admin, userId, plan, subscriptionId, "cancelled", endsAt);
+    return NextResponse.json({ received: true, cancelled: true });
+  }
+
+  if (event === "subscription_expired") {
+    await updateProfilePlan(admin, userId, "free", subscriptionId, "expired", endsAt);
+    return NextResponse.json({ received: true, expired: true });
   }
 
   return NextResponse.json({ received: true });
